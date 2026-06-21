@@ -123,10 +123,11 @@ def render_agent_table(profiles: List[AgentProfile]):
 
 async def run_single_agent_task(idx: int, agent: Agent, stimulus: str, statuses: list, semaphore: asyncio.Semaphore):
     """Worker task to run agent perception and track its live status and duration with concurrency control."""
+    # Rate-limiting: stagger Round 1 starts by agent index to spread API calls
+    await asyncio.sleep(idx * 2)
     start_time = time.time()
     statuses[idx]["status"] = "Thinking..."
     try:
-        # Acquire semaphore before calling the heavy LLM API
         async with semaphore:
             result = await agent.perceive_and_react(stimulus)
         duration = time.time() - start_time
@@ -140,14 +141,44 @@ async def run_single_agent_task(idx: int, agent: Agent, stimulus: str, statuses:
         statuses[idx]["result"] = {"error": str(e)}
 
 
-async def run_single_agent_debate_task(idx: int, agent: Agent, stimulus: str, round1_transcript: str, statuses: list, semaphore: asyncio.Semaphore):
-    """Worker task to run agent debate round and track its live status and duration with concurrency control."""
+async def run_single_agent_debate_task(
+    idx: int, agent: Agent, stimulus: str, round1_transcript: str,
+    adversary: dict, statuses: list, semaphore: asyncio.Semaphore
+):
+    """Worker task to run the directed debate round with adversary challenge injection and rate-limiting pacing."""
+    # Rate-limiting: flat cool-off + index stagger to spread Round 2 API calls
+    await asyncio.sleep(4 + idx * 3)
     start_time = time.time()
     statuses[idx]["status"] = "Debating..."
     try:
-        # Acquire semaphore before calling the heavy LLM API
         async with semaphore:
-            result = await agent.debate_and_react(stimulus, round1_transcript)
+            result = await agent.debate_and_react(
+                stimulus, round1_transcript,
+                adversary=adversary if adversary else None
+            )
+        duration = time.time() - start_time
+        statuses[idx]["status"] = "Completed"
+        statuses[idx]["duration"] = duration
+        statuses[idx]["result"] = result
+    except Exception as e:
+        duration = time.time() - start_time
+        statuses[idx]["status"] = "Failed"
+        statuses[idx]["duration"] = duration
+        statuses[idx]["result"] = {"error": str(e)}
+
+
+async def run_single_agent_crisis_task(
+    idx: int, agent: Agent, crisis: str, original_stimulus: str,
+    statuses: list, semaphore: asyncio.Semaphore
+):
+    """Worker task to run the crisis stress-test round with rate-limiting pacing."""
+    # Rate-limiting: flat cool-off + index stagger to spread Round 3 API calls
+    await asyncio.sleep(4 + idx * 3)
+    start_time = time.time()
+    statuses[idx]["status"] = "Reacting..."
+    try:
+        async with semaphore:
+            result = await agent.react_to_crisis(crisis, original_stimulus)
         duration = time.time() - start_time
         statuses[idx]["status"] = "Completed"
         statuses[idx]["duration"] = duration
@@ -171,7 +202,7 @@ def make_parallel_status_table(statuses: list, title: str = "Concurrent Executio
         status_text = s["status"]
         if status_text == "Pending...":
             status_style = "[dim]Pending...[/dim]"
-        elif status_text == "Thinking..." or status_text == "Debating...":
+        elif status_text in ("Thinking...", "Debating...", "Reacting..."):
             status_style = f"[yellow]{status_text} ⏳[/yellow]"
         elif status_text == "Completed":
             status_style = "[green]✔ Completed[/green]"
@@ -181,6 +212,52 @@ def make_parallel_status_table(statuses: list, title: str = "Concurrent Executio
         dur_text = f"{s['duration']:.2f}s" if s["duration"] > 0 else "---"
         table.add_row(s["id"], s["archetype"].replace("_", " "), status_style, dur_text)
     return table
+
+
+def compute_adversary_map(decisions: list, agents: list) -> dict:
+    """
+    Compute the adversary map for each agent using:
+    1. Cross-faction filtering (prefer opponents with different action decisions).
+    2. Flat collapse fallback (if all took same action, skip filtering).
+    3. Delta-U maximization (pick max |U_A - U_B|).
+    4. Aggressiveness tie-breaker (if deltas are equal, pick most aggressive opponent).
+    Returns: {agent_id: adversary_decision_dict or None}
+    """
+    adversary_map = {}
+    for i, dec_a in enumerate(decisions):
+        agent_a = agents[i]
+        u_a = dec_a.get("utility", 0.0)
+        action_a = dec_a.get("action", "IGNORE")
+
+        # Step 1: gather candidates — prefer cross-faction (different action)
+        cross_faction = [
+            (j, dec_b) for j, dec_b in enumerate(decisions)
+            if j != i and dec_b.get("action", "IGNORE") != action_a
+        ]
+        candidates = cross_faction if cross_faction else [
+            (j, dec_b) for j, dec_b in enumerate(decisions) if j != i
+        ]
+
+        if not candidates:
+            adversary_map[dec_a["id"]] = None
+            continue
+
+        # Step 2: find max delta U
+        max_delta = max(abs(u_a - dec_b.get("utility", 0.0)) for _, dec_b in candidates)
+
+        # Step 3: tie-breaker — collect all candidates with max delta, pick highest aggressiveness
+        tied = [
+            (j, dec_b) for j, dec_b in candidates
+            if abs(u_a - dec_b.get("utility", 0.0)) == max_delta
+        ]
+        if len(tied) > 1:
+            _, chosen = max(tied, key=lambda x: agents[x[0]].profile.attributes.aggressiveness)
+        else:
+            _, chosen = tied[0]
+
+        adversary_map[dec_a["id"]] = chosen
+
+    return adversary_map
 
 
 async def run_swarm_simulation_poc():
@@ -346,10 +423,25 @@ async def run_swarm_simulation_poc():
     ))
 
     # ==========================================
-    # ROUND 2: DYNAMIC SWARM DEBATE (PARALLEL)
+    # COMPUTE ADVERSARY MAP (DIRECTED DEBATE GRAPH)
     # ==========================================
     console.print()
-    console.print(Rule("[bold magenta]ROUND 2: DYNAMIC DEBATE & REFLECTION STARTED[/bold magenta]"))
+    adversary_map = compute_adversary_map(decisions_r1, agents)
+    console.print(Panel(
+        "\n".join([
+            f"[bold yellow]{decisions_r1[i]['archetype']}[/bold yellow] → challenges → "
+            f"[bold red]{adversary_map[decisions_r1[i]['id']]['archetype'] if adversary_map[decisions_r1[i]['id']] else 'No adversary (homogeneous swarm)'}[/bold red]"
+            for i in range(len(agents))
+        ]),
+        title="[bold cyan]Directed Interaction Graph (ΔU Pairing)[/bold cyan]",
+        border_style="cyan"
+    ))
+
+    # ==========================================
+    # ROUND 2: DIRECTED SWARM DEBATE (PARALLEL)
+    # ==========================================
+    console.print()
+    console.print(Rule("[bold magenta]ROUND 2: DIRECTED DEBATE & REFLECTION STARTED[/bold magenta]"))
 
     statuses_r2 = [{
         "id": agent.profile.agent_id,
@@ -361,9 +453,13 @@ async def run_swarm_simulation_poc():
 
     global_start_time_r2 = time.time()
 
-    # Launch tasks for Round 2
+    # Launch tasks for Round 2 with adversary assignments
     tasks_r2 = [
-        asyncio.create_task(run_single_agent_debate_task(idx, agent, stimulus, full_round1_transcript, statuses_r2, semaphore))
+        asyncio.create_task(run_single_agent_debate_task(
+            idx, agent, stimulus, full_round1_transcript,
+            adversary_map.get(agent.profile.agent_id),
+            statuses_r2, semaphore
+        ))
         for idx, agent in enumerate(agents)
     ]
 
@@ -450,14 +546,133 @@ async def run_swarm_simulation_poc():
         )
 
     # ==========================================
-    # ROUND 3: EXECUTIVE DIAGNOSTIC REPORT CONTROLLER
+    # ROUND 3: CRISIS SYNTHESIS & STRESS-TEST
+    # ==========================================
+    console.print()
+    console.print(Rule("[bold red]ROUND 3: CRISIS STRESS-TEST INITIATED[/bold red]"))
+
+    # Build Round 2 transcript for crisis synthesis input
+    round2_transcript_parts = [
+        f"Agent: {d['archetype']} (ID: {d['id']})\n"
+        f"- Public Statement: \"{d['statement']}\"\n"
+        f"- Action: {d['action']}"
+        for d in decisions_r2
+    ]
+    full_round2_transcript = "\n\n".join(round2_transcript_parts)
+
+    # Rate-limit: brief pause before crisis synthesis API call
+    await asyncio.sleep(2)
+
+    compiler = ExecutiveCompiler(client)
+    with Live(Spinner("aesthetic", text="[bold red]Catalyst Agent synthesizing crisis event...[/bold red]"), refresh_per_second=10) as live:
+        crisis_event = await compiler.generate_crisis_event(stimulus, full_round2_transcript)
+        live.update(f"[bold red]⚡ Crisis Event Injected![/bold red]")
+
+    console.print()
+    console.print(Panel(
+        f"[bold red]{crisis_event}[/bold red]",
+        title="[bold]⚡ External Catalyst Event — Injected by System[/bold]",
+        border_style="red"
+    ))
+
+    statuses_r3 = [{
+        "id": agent.profile.agent_id,
+        "archetype": agent.profile.archetype,
+        "status": "Pending...",
+        "duration": 0.0,
+        "result": {}
+    } for agent in agents]
+
+    global_start_time_r3 = time.time()
+
+    tasks_r3 = [
+        asyncio.create_task(run_single_agent_crisis_task(
+            idx, agent, crisis_event, stimulus, statuses_r3, semaphore
+        ))
+        for idx, agent in enumerate(agents)
+    ]
+
+    with Live(make_parallel_status_table(statuses_r3, "Round 3 Crisis Monitor"), refresh_per_second=5) as live:
+        while any(s["status"] in ("Pending...", "Reacting...") for s in statuses_r3):
+            await asyncio.sleep(0.2)
+            live.update(make_parallel_status_table(statuses_r3, "Round 3 Crisis Monitor"))
+        await asyncio.gather(*tasks_r3)
+        live.update(make_parallel_status_table(statuses_r3, "Round 3 Crisis Monitor"))
+
+    global_duration_r3 = time.time() - global_start_time_r3
+
+    decisions_r3 = []
+    for idx, agent in enumerate(agents):
+        archetype_title = agent.profile.archetype.replace("_", " ")
+        result = statuses_r3[idx]["result"]
+
+        if "error" in result or not result:
+            decisions_r3.append({
+                "id": agent.profile.agent_id,
+                "archetype": archetype_title,
+                "action": "IGNORE",
+                "utility": 0.0,
+                "monologue": "Failed to react to crisis.",
+                "statement": "...",
+                "new_state": str(agent.profile.current_internal_state),
+                "duration": statuses_r3[idx]["duration"]
+            })
+            continue
+
+        monologue = result.get("internal_monologue", "...")
+        statement = result.get("public_reaction", "...")
+        action = result.get("action_decision", "IGNORE")
+        new_state = result.get("new_internal_state", "Neutral")
+        new_memory = result.get("new_memory_to_store", "No memory stored.")
+        weights = result.get("utility_weights", {})
+        vals = result.get("stimulus_evaluated_values", {})
+        utility = (
+            weights.get("w_savings", 0.0) * vals.get("v_gains", 0.0)
+            + weights.get("w_urgency", 0.0) * vals.get("v_urgency", 0.0)
+            + weights.get("w_ego", 0.0) * vals.get("v_ego", 0.0)
+            - vals.get("cost", 0.0)
+        )
+        action_style = "green" if action in ("BUY", "COLLABORATE") else "red" if action == "REJECT" else "yellow"
+
+        decisions_r3.append({
+            "id": agent.profile.agent_id,
+            "archetype": archetype_title,
+            "action": action,
+            "utility": utility,
+            "monologue": monologue,
+            "statement": statement,
+            "new_state": new_state,
+            "duration": statuses_r3[idx]["duration"]
+        })
+
+        console.print(
+            Panel(
+                f"[italic dim]Crisis Internal Monologue:[/italic dim]\n"
+                f"[dim]\"{monologue}\"[/dim]\n\n"
+                f"[bold red]Crisis Public Reaction:[/bold red]\n"
+                f"\"{statement}\"\n\n"
+                f"• Utility (U) : [bold]{utility:.4f}[/bold]\n"
+                f"• Decision    : [{action_style}][bold]{action}[/bold][/{action_style}]\n"
+                f"• State       : [magenta]{new_state}[/magenta]\n"
+                f"• Memory      : [cyan italic]{new_memory}[/cyan italic]",
+                title=f"[bold red]{archetype_title} (ID: {agent.profile.agent_id}) - Round 3 (Crisis Reaction)[/bold red]",
+                border_style="red" if action == "REJECT" else "yellow" if action == "IGNORE" else "green"
+            )
+        )
+
+    # ==========================================
+    # EXECUTIVE DIAGNOSTIC REPORT COMPILATION
     # ==========================================
     console.print()
     console.print(Rule("[bold yellow]COMPILING EXECUTIVE DIAGNOSTIC REPORT[/bold yellow]"))
 
-    with Live(Spinner("aesthetic", text="[bold yellow]Chief Behavioral Architect is analyzing transcripts...[/bold yellow]"), refresh_per_second=10) as live:
-        compiler = ExecutiveCompiler(client)
-        report_md = await compiler.compile_report(stimulus, decisions_r1, decisions_r2)
+    await asyncio.sleep(2)
+
+    with Live(Spinner("aesthetic", text="[bold yellow]Chief Behavioral Architect is analyzing all three rounds...[/bold yellow]"), refresh_per_second=10) as live:
+        report_md = await compiler.compile_report(
+            stimulus, decisions_r1, decisions_r2,
+            round3_results=decisions_r3, crisis_event=crisis_event
+        )
         live.update("[bold green]✔ Diagnostic Report compiled successfully![/bold green]")
 
     console.print()
@@ -471,26 +686,43 @@ async def run_swarm_simulation_poc():
     )
 
     console.print(Rule("[bold magenta]SIMULATION CONCLUDED[/bold magenta]"))
-    console.print(f"• Round 1 Time   : [green]{global_duration_r1:.2f}s[/green]\n"
-                  f"• Round 2 Time   : [green]{global_duration_r2:.2f}s[/green]\n"
-                  f"• Total Duration : [yellow]{global_duration_r1 + global_duration_r2:.2f}s[/yellow] for [yellow]{count}[/yellow] agents.\n")
+    console.print(
+        f"• Round 1 Time   : [green]{global_duration_r1:.2f}s[/green]\n"
+        f"• Round 2 Time   : [green]{global_duration_r2:.2f}s[/green]\n"
+        f"• Round 3 Time   : [green]{global_duration_r3:.2f}s[/green]\n"
+        f"• Total Duration : [yellow]{global_duration_r1 + global_duration_r2 + global_duration_r3:.2f}s[/yellow] "
+        f"for [yellow]{count}[/yellow] agents across 3 rounds.\n"
+    )
 
-    # Consolidate results into summary table
-    res_table = Table(title="Simulation Verdict Summary (Parallel Engine — End of Debate)", border_style="magenta")
+    # 3-round comparison summary table
+    r1_lookup = {d["id"]: d for d in decisions_r1}
+    r2_lookup = {d["id"]: d for d in decisions_r2}
+    r3_lookup = {d["id"]: d for d in decisions_r3}
+
+    res_table = Table(title="3-Round Simulation Verdict Comparison", border_style="magenta")
     res_table.add_column("Agent Archetype", style="bold yellow")
-    res_table.add_column("Decision Taken", style="bold")
-    res_table.add_column("Calculated Utility", style="bold cyan")
-    res_table.add_column("Ending Emotional State", style="magenta")
-    res_table.add_column("Remaining Resources", style="green")
+    res_table.add_column("R1 Initial", style="bold")
+    res_table.add_column("R2 Debate", style="bold")
+    res_table.add_column("R3 Crisis", style="bold")
+    res_table.add_column("Final State", style="magenta")
+    res_table.add_column("Resources", style="green")
 
-    for dec in decisions_r2:
-        act_style = "green" if dec["action"] in ("BUY", "COLLABORATE") else "red" if dec["action"] == "REJECT" else "yellow"
+    def action_tag(action: str) -> str:
+        color = "green" if action in ("BUY", "COLLABORATE") else "red" if action == "REJECT" else "yellow"
+        return f"[{color}]{action}[/{color}]"
+
+    for d in decisions_r3:
+        aid = d["id"]
+        r1 = r1_lookup.get(aid, {})
+        r2 = r2_lookup.get(aid, {})
+        balance = agents[next(i for i, a in enumerate(agents) if a.profile.agent_id == aid)].profile.resource_pool.current_balance
         res_table.add_row(
-            dec["archetype"],
-            f"[{act_style}]{dec['action']}[/{act_style}]",
-            f"{dec['utility']:.4f}",
-            dec["new_state"],
-            f"{dec['balance']:,.0f}"
+            d["archetype"],
+            action_tag(r1.get("action", "?")),
+            action_tag(r2.get("action", "?")),
+            action_tag(d["action"]),
+            d["new_state"],
+            f"{balance:,.0f}"
         )
 
     console.print(res_table)

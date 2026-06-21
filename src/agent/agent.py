@@ -238,7 +238,7 @@ You must output a single valid JSON object containing exactly the following keys
             }
 
     async def debate_and_react(
-        self, stimulus: str, round1_transcript: str, model: Optional[str] = None
+        self, stimulus: str, round1_transcript: str, adversary: Optional[dict] = None, model: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Conduct a secondary debate/reflection round. The agent perceives peers' public
@@ -260,6 +260,14 @@ Your peers in the colony have voiced their initial public reactions.
 4. Respond with a new valid JSON. If you are influenced by your peers, you can shift your weights, value perceptions, and public statement.
 5. In your "public_reaction", speak DIRECTLY to your peers' concerns (refer to them or their archetypes!).
 """
+
+        if adversary:
+            debate_instruction += f"""
+--- DIRECT CHALLENGE ---
+You have been challenged directly by the {adversary.get('archetype', 'another agent')} (who took the action {adversary.get('action', 'IGNORE')} and stated publicly: "{adversary.get('statement', '...')}"):
+You MUST address their stance directly in your "public_reaction" and "internal_monologue", defend your reasoning against their point of view, and explain why you disagree (or compromise, if their argument makes you shift your utility).
+"""
+
         messages = [
             {"role": "system", "content": base_prompt},
             {"role": "user", "content": debate_instruction},
@@ -280,3 +288,44 @@ Your peers in the colony have voiced their initial public reactions.
                 "action_decision": "IGNORE",
                 "new_internal_state": str(self.profile.current_internal_state),
             }
+
+    async def react_to_crisis(
+        self, crisis: str, original_stimulus: str, model: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Process an external crisis event injected mid-simulation, evaluate its economic and 
+        emotional impact on the original concept, and update decision and internal state.
+        """
+        context_summary = f"CRITICAL INTERVENTION: {crisis}\n(Original Concept: {original_stimulus})"
+        system_prompt = self.build_system_prompt(context_summary)
+        
+        prompt = f"""An external crisis event has occurred that impacts the original concept:
+Original Concept: "{original_stimulus}"
+Crisis Event: "{crisis}"
+
+Evaluate how this crisis changes the parameters of your decision utility:
+1. Does it increase the cost / risk (e.g., higher taxes, security concerns)? If so, adjust your evaluated "cost" upwards in the JSON.
+2. Does it reduce the perceived gains (v_gains) or increase the urgency (v_urgency)?
+3. Respond with a new valid JSON updating your internal monologue, public reaction, utility weights, evaluated values, and new memory.
+"""
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt},
+        ]
+
+        try:
+            raw_response = await self.client.chat(messages, model=model)
+            parsed_data = self._parse_json_robustly(raw_response)
+
+            # Programmatically compute exact math decisions and transition states
+            self._evaluate_utility_and_transition(parsed_data)
+
+            return parsed_data
+        except Exception as e:
+            return {
+                "error": f"Error during crisis reaction: {str(e)}",
+                "raw_response": raw_response if 'raw_response' in locals() else "",
+                "action_decision": "IGNORE",
+                "new_internal_state": str(self.profile.current_internal_state),
+            }
+
