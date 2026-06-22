@@ -1,331 +1,337 @@
-import json
-from typing import Dict, Any, List, Optional
-import httpx
+from typing import Any, Optional
 
 from src.llm.client import OllamaClient
-from src.agent.profile import AgentProfile, AgentState
+from src.llm.json_parse import parse_json_robustly
+from src.agent.profile import AgentProfile
+from src.schema.simulation_schema import SimulationSchema
 
 
 class Agent:
-    """
-    Unified Agent controller wrapping its Profile, Memory, and LLM reasoning.
-    Grounds LLM opinions in mathematical utility attributes & persistent state.
-    """
-
-    def __init__(self, profile: AgentProfile, client: OllamaClient):
+    def __init__(self, profile: AgentProfile, client: OllamaClient, schema: SimulationSchema):
         self.profile = profile
         self.client = client
-        # Decision threshold (theta). If Utility > theta, execute action.
+        self.schema = schema
         self.decision_threshold = 0.5
 
-    def build_system_prompt(self, context_summary: str = "") -> str:
-        """
-        Create a dynamic system prompt representing this agent's identity,
-        personality, bias weights, and current state.
-        """
-        attributes = self.profile.attributes
-        resources = self.profile.resource_pool
-        memories = "\n".join([f"- {m}" for m in self.profile.memory_vectors])
+    def _linguistic_style_prompt(self) -> str:
+        cluster = self.schema.get_cluster(self.profile.linguistic_cluster_id)
+        if cluster is not None:
+            return cluster.style_prompt
+        return (
+            f"Speak with a natural voice consistent with the persona of a "
+            f"'{self.profile.archetype}'. Express your biases and emotional state clearly."
+        )
 
-        system_prompt = f"""You are simulating an autonomous agent of a social colony.
-You MUST think and act strictly according to your defined archetype and internal state.
-Do NOT break character or sound like an AI assistant. Be direct, opinionated, and show biases.
+    def _render_actions_block(self) -> str:
+        lines = []
+        for a in self.schema.actions:
+            suffix = []
+            if a.is_terminal:
+                suffix.append("terminal")
+            if a.affects_resource:
+                suffix.append(f"spends {a.affects_resource}")
+            tag = f" ({', '.join(suffix)})" if suffix else ""
+            lines.append(f"- {a.name}{tag}: {a.description}")
+        return "\n".join(lines)
+
+    def _render_resources_block(self) -> str:
+        if self.schema.resource_model.kind == "none" or not self.profile.resources:
+            return "This scenario does not track tangible resources for this agent."
+        lines = []
+        for r in self.profile.resources:
+            lines.append(f"- {r.name}: {r.current:,.2f} / {r.maximum:,.2f}")
+        return "\n".join(lines)
+
+    def _render_response_template(self) -> str:
+        if self.schema.resource_model.kind == "none" or not self.profile.resources:
+            resource_field = ""
+        else:
+            resource_field = (
+                '\n  "resource_deductions": {  // map of resource_name to numeric amount to deduct '
+                '(0 if action does not spend that resource). Numbers only, no symbols or commas.\n'
+                + ",\n".join(f'    "{r.name}": 0' for r in self.profile.resources)
+                + "\n  },"
+            )
+        action_names = " | ".join(self.schema.action_names())
+        state_examples = ", ".join(self.schema.state_vocabulary[:6])
+        return f"""{{
+  "internal_reflection": "private thoughts about the stimulus",
+  "public_statement": "what you say out loud to peers, in your linguistic style",
+  "utility_calculation": {{
+    "perceived_gains": 0.0,
+    "perceived_costs": 0.0,
+    "final_utility": 0.0
+  }},
+  "decision": "{action_names}",
+  "emotional_state": "one of: {state_examples}, ...",{resource_field}
+  "new_memory_to_store": "one short sentence summarizing what you learned"
+}}"""
+
+    def build_system_prompt(self, context_summary: str = "") -> str:
+        attrs = self.profile.attributes
+        memories = "\n".join(f"- {m}" for m in self.profile.memory_vectors) or "- (no prior memories)"
+
+        sections = []
+        macro = self.schema.macro_context_text()
+        if macro:
+            sections.append(macro)
+        if context_summary:
+            sections.append(context_summary)
+        context_block = "\n\n".join(sections) if sections else "Normal operating conditions."
+
+        state_vocab = ", ".join(self.schema.state_vocabulary)
+
+        return f"""You are an autonomous agent participating in a simulation: "{self.schema.scenario_name}".
+Scenario context: {self.schema.scenario_description}
+
+You MUST stay strictly in character — direct, opinionated, biased. Do not sound like an AI assistant.
+
+--- LINGUISTIC STYLE ---
+{self._linguistic_style_prompt()}
 
 --- YOUR IDENTITY ---
 Agent ID: {self.profile.agent_id}
-Archetype/Profile: {self.profile.archetype}
-Current Emotional/Internal State: {self.profile.current_internal_state}
+Archetype: {self.profile.archetype}
+Current Internal State: {self.profile.current_internal_state}
 
---- CHARACTERISTICS & BIASES ---
-- Rationality Index: {attributes.rationality_index:.2f} (1.0 = purely logical, 0.0 = purely emotional)
-- Aggressiveness: {attributes.aggressiveness:.2f} (1.0 = highly dominant/confrontational, 0.0 = passive/avoidant)
-- Risk Tolerance: {attributes.risk_tolerance:.2f} (1.0 = reckless gambler, 0.0 = extremely paranoid safety seeker)
+--- CHARACTERISTICS ---
+- Rationality: {attrs.rationality_index:.2f} (1.0 = pure logic, 0.0 = pure emotion)
+- Aggressiveness: {attrs.aggressiveness:.2f} (1.0 = dominant/confrontational, 0.0 = passive)
+- Risk Tolerance: {attrs.risk_tolerance:.2f} (1.0 = reckless, 0.0 = extremely cautious)
 
---- ECONOMIC STATUS & RESOURCES ---
-- Primary Resource: {resources.primary_resource_name}
-- Current Balance: {resources.current_balance:.2f} / {resources.max_capacity:.2f}
+--- RESOURCES ---
+{self._render_resources_block()}
 
---- PERSISTENT MEMORIES ---
-{memories if memories else "- (No past memories recorded yet)"}
+--- MEMORIES ---
+{memories}
 
---- CURRENT SIMULATION CONTEXT ---
-{context_summary if context_summary else "Normal daily operations."}
+--- SCENARIO ENVIRONMENT ---
+{context_block}
 
---- DECISION LOGIC (UTILITY EVALUATION) ---
-You evaluate the personal significance weights and perceived values for the proposed stimulus/concept.
-The underlying mathematical formula used by the simulation platform to determine your actions is:
-Utility = (W_savings * V_gains) + (W_urgency * V_urgency) + (W_ego * V_ego) - Cost
+--- AVAILABLE ACTIONS ---
+You must commit to exactly one of these action verbs:
+{self._render_actions_block()}
 
-You do NOT decide the final action_decision or emotional state yourself. The simulation engine will mathematically compute your final decision and automatically update your state machine based on the weights and values you output below. 
+--- DECISION LOGIC ---
+Compute your utility internally as:
+  final_utility = perceived_gains - perceived_costs
+where both inputs are in [0.0, 1.0] and final_utility ends up in [-1.0, 1.0].
 
-Format your evaluation strictly as the valid JSON structure shown below.
+--- EMOTIONAL STATE VOCABULARY ---
+Pick one state that reflects your shift after this stimulus. Available states: {state_vocab}.
 
---- RESPONSE FORMAT ---
-You must output a single valid JSON object containing exactly the following keys. Do NOT output any conversational text or explanation outside of the JSON block.
+--- OUTPUT FORMAT ---
+Return ONLY a valid JSON object matching this template. No prose, no markdown fences, no <thought> tags:
 
-{{
-  "internal_monologue": "Your raw, private thoughts about the stimulus/concept. Reflect deeply on your archetype, financial standing, risk tolerance, and real motivations. (Hidden from other agents)",
-  "public_reaction": "What you say out loud, write down, or do in front of the others regarding this stimulus. Direct and opinionated.",
-  "utility_weights": {{
-    "w_savings": 0.0, // weight you place on saving money/resources (0.0 to 1.0)
-    "w_urgency": 0.0, // weight you place on immediate need/urgency (0.0 to 1.0)
-    "w_ego": 0.0      // weight you place on status, pride, or ego (0.0 to 1.0)
-  }},
-  "stimulus_evaluated_values": {{
-    "v_gains": 0.0,   // estimated value/gain of this stimulus to you (0.0 to 1.0)
-    "v_urgency": 0.0, // perceived urgency of action (0.0 to 1.0)
-    "v_ego": 0.0,     // perceived status/glorification gained (0.0 to 1.0)
-    "cost": 0.0       // estimated price or resource cost you have to pay (scaled 0.0 to 1.0)
-  }},
-  "new_memory_to_store": "A short, single-sentence episodic memory representing what you learned or resolved from this interaction (to be stored in memory)."
-}}
+{self._render_response_template()}
 """
-        return system_prompt
 
-    def _parse_json_robustly(self, text: str) -> Dict[str, Any]:
-        """
-        Extract and parse a JSON object from text that may be polluted with
-        preambles, markdown formatting, or postscripts.
-        """
-        # Try direct parsing first
-        cleaned = text.strip()
-        try:
-            return json.loads(cleaned)
-        except Exception:
-            pass
+    def _evaluate_utility_and_transition(self, parsed: dict[str, Any]) -> None:
+        calc = parsed.get("utility_calculation") or {}
+        if not isinstance(calc, dict):
+            calc = {}
 
-        # Try to clean standard markdown code blocks first
-        if "```" in cleaned:
-            parts = cleaned.split("```")
-            for part in parts:
-                part_stripped = part.strip()
-                if part_stripped.startswith("json"):
-                    part_stripped = part_stripped[4:].strip()
-                if part_stripped.startswith("{") and part_stripped.endswith("}"):
-                    try:
-                        return json.loads(part_stripped)
-                    except Exception:
-                        pass
+        gains = _coerce_float(calc.get("perceived_gains"), 0.0)
+        costs = _coerce_float(calc.get("perceived_costs"), 0.0)
+        utility = _coerce_float(calc.get("final_utility"), gains - costs)
+        parsed["utility"] = utility
 
-        # Failover search for the first '{' and the last '}'
-        start_idx = cleaned.find("{")
-        end_idx = cleaned.rfind("}")
-        if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
-            substring = cleaned[start_idx:end_idx + 1]
-            try:
-                return json.loads(substring)
-            except Exception:
-                pass
+        action = _normalize_action(parsed.get("decision"), self.schema, utility, self.profile.attributes.aggressiveness, self.decision_threshold)
+        parsed["action_decision"] = action
 
-        # If everything fails, do a standard json.loads to trigger the original exception
-        return json.loads(text)
+        raw_state = parsed.get("emotional_state")
+        state = _normalize_state(raw_state, self.schema.state_vocabulary, fallback=self.profile.current_internal_state)
+        parsed["new_internal_state"] = state
+        self.profile.current_internal_state = state
 
-    def _evaluate_utility_and_transition(self, parsed_data: Dict[str, Any]):
-        """
-        Evaluate weights & values from LLM, calculate mathematical utility,
-        programmatically assign action_decision and new_internal_state Enum,
-        and update resources if action is BUY.
-        """
-        weights = parsed_data.get("utility_weights", {})
-        vals = parsed_data.get("stimulus_evaluated_values", {})
-
-        # Safe extraction
-        w_savings = float(weights.get("w_savings", 0.0))
-        w_urgency = float(weights.get("w_urgency", 0.0))
-        w_ego = float(weights.get("w_ego", 0.0))
-
-        v_gains = float(vals.get("v_gains", 0.0))
-        v_urgency = float(vals.get("v_urgency", 0.0))
-        v_ego = float(vals.get("v_ego", 0.0))
-        cost = float(vals.get("cost", 0.0))
-
-        # Calculate exact utility U(A)_t = W_savings * V_gains + W_urgency * V_urgency + W_ego * V_ego - Cost
-        utility = (w_savings * v_gains) + (w_urgency * v_urgency) + (w_ego * v_ego) - cost
-        
-        # Decide action and state transition programmatically based on utility
-        # Threshold theta = 0.5 (BUY threshold)
-        if utility > self.decision_threshold:
-            action = "BUY"
-        elif 0.1 < utility <= self.decision_threshold:
-            # High aggressiveness leads to DEBATE, low aggressiveness to COLLABORATE
-            if self.profile.attributes.aggressiveness > 0.6:
-                action = "DEBATE"
-            else:
-                action = "COLLABORATE"
-        elif -0.1 <= utility <= 0.1:
-            action = "IGNORE"
-        else: # utility < -0.1
-            action = "REJECT"
-
-        # Determine emotional transition strictly using our StrEnum
-        if action == "BUY":
-            if utility > 0.8:
-                new_state = AgentState.EXCITED
-            else:
-                new_state = AgentState.SATISFIED
-        elif action == "REJECT":
-            if self.profile.attributes.aggressiveness > 0.6:
-                new_state = AgentState.ANGRY
-            elif self.profile.attributes.risk_tolerance < 0.3:
-                new_state = AgentState.PARANOID
-            else:
-                new_state = AgentState.SKEPTICAL
-        elif action in ("DEBATE", "COLLABORATE"):
-            if self.profile.attributes.rationality_index > 0.7:
-                new_state = AgentState.ANALYTICAL
-            else:
-                new_state = AgentState.INQUISITIVE
-        else: # IGNORE
-            new_state = AgentState.BORED
-
-        # Inject clean programmatic results into parsed_data
-        parsed_data["action_decision"] = action
-        parsed_data["new_internal_state"] = str(new_state)
-
-        # Apply state changes to AgentProfile (emotional state + episodic memory)
-        self.profile.current_internal_state = new_state
-
-        new_memory = parsed_data.get("new_memory_to_store")
-        if new_memory and isinstance(new_memory, str):
+        new_memory = parsed.get("new_memory_to_store")
+        if isinstance(new_memory, str):
             new_memory = new_memory.strip()
             if new_memory and new_memory not in self.profile.memory_vectors:
                 self.profile.memory_vectors.append(new_memory)
                 if len(self.profile.memory_vectors) > 10:
                     self.profile.memory_vectors.pop(0)
 
-        # Resource deduct if BUY
-        if action == "BUY" and cost > 0:
-            damage = cost * (self.profile.resource_pool.max_capacity * 0.1)
-            new_balance = max(0.0, self.profile.resource_pool.current_balance - damage)
-            self.profile.resource_pool.current_balance = new_balance
+        self._apply_resource_deductions(parsed, action)
 
-    async def perceive_and_react(
-        self, stimulus: str, context_summary: str = "", model: Optional[str] = None
-    ) -> Dict[str, Any]:
-        """
-        Process an environmental stimulus or message, perform utility evaluation,
-        and generate a structured behavioral response using Ollama.
-        """
-        system_prompt = self.build_system_prompt(context_summary)
+    def _apply_resource_deductions(self, parsed: dict[str, Any], action: str) -> None:
+        if self.schema.resource_model.kind == "none" or not self.profile.resources:
+            parsed["resource_deductions"] = {}
+            return
 
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": f"STIMULUS TO EVALUATE:\n{stimulus}"},
-        ]
+        action_def = next((a for a in self.schema.actions if a.name == action), None)
+        affects = action_def.affects_resource if action_def else None
 
-        try:
-            raw_response = await self.client.chat(messages, model=model)
-            parsed_data = self._parse_json_robustly(raw_response)
+        raw = parsed.get("resource_deductions") or {}
+        if not isinstance(raw, dict):
+            raw = {}
 
-            # Programmatically compute exact math decisions and transition states
-            self._evaluate_utility_and_transition(parsed_data)
+        clean: dict[str, float] = {}
+        for resource in self.profile.resources:
+            amount = _coerce_float(raw.get(resource.name), 0.0)
+            if amount < 0:
+                amount = 0.0
+            if affects is None or resource.name != affects:
+                clean[resource.name] = 0.0
+                continue
+            clean[resource.name] = amount
+            resource.current = max(0.0, resource.current - amount)
 
-            return parsed_data
+        parsed["resource_deductions"] = clean
 
-        except json.JSONDecodeError as je:
-            # Robust fallback in case the LLM fails to output valid JSON
-            return {
-                "error": "Failed to parse structured reaction",
-                "raw_response": raw_response if 'raw_response' in locals() else "",
-                "action_decision": "IGNORE",
-                "new_internal_state": str(self.profile.current_internal_state),
-            }
-        except Exception as e:
-            return {
-                "error": f"Error during perception: {str(e)}",
-                "action_decision": "IGNORE",
-                "new_internal_state": str(self.profile.current_internal_state),
-            }
+    async def perceive_and_react(self, stimulus: str, model: Optional[str] = None) -> dict[str, Any]:
+        return await self._llm_round(
+            system=self.build_system_prompt(),
+            user=f"STIMULUS TO EVALUATE:\n{stimulus}",
+            model=model,
+        )
 
     async def debate_and_react(
-        self, stimulus: str, round1_transcript: str, adversary: Optional[dict] = None, model: Optional[str] = None
-    ) -> Dict[str, Any]:
-        """
-        Conduct a secondary debate/reflection round. The agent perceives peers' public
-        opinions, and decides to either stand their ground, debate, collaborate, or change
-        their decisions based on social influence and utility reassessment.
-        """
-        base_prompt = self.build_system_prompt()
-        
-        debate_instruction = f"""You are now entering ROUND 2 (DEBATE & REFLECTION) of the simulation.
-Your peers in the colony have voiced their initial public reactions.
+        self,
+        stimulus: str,
+        round1_transcript: str,
+        adversary: Optional[dict] = None,
+        model: Optional[str] = None,
+    ) -> dict[str, Any]:
+        user_prompt = f"""You are now in ROUND 2 (DEBATE & REFLECTION).
+Your peers in the swarm have voiced their initial reactions to this stimulus:
+"{stimulus}"
 
---- PEER REACTIONS TRANSCRIPT ---
+--- PEER TRANSCRIPT ---
 {round1_transcript}
 
---- YOUR INSTRUCTIONS ---
-1. Review what your peers said about the stimulus: "{stimulus}".
-2. Evaluate their reasoning. Are they being overly naive, too paranoid, or complaining about price?
-3. Decide whether you want to stand your ground, shift your internal utility perceptions, persuade them, scale down your budget, or collaborate/compromise.
-4. Respond with a new valid JSON. If you are influenced by your peers, you can shift your weights, value perceptions, and public statement.
-5. In your "public_reaction", speak DIRECTLY to your peers' concerns (refer to them or their archetypes!).
+--- INSTRUCTIONS ---
+1. Read your peers' public statements. Identify naive, paranoid, or motivated reasoning.
+2. Decide whether to hold your ground, shift your utility perceptions, persuade, or compromise.
+3. In your public_statement, address peers directly by archetype where it sharpens the point.
+4. Re-evaluate your utility honestly. Commit to one action from the available actions list.
 """
-
         if adversary:
-            debate_instruction += f"""
+            user_prompt += f"""
 --- DIRECT CHALLENGE ---
-You have been challenged directly by the {adversary.get('archetype', 'another agent')} (who took the action {adversary.get('action', 'IGNORE')} and stated publicly: "{adversary.get('statement', '...')}"):
-You MUST address their stance directly in your "public_reaction" and "internal_monologue", defend your reasoning against their point of view, and explain why you disagree (or compromise, if their argument makes you shift your utility).
+{adversary.get('archetype', 'Another agent')} challenged you directly. They took action {adversary.get('action', '?')} and stated: "{adversary.get('statement', '...')}".
+You MUST address their stance in your public_statement and internal_reflection. Defend, concede, or reframe — but engage with them by name.
 """
-
-        messages = [
-            {"role": "system", "content": base_prompt},
-            {"role": "user", "content": debate_instruction},
-        ]
-
-        try:
-            raw_response = await self.client.chat(messages, model=model)
-            parsed_data = self._parse_json_robustly(raw_response)
-
-            # Programmatically compute exact math decisions and transition states
-            self._evaluate_utility_and_transition(parsed_data)
-
-            return parsed_data
-        except Exception as e:
-            return {
-                "error": f"Error during debate: {str(e)}",
-                "raw_response": raw_response if 'raw_response' in locals() else "",
-                "action_decision": "IGNORE",
-                "new_internal_state": str(self.profile.current_internal_state),
-            }
+        return await self._llm_round(
+            system=self.build_system_prompt(),
+            user=user_prompt,
+            model=model,
+        )
 
     async def react_to_crisis(
-        self, crisis: str, original_stimulus: str, model: Optional[str] = None
-    ) -> Dict[str, Any]:
-        """
-        Process an external crisis event injected mid-simulation, evaluate its economic and 
-        emotional impact on the original concept, and update decision and internal state.
-        """
-        context_summary = f"CRITICAL INTERVENTION: {crisis}\n(Original Concept: {original_stimulus})"
-        system_prompt = self.build_system_prompt(context_summary)
-        
-        prompt = f"""An external crisis event has occurred that impacts the original concept:
-Original Concept: "{original_stimulus}"
-Crisis Event: "{crisis}"
+        self,
+        crisis: str,
+        original_stimulus: str,
+        model: Optional[str] = None,
+    ) -> dict[str, Any]:
+        context_summary = f"CRITICAL INTERVENTION: {crisis}\n(Original stimulus: {original_stimulus})"
+        user_prompt = f"""An external crisis has hit the scenario.
+Original stimulus: "{original_stimulus}"
+Crisis event: "{crisis}"
 
-Evaluate how this crisis changes the parameters of your decision utility:
-1. Does it increase the cost / risk (e.g., higher taxes, security concerns)? If so, adjust your evaluated "cost" upwards in the JSON.
-2. Does it reduce the perceived gains (v_gains) or increase the urgency (v_urgency)?
-3. Respond with a new valid JSON updating your internal monologue, public reaction, utility weights, evaluated values, and new memory.
+Re-evaluate your utility under this new condition:
+1. Does the crisis raise perceived_costs (regulatory load, reputational risk, capital risk, opportunity cost)?
+2. Does it shrink perceived_gains or expose a structural flaw you previously discounted?
+3. Commit to one action from the available actions list and explain your reasoning clearly in public_statement.
 """
+        return await self._llm_round(
+            system=self.build_system_prompt(context_summary=context_summary),
+            user=user_prompt,
+            model=model,
+        )
+
+    async def _llm_round(self, system: str, user: str, model: Optional[str]) -> dict[str, Any]:
         messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": prompt},
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
         ]
-
+        raw = ""
         try:
-            raw_response = await self.client.chat(messages, model=model)
-            parsed_data = self._parse_json_robustly(raw_response)
-
-            # Programmatically compute exact math decisions and transition states
-            self._evaluate_utility_and_transition(parsed_data)
-
-            return parsed_data
+            raw = await self.client.chat(
+                messages,
+                model=model,
+                response_format={"type": "json_object"},
+            )
+            parsed = parse_json_robustly(raw)
+            if not parsed:
+                return {
+                    "error": "Empty or unparseable LLM response",
+                    "raw_response": raw,
+                    "action_decision": _terminal_or_first_action(self.schema),
+                    "new_internal_state": self.profile.current_internal_state,
+                }
+            self._evaluate_utility_and_transition(parsed)
+            return parsed
         except Exception as e:
             return {
-                "error": f"Error during crisis reaction: {str(e)}",
-                "raw_response": raw_response if 'raw_response' in locals() else "",
-                "action_decision": "IGNORE",
-                "new_internal_state": str(self.profile.current_internal_state),
+                "error": f"{type(e).__name__}: {e}",
+                "raw_response": raw,
+                "action_decision": _terminal_or_first_action(self.schema),
+                "new_internal_state": self.profile.current_internal_state,
             }
 
+
+def _coerce_float(value: Any, default: float) -> float:
+    if isinstance(value, (int, float)):
+        return float(value)
+    if isinstance(value, str):
+        kept = "".join(c for c in value if c.isdigit() or c in (".", "-"))
+        try:
+            return float(kept)
+        except ValueError:
+            return default
+    return default
+
+
+def _normalize_action(
+    raw: Any,
+    schema: SimulationSchema,
+    utility: float,
+    aggressiveness: float,
+    threshold: float,
+) -> str:
+    valid = schema.action_names()
+    if isinstance(raw, str):
+        candidate = raw.strip().upper()
+        if candidate in valid:
+            return candidate
+    return _utility_to_action(utility, aggressiveness, threshold, schema)
+
+
+def _utility_to_action(
+    utility: float,
+    aggressiveness: float,
+    threshold: float,
+    schema: SimulationSchema,
+) -> str:
+    non_terminal = [a for a in schema.actions if not a.is_terminal]
+    terminal = [a for a in schema.actions if a.is_terminal]
+
+    if utility > threshold and non_terminal:
+        return non_terminal[0].name
+    if utility < -0.1 and terminal:
+        return terminal[0].name
+    if non_terminal:
+        idx = min(len(non_terminal) - 1, 1 if aggressiveness > 0.6 else 0)
+        return non_terminal[idx].name
+    return schema.actions[0].name
+
+
+def _terminal_or_first_action(schema: SimulationSchema) -> str:
+    for a in schema.actions:
+        if a.is_terminal:
+            return a.name
+    return schema.actions[0].name if schema.actions else "ABSTAIN"
+
+
+def _normalize_state(raw: Any, vocabulary: list[str], fallback: str) -> str:
+    if not isinstance(raw, str):
+        return fallback
+    cleaned = raw.strip()
+    if not cleaned:
+        return fallback
+    lower = cleaned.lower()
+    for v in vocabulary:
+        if v.lower() == lower:
+            return v
+    return cleaned.title()

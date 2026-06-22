@@ -98,8 +98,9 @@ class UnifiedLLMClient:
         messages: list[dict],
         model: Optional[str] = None,
         timeout: float = 120.0,
+        response_format: Optional[dict] = None,
     ) -> str:
-        """Non-streaming chat response."""
+        """Non-streaming chat response with support for structured JSON output."""
         target_model = model or self.model
 
         if self.provider == "gemini":
@@ -112,6 +113,8 @@ class UnifiedLLMClient:
                 "messages": messages,
                 "stream": False,
             }
+            if response_format:
+                payload["response_format"] = response_format
             async with httpx.AsyncClient(timeout=timeout) as client:
                 response = await client.post(
                     f"{self.gemini_base_url}/v1/chat/completions",
@@ -125,10 +128,25 @@ class UnifiedLLMClient:
                     return choices[0].get("message", {}).get("content", "")
                 return ""
         else:
-            full_response = ""
-            async for chunk in self.chat_stream(messages, target_model, timeout):
-                full_response += chunk
-            return full_response
+            payload = {
+                "model": target_model,
+                "messages": messages,
+                "stream": False,
+            }
+            if response_format:
+                if response_format.get("type") == "json_schema":
+                    payload["format"] = response_format["json_schema"]["schema"]
+                elif response_format.get("type") == "json_object":
+                    payload["format"] = "json"
+
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                response = await client.post(
+                    f"{self.host}/api/chat",
+                    json=payload,
+                )
+                response.raise_for_status()
+                data = response.json()
+                return data.get("message", {}).get("content", "")
 
     async def is_available(self) -> bool:
         """Check if LLM backend provider is alive and responding."""

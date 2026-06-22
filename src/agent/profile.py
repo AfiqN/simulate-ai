@@ -1,96 +1,65 @@
 from dataclasses import dataclass, field, asdict
-from typing import Dict, List, Any
-from enum import StrEnum
-
-
-class AgentState(StrEnum):
-    NEUTRAL = "Neutral"
-    SKEPTICAL = "Skeptical"
-    EXCITED = "Excited"
-    ANGRY = "Angry"
-    SATISFIED = "Satisfied"
-    BORED = "Bored"
-    AGGRESSIVE = "Aggressive"
-    PARANOID = "Paranoid"
-    ANALYTICAL = "Analytical"
-    INQUISITIVE = "Inquisitive"
-
-    @classmethod
-    def from_str(cls, state_str: str) -> "AgentState":
-        """Safely convert any raw string into a valid AgentState Enum."""
-        if not state_str:
-            return cls.NEUTRAL
-        cleaned = state_str.strip().lower().title()  # e.g. "skeptical" -> "Skeptical"
-        for member in cls:
-            if member.value == cleaned:
-                return member
-        # Fallbacks for common alternative casings or unaligned names
-        if cleaned == "Skeptic":
-            return cls.SKEPTICAL
-        if cleaned in ("Excitement", "Happy", "Joyful"):
-            return cls.EXCITED
-        if cleaned in ("Anger", "Annoyed", "Irritated"):
-            return cls.ANGRY
-        if cleaned == "Boredom":
-            return cls.BORED
-        return cls.NEUTRAL
+from typing import Any, Optional
 
 
 @dataclass
 class AgentAttributes:
-    rationality_index: float  # Scale: 0.0 - 1.0 (How logical they are)
-    aggressiveness: float     # Scale: 0.0 - 1.0 (How aggressive/assertive)
-    risk_tolerance: float     # Scale: 0.0 - 1.0 (How much risk they can take)
+    rationality_index: float
+    aggressiveness: float
+    risk_tolerance: float
 
 
 @dataclass
-class ResourcePool:
-    primary_resource_name: str
-    current_balance: float
-    max_capacity: float
+class ResourceBalance:
+    name: str
+    current: float
+    maximum: float
 
 
 @dataclass
 class AgentProfile:
     agent_id: str
     archetype: str
+    linguistic_cluster_id: str
     attributes: AgentAttributes
-    resource_pool: ResourcePool
-    memory_vectors: List[str] = field(default_factory=list)
-    current_internal_state: AgentState = AgentState.NEUTRAL
+    resources: list[ResourceBalance] = field(default_factory=list)
+    memory_vectors: list[str] = field(default_factory=list)
+    current_internal_state: str = "Neutral"
 
-    def to_dict(self) -> Dict[str, Any]:
-        """Serialize the agent profile to a dictionary."""
-        d = asdict(self)
-        d["current_internal_state"] = str(self.current_internal_state)
-        return d
+    def primary_resource(self) -> Optional[ResourceBalance]:
+        return self.resources[0] if self.resources else None
+
+    def find_resource(self, name: str) -> Optional[ResourceBalance]:
+        for r in self.resources:
+            if r.name == name:
+                return r
+        return None
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "AgentProfile":
-        """Deserialize an agent profile from a dictionary."""
-        attributes_data = data["attributes"]
-        resources_data = data["resource_pool"]
-
+    def from_dict(cls, data: dict[str, Any]) -> "AgentProfile":
+        attrs = data["attributes"]
         attributes = AgentAttributes(
-            rationality_index=float(attributes_data["rationality_index"]),
-            aggressiveness=float(attributes_data["aggressiveness"]),
-            risk_tolerance=float(attributes_data["risk_tolerance"]),
+            rationality_index=float(attrs["rationality_index"]),
+            aggressiveness=float(attrs["aggressiveness"]),
+            risk_tolerance=float(attrs["risk_tolerance"]),
         )
-
-        resource_pool = ResourcePool(
-            primary_resource_name=resources_data["primary_resource_name"],
-            current_balance=float(resources_data["current_balance"]),
-            max_capacity=float(resources_data["max_capacity"]),
-        )
-
-        raw_state = data.get("current_internal_state", "Neutral")
-        state_enum = AgentState.from_str(raw_state)
-
+        resources = [
+            ResourceBalance(
+                name=str(r["name"]),
+                current=float(r["current"]),
+                maximum=float(r["maximum"]),
+            )
+            for r in data.get("resources", [])
+        ]
         return cls(
             agent_id=data["agent_id"],
             archetype=data["archetype"],
+            linguistic_cluster_id=data["linguistic_cluster_id"],
             attributes=attributes,
-            resource_pool=resource_pool,
+            resources=resources,
             memory_vectors=list(data.get("memory_vectors", [])),
-            current_internal_state=state_enum,
+            current_internal_state=str(data.get("current_internal_state", "Neutral")),
         )
