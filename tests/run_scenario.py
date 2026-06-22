@@ -1,0 +1,158 @@
+"""Run swarm simulation scenarios non-interactively and save transcripts.
+
+Usage:
+    python tests/run_scenario.py 01                    # by prefix
+    python tests/run_scenario.py fintech               # by name fragment
+    python tests/run_scenario.py --all                 # every scenario
+    python tests/run_scenario.py 02 --agents 5 --concurrency 3
+"""
+import argparse
+import asyncio
+import json
+import sys
+import time
+from datetime import datetime
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+
+from src.cli import console  # noqa: E402
+from src.cli.simulation import check_llm_provider, run_simulation_pipeline  # noqa: E402
+from src.llm.client import OllamaClient  # noqa: E402
+from config import DEFAULT_MODEL, OLLAMA_HOST  # noqa: E402
+from src.agent.swarm import SwarmGenerationError  # noqa: E402
+from src.schema.architect import SchemaDesignError  # noqa: E402
+
+SCENARIOS_DIR = ROOT / "tests" / "scenarios"
+RUNS_DIR = ROOT / "tests" / "runs"
+
+
+def resolve_scenarios(spec: str | None, run_all: bool) -> list[Path]:
+    available = sorted(SCENARIOS_DIR.glob("*.txt"))
+    if run_all:
+        return available
+    if spec is None:
+        names = ", ".join(p.stem for p in available) or "(none found)"
+        raise SystemExit(f"Specify a scenario name/prefix or --all. Available: {names}")
+
+    candidate = Path(spec)
+    if candidate.is_file():
+        return [candidate]
+
+    matches = [p for p in available if spec in p.stem]
+    if not matches:
+        raise SystemExit(f"No scenario matching '{spec}' in {SCENARIOS_DIR}")
+    return sorted(matches)
+
+
+def serialize_result(result: dict) -> dict:
+    schema = result["schema"]
+    rounds = {
+        f"r{i}": [
+            {
+                "id": d["id"],
+                "archetype": d["archetype"],
+                "action": d["action"],
+                "utility": d["utility"],
+                "new_state": d["new_state"],
+                "duration": d.get("duration", 0.0),
+            }
+            for d in decisions
+        ]
+        for i, decisions in enumerate(
+            [result["decisions_r1"], result["decisions_r2"], result["decisions_r3"]],
+            start=1,
+        )
+    }
+    return {
+        "scenario_name": schema.scenario_name,
+        "verdict_label": schema.verdict_label,
+        "actions": [a.name for a in schema.actions],
+        "valence": result["valence"],
+        "crisis_event": result["crisis_event"],
+        "agents": [
+            {
+                "id": p.agent_id,
+                "archetype": p.archetype,
+                "linguistic_cluster_id": p.linguistic_cluster_id,
+                "final_state": p.current_internal_state,
+            }
+            for p in result["profiles"]
+        ],
+        "rounds": rounds,
+        "adversary_map": {
+            agent_id: (target["id"] if target else None)
+            for agent_id, target in result["adversary_map"].items()
+        },
+        "timings": result["timings"],
+    }
+
+
+async def run_one(
+    client: OllamaClient, scenario_path: Path, agent_count: int, concurrency: int
+) -> tuple[Path, str]:
+    stimulus = scenario_path.read_text(encoding="utf-8").strip()
+
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    out_dir = RUNS_DIR / f"{timestamp}__{scenario_path.stem}"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "stimulus.txt").write_text(stimulus, encoding="utf-8")
+
+    console.print(f"\n[bold cyan]══════ Running {scenario_path.stem} ══════[/bold cyan]\n")
+    start = time.time()
+
+    try:
+        result = await run_simulation_pipeline(client, stimulus, agent_count, concurrency)
+        (out_dir / "report.md").write_text(result["report_md"], encoding="utf-8")
+        (out_dir / "metrics.json").write_text(
+            json.dumps(serialize_result(result), indent=2, default=str),
+            encoding="utf-8",
+        )
+        status = "ok"
+    except (SchemaDesignError, SwarmGenerationError) as e:
+        console.print(f"[red]Pipeline failed: {e}[/red]")
+        (out_dir / "error.txt").write_text(f"{type(e).__name__}: {e}", encoding="utf-8")
+        status = "failed"
+
+    elapsed = time.time() - start
+
+    (out_dir / "transcript.txt").write_text(console.export_text(clear=False), encoding="utf-8")
+    (out_dir / "transcript.html").write_text(console.export_html(clear=True), encoding="utf-8")
+
+    console.print(
+        f"\n[bold green]✔ {scenario_path.stem} ({status}) in {elapsed:.1f}s → "
+        f"{out_dir.relative_to(ROOT)}[/bold green]\n"
+    )
+    return out_dir, status
+
+
+async def main() -> None:
+    parser = argparse.ArgumentParser(description="Run SimulateAI scenarios non-interactively.")
+    parser.add_argument("scenario", nargs="?", help="Scenario name fragment, prefix, or .txt path.")
+    parser.add_argument("--all", action="store_true", help="Run every scenario in tests/scenarios/.")
+    parser.add_argument("--agents", type=int, default=5, help="Agent count per scenario (default: 5).")
+    parser.add_argument("--concurrency", type=int, default=2, help="Max concurrent LLM calls (default: 2).")
+    args = parser.parse_args()
+
+    paths = resolve_scenarios(args.scenario, args.all)
+    RUNS_DIR.mkdir(parents=True, exist_ok=True)
+
+    client = OllamaClient(host=OLLAMA_HOST, model=DEFAULT_MODEL)
+    if not await check_llm_provider(client):
+        sys.exit(1)
+
+    results: list[tuple[Path, str]] = []
+    for path in paths:
+        results.append(await run_one(client, path, args.agents, args.concurrency))
+
+    console.print(
+        f"\n[bold yellow]All runs saved under {RUNS_DIR.relative_to(ROOT)}/[/bold yellow]"
+    )
+    for out_dir, status in results:
+        marker = "[green]✔[/green]" if status == "ok" else "[red]✗[/red]"
+        console.print(f"  {marker} {out_dir.relative_to(ROOT)}")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

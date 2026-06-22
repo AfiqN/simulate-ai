@@ -1,0 +1,1 @@
+Should public universities be allowed to use AI proctoring software that records students' eye movements, ambient audio, and keyboard cadence during remote exams, retaining the raw data for 7 years for fraud-detection model training?

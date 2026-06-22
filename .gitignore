@@ -154,3 +154,6 @@ Thumbs.db
 *.swo
 *~
 CLAUDE.md
+
+# Test transcripts (regenerated per run)
+tests/runs/

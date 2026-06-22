@@ -1,0 +1,1 @@
+A QRIS-linked savings app for Indonesian gig workers: every transaction rounds up to the nearest IDR 1,000 and auto-invests the difference into a money market fund. Free monthly subscription, 0.5% fee on withdrawal. Target launch Q3 2026.

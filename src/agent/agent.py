@@ -224,15 +224,14 @@ You MUST address their stance in your public_statement and internal_reflection. 
         original_stimulus: str,
         model: Optional[str] = None,
     ) -> dict[str, Any]:
-        context_summary = f"CRITICAL INTERVENTION: {crisis}\n(Original stimulus: {original_stimulus})"
-        user_prompt = f"""An external crisis has hit the scenario.
+        context_summary = f"EXTERNAL EVENT: {crisis}\n(Original stimulus: {original_stimulus})"
+        user_prompt = f"""An external event has hit the scenario.
 Original stimulus: "{original_stimulus}"
-Crisis event: "{crisis}"
+Event: "{crisis}"
 
-Re-evaluate your utility under this new condition:
-1. Does the crisis raise perceived_costs (regulatory load, reputational risk, capital risk, opportunity cost)?
-2. Does it shrink perceived_gains or expose a structural flaw you previously discounted?
-3. Commit to one action from the available actions list and explain your reasoning clearly in public_statement.
+Re-evaluate your utility under this new condition. The event may raise OR lower your perceived_gains, perceived_costs, or both — judge honestly from your archetype's perspective. Do not assume the event is bad; it may equally be a vindication, an opening, or a neutral shift.
+
+If the event genuinely changes your calculus, update your numbers and action. If it does not meaningfully affect your prior reasoning, hold your previous position — agents who flip without justification look weak. Commit to exactly one action from the available actions list and defend your reasoning in public_statement.
 """
         return await self._llm_round(
             system=self.build_system_prompt(context_summary=context_summary),

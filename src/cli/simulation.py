@@ -1,6 +1,6 @@
 import asyncio
 import time
-from typing import Optional
+from typing import Any, Optional
 
 from rich.live import Live
 from rich.panel import Panel
@@ -24,7 +24,7 @@ from src.cli.rendering import (
     render_schema_panel,
 )
 from src.llm.client import OllamaClient
-from src.report.compiler import ExecutiveCompiler
+from src.report.compiler import ExecutiveCompiler, Valence
 from src.schema.architect import SchemaDesignError, design_schema
 from src.schema.simulation_schema import SimulationSchema
 
@@ -176,74 +176,87 @@ async def _drive_live_table(statuses: list[dict], title: str, in_progress_labels
         live.update(make_parallel_status_table(statuses, title))
 
 
-async def run_swarm_simulation() -> None:
-    client = OllamaClient(host=OLLAMA_HOST, model=DEFAULT_MODEL)
-    if not await check_llm_provider(client):
-        return
+def _pick_valence(stimulus: str) -> Valence:
+    return "validation" if hash(stimulus) % 2 == 0 else "stress"
 
+
+def _render_final_summary(
+    schema: SimulationSchema,
+    agents: list[Agent],
+    decisions_r1: list[dict],
+    decisions_r2: list[dict],
+    decisions_r3: list[dict],
+    dur_r1: float,
+    dur_r2: float,
+    dur_r3: float,
+) -> None:
+    console.print(Rule("[bold magenta]SIMULATION CONCLUDED[/bold magenta]"))
     console.print(
-        Panel.fit(
-            f"[bold magenta]Swarm Simulation Cockpit (Schema-First PoC)[/bold magenta]\n"
-            f"Runs an Architect → Swarm → 3-Round debate → Crisis pipeline for any scenario.\n"
-            f"Active model: [yellow]{DEFAULT_MODEL}[/yellow]\n",
-            border_style="magenta",
-            title="[bold]Simulation Cockpit[/bold]",
+        f"• Round 1 Time : [green]{dur_r1:.2f}s[/green]\n"
+        f"• Round 2 Time : [green]{dur_r2:.2f}s[/green]\n"
+        f"• Round 3 Time : [green]{dur_r3:.2f}s[/green]\n"
+        f"• Total        : [yellow]{dur_r1 + dur_r2 + dur_r3:.2f}s[/yellow] "
+        f"for [yellow]{len(agents)}[/yellow] agents across 3 rounds.\n"
+    )
+
+    r1_lookup = {d["id"]: d for d in decisions_r1}
+    r2_lookup = {d["id"]: d for d in decisions_r2}
+
+    res_table = Table(title="3-Round Verdict Comparison", border_style="magenta")
+    res_table.add_column("Archetype", style="bold yellow")
+    res_table.add_column("R1", style="bold")
+    res_table.add_column("R2", style="bold")
+    res_table.add_column("R3", style="bold")
+    res_table.add_column("Final State", style="magenta")
+    res_table.add_column("Resources", style="green")
+
+    def tag(action: str) -> str:
+        style = action_style(action, schema)
+        return f"[{style}]{action}[/{style}]"
+
+    for d in decisions_r3:
+        aid = d["id"]
+        r1 = r1_lookup.get(aid, {})
+        r2 = r2_lookup.get(aid, {})
+        profile = next(a.profile for a in agents if a.profile.agent_id == aid)
+        res_table.add_row(
+            d["archetype"],
+            tag(r1.get("action", "?")),
+            tag(r2.get("action", "?")),
+            tag(d["action"]),
+            d["new_state"],
+            format_resources(profile),
         )
-    )
 
-    console.print()
-    console.print(
-        "[bold yellow]Enter the concept, proposal, policy, pitch, or question you want simulated:[/bold yellow]"
-    )
-    console.print(
-        "[dim]Examples: a product pitch, a draft policy, a hackathon idea, a strategic decision, "
-        "a research question. The Architect will design the scenario vocabulary around your input.[/dim]"
-    )
-    stimulus = ask_multiline("Stimulus")
-    if not stimulus.strip():
-        console.print("[red]Stimulus cannot be empty. Returning to menu.[/red]")
-        return
+    console.print(res_table)
 
-    console.print()
-    try:
-        with Live(
-            Spinner("aesthetic", text="[bold yellow]Architect is designing the simulation schema...[/bold yellow]"),
-            refresh_per_second=10,
-        ) as live:
-            schema = await design_schema(client, stimulus)
-            live.update("[bold green]✔ Schema designed.[/bold green]")
-    except SchemaDesignError as e:
-        console.print(f"[red]Architect failed: {e}[/red]")
-        return
+
+async def run_simulation_pipeline(
+    client: OllamaClient,
+    stimulus: str,
+    agent_count: int,
+    concurrency: int,
+) -> dict[str, Any]:
+    with Live(
+        Spinner("aesthetic", text="[bold yellow]Architect is designing the simulation schema...[/bold yellow]"),
+        refresh_per_second=10,
+    ) as live:
+        schema = await design_schema(client, stimulus)
+        live.update("[bold green]✔ Schema designed.[/bold green]")
 
     render_schema_panel(schema)
 
-    count = IntPrompt.ask(
-        "[bold yellow]How many agent personas should populate the swarm? (1-20)[/bold yellow]",
-        default=3,
-    )
-    if count < 1:
-        count = 1
-
     console.print()
-    try:
-        with Live(
-            Spinner("aesthetic", text="[bold yellow]Generating agent personas...[/bold yellow]"),
-            refresh_per_second=10,
-        ) as live:
-            profiles = await generate_llm_swarm(client, schema, stimulus, count)
-            live.update("[bold green]✔ Personas generated.[/bold green]")
-    except SwarmGenerationError as e:
-        console.print(f"[red]Swarm generation failed: {e}[/red]")
-        return
+    with Live(
+        Spinner("aesthetic", text="[bold yellow]Generating agent personas...[/bold yellow]"),
+        refresh_per_second=10,
+    ) as live:
+        profiles = await generate_llm_swarm(client, schema, stimulus, agent_count)
+        live.update("[bold green]✔ Personas generated.[/bold green]")
 
     agents = [Agent(profile, client, schema) for profile in profiles]
     render_agent_table(profiles, schema)
 
-    concurrency = IntPrompt.ask(
-        "[bold yellow]Max concurrent LLM threads (semaphore)[/bold yellow]",
-        default=2,
-    )
     semaphore = asyncio.Semaphore(concurrency)
 
     console.print()
@@ -321,19 +334,24 @@ async def run_swarm_simulation() -> None:
 
     await asyncio.sleep(2)
     compiler = ExecutiveCompiler(client, schema)
+    valence: Valence = _pick_valence(stimulus)
     with Live(
-        Spinner("aesthetic", text="[bold red]Catalyst Agent synthesizing crisis event...[/bold red]"),
+        Spinner("aesthetic", text=f"[bold red]Catalyst Agent synthesizing {valence} event...[/bold red]"),
         refresh_per_second=10,
     ) as live:
-        crisis_event = await compiler.generate_crisis_event(stimulus, full_round2_transcript)
-        live.update("[bold red]⚡ Crisis Event Injected[/bold red]")
+        crisis_event = await compiler.generate_crisis_event(
+            stimulus, full_round2_transcript, valence=valence,
+        )
+        live.update(f"[bold red]⚡ {valence.title()} Event Injected[/bold red]")
 
+    panel_color = "green" if valence == "validation" else "red"
+    panel_label = "Validation Shock" if valence == "validation" else "Crisis"
     console.print()
     console.print(
         Panel(
-            f"[bold red]{crisis_event}[/bold red]",
-            title="[bold]⚡ External Catalyst Event — Injected by System[/bold]",
-            border_style="red",
+            f"[bold {panel_color}]{crisis_event}[/bold {panel_color}]",
+            title=f"[bold]⚡ External {panel_label} Event — Injected by System[/bold]",
+            border_style=panel_color,
         )
     )
 
@@ -376,45 +394,76 @@ async def run_swarm_simulation() -> None:
         )
     )
 
-    console.print(Rule("[bold magenta]SIMULATION CONCLUDED[/bold magenta]"))
+    _render_final_summary(schema, agents, decisions_r1, decisions_r2, decisions_r3, dur_r1, dur_r2, dur_r3)
+
+    return {
+        "schema": schema,
+        "profiles": profiles,
+        "agents": agents,
+        "decisions_r1": decisions_r1,
+        "decisions_r2": decisions_r2,
+        "decisions_r3": decisions_r3,
+        "adversary_map": adversary_map,
+        "valence": valence,
+        "crisis_event": crisis_event,
+        "report_md": report_md,
+        "timings": {
+            "r1": dur_r1,
+            "r2": dur_r2,
+            "r3": dur_r3,
+            "total": dur_r1 + dur_r2 + dur_r3,
+        },
+    }
+
+
+async def run_swarm_simulation() -> None:
+    client = OllamaClient(host=OLLAMA_HOST, model=DEFAULT_MODEL)
+    if not await check_llm_provider(client):
+        return
+
     console.print(
-        f"• Round 1 Time : [green]{dur_r1:.2f}s[/green]\n"
-        f"• Round 2 Time : [green]{dur_r2:.2f}s[/green]\n"
-        f"• Round 3 Time : [green]{dur_r3:.2f}s[/green]\n"
-        f"• Total        : [yellow]{dur_r1 + dur_r2 + dur_r3:.2f}s[/yellow] "
-        f"for [yellow]{count}[/yellow] agents across 3 rounds.\n"
+        Panel.fit(
+            f"[bold magenta]Swarm Simulation Cockpit (Schema-First PoC)[/bold magenta]\n"
+            f"Runs an Architect → Swarm → 3-Round debate → Crisis pipeline for any scenario.\n"
+            f"Active model: [yellow]{DEFAULT_MODEL}[/yellow]\n",
+            border_style="magenta",
+            title="[bold]Simulation Cockpit[/bold]",
+        )
     )
 
-    r1_lookup = {d["id"]: d for d in decisions_r1}
-    r2_lookup = {d["id"]: d for d in decisions_r2}
+    console.print()
+    console.print(
+        "[bold yellow]Enter the concept, proposal, policy, pitch, or question you want simulated:[/bold yellow]"
+    )
+    console.print(
+        "[dim]Examples: a product pitch, a draft policy, a hackathon idea, a strategic decision, "
+        "a research question. The Architect will design the scenario vocabulary around your input.[/dim]"
+    )
+    stimulus = ask_multiline("Stimulus")
+    if not stimulus.strip():
+        console.print("[red]Stimulus cannot be empty. Returning to menu.[/red]")
+        return
 
-    res_table = Table(title="3-Round Verdict Comparison", border_style="magenta")
-    res_table.add_column("Archetype", style="bold yellow")
-    res_table.add_column("R1", style="bold")
-    res_table.add_column("R2", style="bold")
-    res_table.add_column("R3", style="bold")
-    res_table.add_column("Final State", style="magenta")
-    res_table.add_column("Resources", style="green")
+    agent_count = IntPrompt.ask(
+        "[bold yellow]How many agent personas should populate the swarm? (1-20)[/bold yellow]",
+        default=3,
+    )
+    if agent_count < 1:
+        agent_count = 1
 
-    def tag(action: str) -> str:
-        style = action_style(action, schema)
-        return f"[{style}]{action}[/{style}]"
+    concurrency = IntPrompt.ask(
+        "[bold yellow]Max concurrent LLM threads (semaphore)[/bold yellow]",
+        default=2,
+    )
 
-    for d in decisions_r3:
-        aid = d["id"]
-        r1 = r1_lookup.get(aid, {})
-        r2 = r2_lookup.get(aid, {})
-        profile = next(a.profile for a in agents if a.profile.agent_id == aid)
-        res_table.add_row(
-            d["archetype"],
-            tag(r1.get("action", "?")),
-            tag(r2.get("action", "?")),
-            tag(d["action"]),
-            d["new_state"],
-            format_resources(profile),
-        )
+    console.print()
+    try:
+        await run_simulation_pipeline(client, stimulus, agent_count, concurrency)
+    except SchemaDesignError as e:
+        console.print(f"[red]Architect failed: {e}[/red]")
+    except SwarmGenerationError as e:
+        console.print(f"[red]Swarm generation failed: {e}[/red]")
 
-    console.print(res_table)
     console.print("\n[dim]Press Enter to return to the main menu.[/dim]")
     try:
         input()

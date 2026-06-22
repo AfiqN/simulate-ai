@@ -1,8 +1,11 @@
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 
 from src.llm.client import OllamaClient
 from src.llm.json_parse import strip_thought_tags
 from src.schema.simulation_schema import SimulationSchema
+
+
+Valence = Literal["stress", "validation"]
 
 
 class ExecutiveCompiler:
@@ -14,13 +17,30 @@ class ExecutiveCompiler:
         self,
         stimulus: str,
         debate_transcript: str,
+        valence: Valence = "stress",
         model: Optional[str] = None,
     ) -> str:
         crisis_axes = ", ".join(self.schema.crisis_dimensions) or "any plausible external shock"
         macro = self.schema.macro_context_text() or "(no specific environmental anchors)"
 
+        if valence == "validation":
+            framing = (
+                "Identify the single most dominant ASSUMPTION, FEAR, or BLOCKER voiced in the Round 2 debate transcript below, "
+                "then synthesize ONE realistic external event that UNEXPECTEDLY VALIDATES the stimulus or REMOVES that blocker. "
+                "The event should be plausible vindication or favorable shift (e.g. a regulator endorses, a competitor exits, "
+                "a key risk is empirically debunked, a major partner signals support). It must still fit one of the allowed "
+                "crisis dimensions, treated as an inverted/positive realization of that dimension "
+                "(e.g. \"regulatory_crackdown\" → \"regulatory sandbox approval\"; "
+                "\"competitor_counter_demo\" → \"competitor publicly withdraws comparable product\")."
+            )
+        else:
+            framing = (
+                "Identify the single most dominant concern, fear, or structural complaint voiced in the Round 2 debate transcript below, "
+                "then synthesize ONE realistic external crisis event that hits that concern."
+            )
+
         crisis_prompt = f"""You are the SimulateAI External Event Catalyst for the scenario "{self.schema.scenario_name}".
-Identify the single most dominant concern, fear, or structural complaint voiced in the Round 2 debate transcript below, then synthesize ONE realistic external crisis event that hits that concern.
+{framing}
 
 Scenario context:
 {self.schema.scenario_description}
@@ -29,7 +49,7 @@ Macro environment anchors:
 {macro}
 
 Allowed crisis dimensions for this scenario: {crisis_axes}.
-The crisis MUST fall under one of those dimensions.
+The event MUST fall under one of those dimensions.
 
 Original stimulus:
 \"\"\"
@@ -39,12 +59,12 @@ Original stimulus:
 Round 2 debate transcript:
 {debate_transcript}
 
-Output ONLY one short sentence describing the crisis event. Do not include explanation, preamble, quotation marks, markdown, or <thought> tags. One declarative sentence, nothing else."""
+Output ONLY one short sentence describing the event. Do not include explanation, preamble, quotation marks, markdown, or <thought> tags. One declarative sentence, nothing else."""
 
         messages = [
             {
                 "role": "system",
-                "content": "You are a crisis event synthesis engine. Output exactly one declarative sentence. No reasoning traces, no commentary, no markup.",
+                "content": "You are an external-event synthesis engine. Output exactly one declarative sentence. No reasoning traces, no commentary, no markup.",
             },
             {"role": "user", "content": crisis_prompt},
         ]

@@ -1,0 +1,1 @@
+A two-person team submits to a 48-hour hackathon: an open-source vector database written entirely in Rust, compiled to WebAssembly, running in-browser with claims of 8x faster cosine search than Pinecone for sub-1M-vector workloads. Demo loads in a single HTML file.
