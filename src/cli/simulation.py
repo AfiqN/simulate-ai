@@ -24,7 +24,7 @@ from src.cli.rendering import (
     render_schema_panel,
 )
 from src.llm.client import OllamaClient
-from src.report.compiler import ExecutiveCompiler, Valence
+from src.report.compiler import ExecutiveCompiler, Valence, compute_resilience_metrics
 from src.schema.architect import SchemaDesignError, design_schema
 from src.schema.simulation_schema import SimulationSchema
 
@@ -373,6 +373,15 @@ async def run_simulation_pipeline(
 
     console.print()
     console.print(Rule("[bold yellow]COMPILING EXECUTIVE DIAGNOSTIC REPORT[/bold yellow]"))
+    resilience_metrics = compute_resilience_metrics(decisions_r2, decisions_r3, schema)
+    console.print(
+        Panel(
+            f"[bold]Verdict:[/bold] {resilience_metrics['verdict']}\n"
+            f"[dim]{resilience_metrics['rationale']}[/dim]",
+            title="[bold yellow]Deterministic Resilience Metrics[/bold yellow]",
+            border_style="yellow",
+        )
+    )
     await asyncio.sleep(2)
     with Live(
         Spinner("aesthetic", text="[bold yellow]Chief Behavioral Architect analyzing transcripts...[/bold yellow]"),
@@ -381,6 +390,7 @@ async def run_simulation_pipeline(
         report_md = await compiler.compile_report(
             stimulus, decisions_r1, decisions_r2,
             round3_results=decisions_r3, crisis_event=crisis_event,
+            resilience_metrics=resilience_metrics,
         )
         live.update("[bold green]✔ Report compiled[/bold green]")
 
@@ -406,6 +416,7 @@ async def run_simulation_pipeline(
         "adversary_map": adversary_map,
         "valence": valence,
         "crisis_event": crisis_event,
+        "resilience_metrics": resilience_metrics,
         "report_md": report_md,
         "timings": {
             "r1": dur_r1,

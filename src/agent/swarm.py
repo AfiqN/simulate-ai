@@ -1,3 +1,4 @@
+import statistics
 from typing import Optional
 
 from src.llm.client import OllamaClient
@@ -40,6 +41,25 @@ def _cluster_block(schema: SimulationSchema) -> str:
     return "\n".join(lines)
 
 
+def _action_coverage_block(schema: SimulationSchema, count: int) -> str:
+    required_span = min(3, len(schema.actions))
+    lines = [
+        "ACTION COVERAGE REQUIREMENT (load-bearing):",
+        f"The {count} personas must collectively cover at least {required_span} distinct actions in their natural Round 1 reaction. "
+        "For EACH of the actions below, design at least one persona whose archetype, attributes "
+        "(rationality_index / aggressiveness / risk_tolerance), memories, and starting emotional state make THAT action "
+        "their most likely first move:",
+    ]
+    for a in schema.actions:
+        suffix = " (terminal)" if a.is_terminal else ""
+        lines.append(f'  - {a.name}{suffix}: {a.description} — who in this scenario would commit to this first?')
+    lines.append(
+        "Do NOT design a swarm where most personas would naturally pick the same action. A homogeneous-action "
+        "swarm collapses the debate dynamics in Round 2 and produces orphan agents with no cross-faction challengers."
+    )
+    return "\n".join(lines)
+
+
 def _build_prompt(schema: SimulationSchema, stimulus: str, count: int) -> str:
     return f"""You are the SimulateAI Swarm Generator. Design exactly {count} distinct agent personas for the scenario "{schema.scenario_name}".
 
@@ -49,6 +69,8 @@ Stimulus the agents will react to:
 \"\"\"
 {stimulus}
 \"\"\"
+
+{_action_coverage_block(schema, count)}
 
 Constraints:
 - Personas must collectively represent a realistic, contrasting cross-section of stakeholders for THIS scenario. Avoid homogeneity.
@@ -86,6 +108,45 @@ Return ONLY a JSON object of this exact shape (no markdown, no <thought> tags, n
 """
 
 
+def _diversity_is_low(profiles: list[AgentProfile], schema: SimulationSchema) -> bool:
+    if len(profiles) < 4:
+        return False
+
+    distinct_clusters = len({p.linguistic_cluster_id for p in profiles})
+    cluster_target = min(3, len(schema.linguistic_clusters))
+    if cluster_target >= 2 and distinct_clusters < cluster_target:
+        return True
+
+    distinct_states = len({p.current_internal_state.lower() for p in profiles})
+    state_target = min(3, len(schema.state_vocabulary))
+    if state_target >= 2 and distinct_states < state_target:
+        return True
+
+    rat = [p.attributes.rationality_index for p in profiles]
+    agg = [p.attributes.aggressiveness for p in profiles]
+    risk = [p.attributes.risk_tolerance for p in profiles]
+    max_spread = max(statistics.pstdev(rat), statistics.pstdev(agg), statistics.pstdev(risk))
+    return max_spread < 0.15
+
+
+def _retry_hint(last_error: str, schema: SimulationSchema) -> str:
+    if last_error.startswith("diversity_low"):
+        actions_list = ", ".join(a.name for a in schema.actions)
+        return (
+            "Your previous swarm is action-monoculture: persona attributes, linguistic clusters, "
+            "and starting emotional states are too clustered, which predicts most agents will commit "
+            "to the same Round 1 action. Re-emit the swarm with EXPLICIT heterogeneity — each persona "
+            "must be designed to gravitate toward a DIFFERENT action from this list: "
+            f"{actions_list}. Spread rationality_index, aggressiveness, risk_tolerance, "
+            "linguistic_cluster_id, and current_internal_state widely across the personas. "
+            "Return only the JSON object."
+        )
+    return (
+        f"Your previous response failed validation: {last_error}. "
+        "Re-emit the JSON object with the exact required shape. Return only JSON."
+    )
+
+
 async def generate_llm_swarm(
     client: OllamaClient,
     schema: SimulationSchema,
@@ -103,6 +164,8 @@ async def generate_llm_swarm(
     ]
 
     last_error: Optional[str] = None
+    last_profiles: Optional[list[AgentProfile]] = None
+
     for attempt in range(2):
         raw = await client.chat(messages, model=model, response_format={"type": "json_object"})
         parsed = parse_json_robustly(raw)
@@ -112,21 +175,22 @@ async def generate_llm_swarm(
         else:
             try:
                 profiles = _materialize(parsed["agents"], schema, count)
-                if profiles:
+                if not profiles:
+                    last_error = "no valid agent objects produced"
+                elif _diversity_is_low(profiles, schema):
+                    last_profiles = profiles
+                    last_error = "diversity_low: attributes/clusters/states too clustered"
+                else:
                     return profiles
-                last_error = "no valid agent objects produced"
             except (KeyError, TypeError, ValueError) as e:
                 last_error = f"{type(e).__name__}: {e}"
 
         if attempt == 0:
             messages.append({"role": "assistant", "content": raw})
-            messages.append({
-                "role": "user",
-                "content": (
-                    f"Your previous response failed validation: {last_error}. "
-                    "Re-emit the JSON object with the exact required shape. Return only JSON."
-                ),
-            })
+            messages.append({"role": "user", "content": _retry_hint(last_error, schema)})
+
+    if last_profiles is not None:
+        return last_profiles
 
     raise SwarmGenerationError(
         f"Swarm generator failed after 2 attempts. Last error: {last_error}"

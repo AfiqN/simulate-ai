@@ -6,6 +6,72 @@ from src.schema.simulation_schema import SimulationSchema
 
 
 Valence = Literal["stress", "validation"]
+ResilienceVerdict = Literal["Fragile", "Moderate", "Resilient", "Indeterminate"]
+
+
+def compute_resilience_metrics(
+    round2_results: list[dict[str, Any]],
+    round3_results: list[dict[str, Any]],
+    schema: SimulationSchema,
+) -> dict[str, Any]:
+    terminal_set = {a.name for a in schema.actions if a.is_terminal}
+    r2_by_id = {d["id"]: d for d in round2_results}
+    r3_by_id = {d["id"]: d for d in round3_results}
+
+    paired = [
+        (r2_by_id[aid], r3_by_id[aid])
+        for aid in r2_by_id
+        if aid in r3_by_id
+        and not r2_by_id[aid].get("error")
+        and not r3_by_id[aid].get("error")
+    ]
+
+    if not paired:
+        return {
+            "decision_stability": 0.0,
+            "utility_drift_mean": 0.0,
+            "terminal_share_r2": 0.0,
+            "terminal_share_r3": 0.0,
+            "terminal_share_delta": 0.0,
+            "verdict": "Indeterminate",
+            "rationale": "no paired R2-R3 decisions available",
+            "paired_count": 0,
+        }
+
+    n = len(paired)
+    same_action = sum(1 for r2, r3 in paired if r2.get("action") == r3.get("action"))
+    decision_stability = same_action / n
+
+    drift = [r3.get("utility", 0.0) - r2.get("utility", 0.0) for r2, r3 in paired]
+    utility_drift_mean = sum(drift) / n
+
+    terminal_r2 = sum(1 for r2, _ in paired if r2.get("action") in terminal_set) / n
+    terminal_r3 = sum(1 for _, r3 in paired if r3.get("action") in terminal_set) / n
+    terminal_delta = terminal_r3 - terminal_r2
+
+    if decision_stability >= 0.6 and utility_drift_mean >= -0.2 and terminal_delta <= 0.2:
+        verdict: ResilienceVerdict = "Resilient"
+    elif decision_stability < 0.4 or utility_drift_mean < -0.4 or terminal_delta > 0.4:
+        verdict = "Fragile"
+    else:
+        verdict = "Moderate"
+
+    rationale = (
+        f"stability={decision_stability:.2f} ({same_action}/{n} held), "
+        f"utility drift={utility_drift_mean:+.2f}, "
+        f"terminal share {terminal_r2:.2f}->{terminal_r3:.2f}"
+    )
+
+    return {
+        "decision_stability": decision_stability,
+        "utility_drift_mean": utility_drift_mean,
+        "terminal_share_r2": terminal_r2,
+        "terminal_share_r3": terminal_r3,
+        "terminal_share_delta": terminal_delta,
+        "verdict": verdict,
+        "rationale": rationale,
+        "paired_count": n,
+    }
 
 
 class ExecutiveCompiler:
@@ -83,6 +149,7 @@ Output ONLY one short sentence describing the event. Do not include explanation,
         round2_results: list[dict[str, Any]],
         round3_results: Optional[list[dict[str, Any]]] = None,
         crisis_event: Optional[str] = None,
+        resilience_metrics: Optional[dict[str, Any]] = None,
         model: Optional[str] = None,
     ) -> str:
         transcript = _build_transcript(round1_results, round2_results, round3_results)
@@ -93,6 +160,29 @@ Output ONLY one short sentence describing the event. Do not include explanation,
 The following external crisis was synthesized and injected into the simulation:
 > "{crisis_event}"
 """
+
+        if resilience_metrics:
+            r = resilience_metrics
+            resilience_block = f"""
+## DETERMINISTIC RESILIENCE METRICS (pre-computed — DO NOT override)
+- Verdict: {r['verdict']}
+- Decision stability (R2→R3): {r['decision_stability']:.2f} ({r['paired_count']} agents tracked)
+- Mean utility drift (R3 − R2): {r['utility_drift_mean']:+.2f}
+- Terminal-action share R2 → R3: {r['terminal_share_r2']:.2f} → {r['terminal_share_r3']:.2f} (Δ {r['terminal_share_delta']:+.2f})
+- Rationale: {r['rationale']}
+"""
+            resilience_instruction = (
+                f"   - The resilience verdict is **{r['verdict']}** — this is pre-computed from the metrics above and is authoritative. "
+                "Do NOT invent a different rating. Your job is to explain WHY the metrics produced this verdict using evidence from the transcript "
+                "(which agents held, which flipped, magnitude of utility shifts) and to identify the most risk-sensitive pivot-point archetype."
+            )
+        else:
+            resilience_block = ""
+            resilience_instruction = (
+                "   - Did the crisis cause cascading rejection or did agents adapt?\n"
+                "   - Rate resilience: Fragile / Moderate / Resilient.\n"
+                "   - Identify the most risk-sensitive pivot-point archetype."
+            )
 
         action_vocab = ", ".join(self.schema.action_names())
         prompt = f"""You are the SimulateAI Chief Behavioral Architect & Diagnostic Director.
@@ -107,7 +197,7 @@ User stimulus:
 \"\"\"
 {stimulus}
 \"\"\"
-{crisis_section}
+{crisis_section}{resilience_block}
 Raw simulation transcript:
 {transcript}
 
@@ -130,9 +220,7 @@ Write a professional Markdown report with these sections, in this order. Adapt t
    - Cite specific transitions you observed.
 
 5. CRISIS RESILIENCE VERDICT
-   - Did the crisis cause cascading rejection or did agents adapt?
-   - Rate resilience: Fragile / Moderate / Resilient.
-   - Identify the most risk-sensitive pivot-point archetype.
+{resilience_instruction}
 
 6. STRATEGIC PIVOT RECOMMENDATIONS
    - Three concrete, actionable modifications to the original stimulus that would address the strongest objections surfaced in the swarm.

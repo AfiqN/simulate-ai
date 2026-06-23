@@ -1,8 +1,14 @@
+import asyncio
 import httpx
 import json
-from typing import AsyncGenerator, Optional
+from typing import Any, AsyncGenerator, Optional
 
 from config import LLM_PROVIDER, OLLAMA_HOST, GEMINI_API_KEY
+
+
+_RETRYABLE_STATUSES = (429, 500, 502, 503, 504)
+_MAX_RETRIES = 3
+_BASE_DELAY = 2.0
 
 
 class UnifiedLLMClient:
@@ -93,6 +99,27 @@ class UnifiedLLMClient:
                         if data.get("done", False):
                             break
 
+    async def _post_with_retry(
+        self,
+        url: str,
+        payload: dict,
+        headers: Optional[dict],
+        timeout: float,
+    ) -> dict[str, Any]:
+        for attempt in range(_MAX_RETRIES + 1):
+            try:
+                async with httpx.AsyncClient(timeout=timeout) as client:
+                    response = await client.post(url, headers=headers, json=payload)
+                response.raise_for_status()
+                return response.json()
+            except httpx.HTTPStatusError as e:
+                if e.response.status_code not in _RETRYABLE_STATUSES or attempt == _MAX_RETRIES:
+                    raise
+            except httpx.RequestError:
+                if attempt == _MAX_RETRIES:
+                    raise
+            await asyncio.sleep(_BASE_DELAY * (2 ** attempt))
+
     async def chat(
         self,
         messages: list[dict],
@@ -100,13 +127,12 @@ class UnifiedLLMClient:
         timeout: float = 120.0,
         response_format: Optional[dict] = None,
     ) -> str:
-        """Non-streaming chat response with support for structured JSON output."""
         target_model = model or self.model
 
         if self.provider == "gemini":
             headers = {
                 "Authorization": f"Bearer {self.gemini_api_key}",
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
             }
             payload = {
                 "model": target_model,
@@ -115,38 +141,35 @@ class UnifiedLLMClient:
             }
             if response_format:
                 payload["response_format"] = response_format
-            async with httpx.AsyncClient(timeout=timeout) as client:
-                response = await client.post(
-                    f"{self.gemini_base_url}/v1/chat/completions",
-                    headers=headers,
-                    json=payload,
-                )
-                response.raise_for_status()
-                data = response.json()
-                choices = data.get("choices", [])
-                if choices:
-                    return choices[0].get("message", {}).get("content", "")
-                return ""
-        else:
-            payload = {
-                "model": target_model,
-                "messages": messages,
-                "stream": False,
-            }
-            if response_format:
-                if response_format.get("type") == "json_schema":
-                    payload["format"] = response_format["json_schema"]["schema"]
-                elif response_format.get("type") == "json_object":
-                    payload["format"] = "json"
+            data = await self._post_with_retry(
+                f"{self.gemini_base_url}/v1/chat/completions",
+                payload,
+                headers,
+                timeout,
+            )
+            choices = data.get("choices", [])
+            if choices:
+                return choices[0].get("message", {}).get("content", "")
+            return ""
 
-            async with httpx.AsyncClient(timeout=timeout) as client:
-                response = await client.post(
-                    f"{self.host}/api/chat",
-                    json=payload,
-                )
-                response.raise_for_status()
-                data = response.json()
-                return data.get("message", {}).get("content", "")
+        payload = {
+            "model": target_model,
+            "messages": messages,
+            "stream": False,
+        }
+        if response_format:
+            if response_format.get("type") == "json_schema":
+                payload["format"] = response_format["json_schema"]["schema"]
+            elif response_format.get("type") == "json_object":
+                payload["format"] = "json"
+
+        data = await self._post_with_retry(
+            f"{self.host}/api/chat",
+            payload,
+            None,
+            timeout,
+        )
+        return data.get("message", {}).get("content", "")
 
     async def is_available(self) -> bool:
         """Check if LLM backend provider is alive and responding."""
