@@ -42,9 +42,9 @@ def _cluster_block(schema: SimulationSchema) -> str:
 
 
 def _action_coverage_block(schema: SimulationSchema, count: int) -> str:
-    required_span = min(3, len(schema.actions))
+    required_span = min(count, len(schema.actions))
     lines = [
-        "ACTION COVERAGE REQUIREMENT (load-bearing):",
+        "ACTION COVERAGE REQUIREMENT (load-bearing — violation causes automatic rejection):",
         f"The {count} personas must collectively cover at least {required_span} distinct actions in their natural Round 1 reaction. "
         "For EACH of the actions below, design at least one persona whose archetype, attributes "
         "(rationality_index / aggressiveness / risk_tolerance), memories, and starting emotional state make THAT action "
@@ -53,9 +53,13 @@ def _action_coverage_block(schema: SimulationSchema, count: int) -> str:
     for a in schema.actions:
         suffix = " (terminal)" if a.is_terminal else ""
         lines.append(f'  - {a.name}{suffix}: {a.description} — who in this scenario would commit to this first?')
+    lines.append("")
     lines.append(
-        "Do NOT design a swarm where most personas would naturally pick the same action. A homogeneous-action "
-        "swarm collapses the debate dynamics in Round 2 and produces orphan agents with no cross-faction challengers."
+        "CRITICAL: Design each persona TO TARGET a specific action. Do NOT design personas first and assign actions later. "
+        "Start from the action list, then ask 'what kind of stakeholder would naturally choose THIS action given this scenario?' "
+        "For example, if the actions include both ADOPT and OPPOSE, you MUST have at least one persona who would ADOPT "
+        "AND at least one who would OPPOSE. A swarm where most personas gravitate toward the same action is INVALID and will "
+        "be rejected — it collapses the debate dynamics and produces orphan agents with no cross-faction challengers."
     )
     return "\n".join(lines)
 

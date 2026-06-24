@@ -40,8 +40,23 @@ class Agent:
         if self.schema.resource_model.kind == "none" or not self.profile.resources:
             return "This scenario does not track tangible resources for this agent."
         lines = []
+        depleted = []
         for r in self.profile.resources:
-            lines.append(f"- {r.name}: {r.current:,.2f} / {r.maximum:,.2f}")
+            pct = (r.current / r.maximum * 100) if r.maximum > 0 else 0
+            lines.append(f"- {r.name}: {r.current:,.2f} / {r.maximum:,.2f} ({pct:.0f}%)")
+            if r.current <= 0:
+                depleted.append(r.name)
+            elif pct <= 20:
+                depleted.append(f"{r.name} (critically low)")
+        if depleted:
+            lines.append("")
+            lines.append(
+                "⚠ RESOURCE CONSTRAINT: " + ", ".join(depleted) + " depleted or critically low. "
+                "Maintaining aggressive or high-cost stances without adequate resources is "
+                "increasingly untenable — consider whether you can credibly sustain your current "
+                "position, or whether pragmatic adaptation (coalition-building, compromise, delay) "
+                "better serves your interests given your diminished leverage."
+            )
         return "\n".join(lines)
 
     def _render_response_template(self) -> str:
@@ -118,6 +133,8 @@ You must commit to exactly one of these action verbs:
 Compute your utility internally as:
   final_utility = perceived_gains - perceived_costs
 where both inputs are in [0.0, 1.0] and final_utility ends up in [-1.0, 1.0].
+Express ALL three values to exactly 2 decimal places (e.g. 0.35, not 0.3 or 0.4).
+Reflect genuine nuance — avoid round numbers like 0.50, 0.80, 1.00 unless truly warranted.
 
 --- EMOTIONAL STATE VOCABULARY ---
 Pick one state that reflects your shift after this stimulus. Available states: {state_vocab}.
