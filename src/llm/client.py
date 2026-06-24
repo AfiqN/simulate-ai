@@ -230,9 +230,10 @@ class UnifiedLLMClient:
                 return False
             try:
                 client = self._get_http(5.0)
+                # Use x-goog-api-key header (safe — not exposed in URL or logs)
                 r = await client.get(
                     "https://generativelanguage.googleapis.com/v1beta/models",
-                    headers={"Authorization": f"Bearer {self.gemini_api_key}"},
+                    headers={"x-goog-api-key": self.gemini_api_key},
                     timeout=5.0,
                 )
                 return r.status_code == 200
