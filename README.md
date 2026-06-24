@@ -76,6 +76,16 @@ Each run is saved to `tests/runs/<timestamp>__<scenario>/` with:
 - `metrics.json` — schema, decisions per round, adversary map, resilience metrics, timings
 - `transcript.txt` and `transcript.html` — full Rich-rendered console output
 
+When running multiple scenarios (`--all` or multiple matches), a `summary_<timestamp>.json` is also written to `tests/runs/` aggregating resilience verdicts and timings.
+
+### Comparing batch runs
+
+```bash
+python tests/compare_runs.py tests/runs/summary_A.json tests/runs/summary_B.json
+```
+
+Prints a side-by-side table of resilience verdicts, stability scores, and total elapsed time — useful for tracking regressions after code changes.
+
 `tests/runs/` is gitignored.
 
 ## Running the unit tests
@@ -115,14 +125,15 @@ src/
     simulation_schema.py    SimulationSchema dataclasses
 tests/
   scenarios/                five .txt stimuli for non-interactive runs
-  run_scenario.py           non-interactive scenario runner
+  run_scenario.py           non-interactive scenario runner (writes batch summary JSON)
+  compare_runs.py           side-by-side diff of two batch summaries
   unit/                     deterministic helper tests
 ```
 
 ## Operational notes
 
 - **Concurrency.** Agent rounds run behind an `asyncio.Semaphore`. Worker tasks stagger their start times (`idx * 2`s for Round 1, `4 + idx * 3`s for Rounds 2 and 3) to keep the Gemini free tier within its per-minute quota.
-- **Retry layer.** The LLM client retries on 429, 500, 502, 503, and 504 with exponential backoff (2s, 4s, 8s).
+- **Retry layer.** The LLM client retries on 429, 500, 502, 503, and 504 with exponential backoff (up to 5 attempts).
 - **Failure modes.** If the Architect or swarm generator fails twice, the run aborts with a clear error. Per-agent round failures are tolerated; the agent is marked Failed in the live monitor and the pipeline continues with a synthesized fallback entry for that agent.
 
 ## Scope and limitations

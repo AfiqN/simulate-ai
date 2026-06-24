@@ -128,6 +128,39 @@ async def run_one(
     return out_dir, status
 
 
+def write_batch_summary(results: list[tuple[Path, str]], batch_start: float) -> Path:
+    """Write a single summary JSON aggregating all scenario results in this batch."""
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    entries = []
+    for out_dir, status in results:
+        entry = {
+            "scenario": out_dir.name.split("__", 1)[-1] if "__" in out_dir.name else out_dir.name,
+            "status": status,
+            "run_dir": str(out_dir.relative_to(ROOT)),
+        }
+        metrics_path = out_dir / "metrics.json"
+        if metrics_path.exists():
+            metrics = json.loads(metrics_path.read_text(encoding="utf-8"))
+            entry["verdict_label"] = metrics.get("verdict_label")
+            entry["resilience_metrics"] = metrics.get("resilience_metrics")
+            entry["timings"] = metrics.get("timings")
+            entry["crisis_event"] = metrics.get("crisis_event")
+            entry["agent_count"] = len(metrics.get("agents", []))
+        entries.append(entry)
+
+    summary = {
+        "batch_timestamp": timestamp,
+        "total_elapsed_s": round(time.time() - batch_start, 1),
+        "scenarios_run": len(entries),
+        "passed": sum(1 for e in entries if e["status"] == "ok"),
+        "failed": sum(1 for e in entries if e["status"] == "failed"),
+        "results": entries,
+    }
+    summary_path = RUNS_DIR / f"summary_{timestamp}.json"
+    summary_path.write_text(json.dumps(summary, indent=2, default=str), encoding="utf-8")
+    return summary_path
+
+
 async def main() -> None:
     parser = argparse.ArgumentParser(description="Run SimulateAI scenarios non-interactively.")
     parser.add_argument("scenario", nargs="?", help="Scenario name fragment, prefix, or .txt path.")
@@ -143,9 +176,17 @@ async def main() -> None:
     if not await check_llm_provider(client):
         sys.exit(1)
 
+    batch_start = time.time()
     results: list[tuple[Path, str]] = []
     for path in paths:
         results.append(await run_one(client, path, args.agents, args.concurrency))
+
+    # Write batch summary when running multiple scenarios
+    if len(results) > 1:
+        summary_path = write_batch_summary(results, batch_start)
+        console.print(
+            f"\n[bold cyan]Batch summary → {summary_path.relative_to(ROOT)}[/bold cyan]"
+        )
 
     console.print(
         f"\n[bold yellow]All runs saved under {RUNS_DIR.relative_to(ROOT)}/[/bold yellow]"
