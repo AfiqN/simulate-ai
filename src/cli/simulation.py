@@ -1,4 +1,5 @@
 import asyncio
+import hashlib
 import time
 from typing import Any, Optional
 
@@ -118,13 +119,14 @@ async def _execute_round(
     try:
         async with semaphore:
             result = await coroutine_factory()
+        # Write result BEFORE status so _extract_decision never sees empty result for "Completed"
+        statuses[idx]["result"] = result
         statuses[idx]["duration"] = time.time() - start
         statuses[idx]["status"] = "Failed" if "error" in result else "Completed"
-        statuses[idx]["result"] = result
     except Exception as e:
+        statuses[idx]["result"] = {"error": str(e)}
         statuses[idx]["duration"] = time.time() - start
         statuses[idx]["status"] = "Failed"
-        statuses[idx]["result"] = {"error": str(e)}
 
 
 def _make_statuses(agents: list[Agent]) -> list[dict]:
@@ -177,7 +179,9 @@ async def _drive_live_table(statuses: list[dict], title: str, in_progress_labels
 
 
 def _pick_valence(stimulus: str) -> Valence:
-    return "validation" if hash(stimulus) % 2 == 0 else "stress"
+    """Deterministic valence selection using stable hash (not Python's randomized hash())."""
+    digest = hashlib.md5(stimulus.encode()).hexdigest()
+    return "validation" if int(digest[0], 16) % 2 == 0 else "stress"
 
 
 def _render_final_summary(
@@ -459,8 +463,7 @@ async def run_swarm_simulation() -> None:
         "[bold yellow]How many agent personas should populate the swarm? (1-20)[/bold yellow]",
         default=3,
     )
-    if agent_count < 1:
-        agent_count = 1
+    agent_count = max(1, min(agent_count, 20))
 
     concurrency = IntPrompt.ask(
         "[bold yellow]Max concurrent LLM threads (semaphore)[/bold yellow]",

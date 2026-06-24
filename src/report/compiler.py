@@ -137,8 +137,9 @@ Output ONLY one short sentence describing the event. Do not include explanation,
 
         try:
             raw = await self.client.chat(messages, model=model)
-        except Exception:
-            return "An unexpected disruption has occurred that directly impacts the viability of the proposed concept."
+        except Exception as e:
+            # Surface the error type so operators can diagnose API/network failures
+            return f"An unexpected disruption has occurred ({type(e).__name__}: {e})."
 
         return _clean_single_sentence(raw)
 
@@ -253,7 +254,9 @@ def _clean_single_sentence(text: str) -> str:
         return "An unexpected disruption has occurred that directly impacts the viability of the proposed concept."
     cleaned = cleaned.strip().strip('"').strip("'").strip()
     if "\n" in cleaned:
-        for line in reversed(cleaned.splitlines()):
+        # Take the FIRST non-empty line (the event sentence), not the last
+        # (which may be a trailing LLM caveat or explanation).
+        for line in cleaned.splitlines():
             line = line.strip().strip('"').strip("'").strip()
             if line:
                 cleaned = line
@@ -266,13 +269,18 @@ def _build_transcript(
     r2: list[dict[str, Any]],
     r3: Optional[list[dict[str, Any]]],
 ) -> str:
+    # Align by agent ID to prevent cross-contamination when a round has missing/failed entries
+    r2_by_id = {d.get("id"): d for d in r2}
+    r3_by_id = {d.get("id"): d for d in (r3 or [])}
+
     parts: list[str] = []
-    for i, a in enumerate(r1):
-        b = r2[i] if i < len(r2) else {}
-        c = r3[i] if r3 and i < len(r3) else {}
+    for a in r1:
+        aid = a.get("id")
+        b = r2_by_id.get(aid, {})
+        c = r3_by_id.get(aid, {})
 
         block = (
-            f"Agent: {a.get('archetype', '?')} (ID: {a.get('id', '?')})\n"
+            f"Agent: {a.get('archetype', '?')} (ID: {aid})\n"
             f"- Round 1 Action: {a.get('action')} (Utility: {a.get('utility', 0.0):.4f})\n"
             f"- Round 1 Inner Monologue: \"{a.get('monologue', '')}\"\n"
             f"- Round 1 Public Statement: \"{a.get('statement', '')}\"\n"

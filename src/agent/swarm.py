@@ -79,7 +79,7 @@ Constraints:
   - rationality_index (1.0 = pure logic, 0.0 = pure emotion)
   - aggressiveness (1.0 = dominant/confrontational, 0.0 = passive)
   - risk_tolerance (1.0 = reckless, 0.0 = extremely cautious)
-- current_internal_state must be one of: {schema.state_vocabulary}.
+- current_internal_state must be one of: {", ".join(schema.state_vocabulary)}.
 - memory_vectors: exactly 2 short, character-defining beliefs or recollections that shape how this agent will evaluate the stimulus.
 
 {_cluster_block(schema)}
@@ -135,7 +135,9 @@ def _retry_hint(last_error: str, schema: SimulationSchema) -> str:
         return (
             "Your previous swarm is action-monoculture: persona attributes, linguistic clusters, "
             "and starting emotional states are too clustered, which predicts most agents will commit "
-            "to the same Round 1 action. Re-emit the swarm with EXPLICIT heterogeneity — each persona "
+            "to the same Round 1 action. "
+            "DISCARD the previous swarm entirely — do NOT base the new personas on your prior response. "
+            "Design from scratch with EXPLICIT heterogeneity — each persona "
             "must be designed to gravitate toward a DIFFERENT action from this list: "
             f"{actions_list}. Spread rationality_index, aggressiveness, risk_tolerance, "
             "linguistic_cluster_id, and current_internal_state widely across the personas. "
@@ -167,7 +169,16 @@ async def generate_llm_swarm(
     last_profiles: Optional[list[AgentProfile]] = None
 
     for attempt in range(2):
-        raw = await client.chat(messages, model=model, response_format={"type": "json_object"})
+        try:
+            raw = await client.chat(messages, model=model, response_format={"type": "json_object"})
+        except Exception as e:
+            raw = ""
+            last_error = f"network/client error: {type(e).__name__}: {e}"
+            if attempt == 0:
+                messages.append({"role": "assistant", "content": ""})
+                messages.append({"role": "user", "content": _retry_hint(last_error, schema)})
+            continue
+
         parsed = parse_json_robustly(raw)
 
         if not parsed or "agents" not in parsed:
@@ -293,7 +304,22 @@ def _coerce_float(value, default: float) -> float:
     if isinstance(value, (int, float)):
         return float(value)
     if isinstance(value, str):
-        kept = "".join(c for c in value if c.isdigit() or c in (".", "-"))
+        cleaned = value.strip()
+        # Handle percentage strings (e.g. "50%")
+        if cleaned.endswith("%"):
+            cleaned = cleaned[:-1].strip()
+            try:
+                return float(cleaned) / 100.0
+            except ValueError:
+                pass
+        # Remove commas (thousand separators) and currency symbols
+        cleaned = cleaned.replace(",", "").lstrip("$€£¥")
+        # Keep only valid float characters, handle leading/trailing minus properly
+        kept = "".join(c for c in cleaned if c.isdigit() or c in (".", "-"))
+        if kept.startswith("-"):
+            kept = "-" + kept[1:].replace("-", "")
+        else:
+            kept = kept.replace("-", "")
         try:
             return float(kept)
         except ValueError:

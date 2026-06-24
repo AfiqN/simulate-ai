@@ -70,11 +70,23 @@ async def design_schema(
 
     last_error: Optional[str] = None
     for attempt in range(2):
-        raw = await client.chat(
-            messages,
-            model=model,
-            response_format={"type": "json_object"},
-        )
+        try:
+            raw = await client.chat(
+                messages,
+                model=model,
+                response_format={"type": "json_object"},
+            )
+        except Exception as e:
+            raw = ""
+            last_error = f"network/client error: {type(e).__name__}: {e}"
+            if attempt == 0:
+                messages.append({"role": "assistant", "content": ""})
+                messages.append({
+                    "role": "user",
+                    "content": RETRY_USER_HINT.format(error=last_error),
+                })
+            continue
+
         parsed = parse_json_robustly(raw)
 
         if not parsed:

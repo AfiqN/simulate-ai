@@ -17,9 +17,11 @@ class Agent:
         cluster = self.schema.get_cluster(self.profile.linguistic_cluster_id)
         if cluster is not None:
             return cluster.style_prompt
+        # Fallback: generic style prompt without keyword-matching on archetype name.
+        # This fires only on cluster_id mismatch — a data integrity issue upstream.
         return (
-            f"Speak with a natural voice consistent with the persona of a "
-            f"'{self.profile.archetype}'. Express your biases and emotional state clearly."
+            "Speak with a direct, opinionated voice. Express your biases and emotional "
+            "state clearly. Use natural language appropriate to your role in this scenario."
         )
 
     def _render_actions_block(self) -> str:
@@ -174,8 +176,10 @@ Return ONLY a valid JSON object matching this template. No prose, no markdown fe
             if affects is None or resource.name != affects:
                 clean[resource.name] = 0.0
                 continue
-            clean[resource.name] = amount
-            resource.current = max(0.0, resource.current - amount)
+            # Record actual deduction (capped at current balance), not inflated LLM amount
+            actual = min(amount, resource.current)
+            clean[resource.name] = actual
+            resource.current = max(0.0, resource.current - actual)
 
         parsed["resource_deductions"] = clean
 
@@ -193,6 +197,7 @@ Return ONLY a valid JSON object matching this template. No prose, no markdown fe
         adversary: Optional[dict] = None,
         model: Optional[str] = None,
     ) -> dict[str, Any]:
+        context_summary = "You are now in ROUND 2 (Debate & Reflection). You have read your peers' initial reactions and must engage with their positions."
         user_prompt = f"""You are now in ROUND 2 (DEBATE & REFLECTION).
 Your peers in the swarm have voiced their initial reactions to this stimulus:
 "{stimulus}"
@@ -213,7 +218,7 @@ Your peers in the swarm have voiced their initial reactions to this stimulus:
 You MUST address their stance in your public_statement and internal_reflection. Defend, concede, or reframe — but engage with them by name.
 """
         return await self._llm_round(
-            system=self.build_system_prompt(),
+            system=self.build_system_prompt(context_summary=context_summary),
             user=user_prompt,
             model=model,
         )
@@ -224,7 +229,7 @@ You MUST address their stance in your public_statement and internal_reflection. 
         original_stimulus: str,
         model: Optional[str] = None,
     ) -> dict[str, Any]:
-        context_summary = f"EXTERNAL EVENT: {crisis}\n(Original stimulus: {original_stimulus})"
+        context_summary = f"EXTERNAL EVENT: {crisis}"
         user_prompt = f"""An external event has hit the scenario.
 Original stimulus: "{original_stimulus}"
 Event: "{crisis}"
@@ -274,7 +279,23 @@ def _coerce_float(value: Any, default: float) -> float:
     if isinstance(value, (int, float)):
         return float(value)
     if isinstance(value, str):
-        kept = "".join(c for c in value if c.isdigit() or c in (".", "-"))
+        cleaned = value.strip()
+        # Handle percentage strings (e.g. "50%")
+        if cleaned.endswith("%"):
+            cleaned = cleaned[:-1].strip()
+            try:
+                return float(cleaned) / 100.0
+            except ValueError:
+                pass
+        # Remove commas (thousand separators) and currency symbols
+        cleaned = cleaned.replace(",", "").lstrip("$€£¥")
+        # Keep only valid float characters, but handle leading/trailing minus properly
+        kept = "".join(c for c in cleaned if c.isdigit() or c in (".", "-"))
+        # Ensure at most one leading minus
+        if kept.startswith("-"):
+            kept = "-" + kept[1:].replace("-", "")
+        else:
+            kept = kept.replace("-", "")
         try:
             return float(kept)
         except ValueError:
@@ -317,10 +338,12 @@ def _utility_to_action(
 
 
 def _terminal_or_first_action(schema: SimulationSchema) -> str:
+    if not schema.actions:
+        return "NO_ACTION"
     for a in schema.actions:
         if a.is_terminal:
             return a.name
-    return schema.actions[0].name if schema.actions else "ABSTAIN"
+    return schema.actions[0].name
 
 
 def _normalize_state(raw: Any, vocabulary: list[str], fallback: str) -> str:

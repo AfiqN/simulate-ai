@@ -15,6 +15,9 @@ class UnifiedLLMClient:
     """
     Unified Async LLM Client that dynamically routes requests to either
     Ollama (local) or Google AI Studio Gemini API (cloud, via the OpenAI-compatible endpoint).
+
+    Uses a persistent httpx.AsyncClient for connection pooling. Call `aclose()` when done,
+    or use as an async context manager.
     """
 
     def __init__(self, host: Optional[str] = None, model: Optional[str] = None, provider: Optional[str] = None):
@@ -23,6 +26,28 @@ class UnifiedLLMClient:
         self.model = model
         self.gemini_api_key = GEMINI_API_KEY
         self.gemini_base_url = "https://generativelanguage.googleapis.com/v1beta/openai"
+        self._http: Optional[httpx.AsyncClient] = None
+
+    def _get_http(self, timeout: float = 120.0) -> httpx.AsyncClient:
+        """Get or create the shared httpx client with connection pooling."""
+        if self._http is None or self._http.is_closed:
+            self._http = httpx.AsyncClient(
+                timeout=httpx.Timeout(timeout, connect=10.0),
+                limits=httpx.Limits(max_connections=20, max_keepalive_connections=10),
+            )
+        return self._http
+
+    async def aclose(self) -> None:
+        """Close the underlying HTTP client and release connections."""
+        if self._http and not self._http.is_closed:
+            await self._http.aclose()
+            self._http = None
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *exc):
+        await self.aclose()
 
     async def chat_stream(
         self,
@@ -31,73 +56,96 @@ class UnifiedLLMClient:
         timeout: float = 120.0,
     ) -> AsyncGenerator[str, None]:
         """
-        Stream response token-by-token from either local Ollama or cloud Gemini API.
+        Stream response token-by-token with retry on transient errors.
         """
         target_model = model or self.model
+        client = self._get_http(timeout)
 
-        if self.provider == "gemini":
-            # Streaming via OpenAI Compatibility endpoint on Google Generative Language v1beta
-            headers = {
-                "Authorization": f"Bearer {self.gemini_api_key}",
-                "Content-Type": "application/json"
-            }
-            payload = {
-                "model": target_model,
-                "messages": messages,
-                "stream": True,
-            }
+        for attempt in range(_MAX_RETRIES + 1):
+            try:
+                if self.provider == "gemini":
+                    async for chunk in self._stream_gemini(client, target_model, messages, timeout):
+                        yield chunk
+                else:
+                    async for chunk in self._stream_ollama(client, target_model, messages, timeout):
+                        yield chunk
+                return  # Success — exit retry loop
+            except httpx.HTTPStatusError as e:
+                if e.response.status_code not in _RETRYABLE_STATUSES or attempt == _MAX_RETRIES:
+                    raise
+            except httpx.RequestError:
+                if attempt == _MAX_RETRIES:
+                    raise
+            await asyncio.sleep(_BASE_DELAY * (2 ** attempt))
 
-            async with httpx.AsyncClient(timeout=timeout) as client:
-                async with client.stream(
-                    "POST",
-                    f"{self.gemini_base_url}/v1/chat/completions",
-                    headers=headers,
-                    json=payload,
-                ) as response:
-                    response.raise_for_status()
-                    async for line in response.aiter_lines():
-                        if not line:
-                            continue
-                        line = line.strip()
-                        if not line.startswith("data:"):
-                            continue
-                        data_str = line[len("data:"):].strip()
-                        if data_str == "[DONE]":
-                            break
-                        try:
-                            data = json.loads(data_str)
-                            choices = data.get("choices", [])
-                            if choices:
-                                delta = choices[0].get("delta", {})
-                                content = delta.get("content", "")
-                                if content:
-                                    yield content
-                        except json.JSONDecodeError:
-                            continue
-        else:
-            # Standard local Ollama streaming API
-            payload = {
-                "model": target_model,
-                "messages": messages,
-                "stream": True,
-            }
+    async def _stream_gemini(
+        self,
+        client: httpx.AsyncClient,
+        model: str,
+        messages: list[dict],
+        timeout: float,
+    ) -> AsyncGenerator[str, None]:
+        headers = {
+            "Authorization": f"Bearer {self.gemini_api_key}",
+            "Content-Type": "application/json",
+        }
+        payload = {"model": model, "messages": messages, "stream": True}
 
-            async with httpx.AsyncClient(timeout=timeout) as client:
-                async with client.stream(
-                    "POST",
-                    f"{self.host}/api/chat",
-                    json=payload,
-                ) as response:
-                    response.raise_for_status()
-                    async for line in response.aiter_lines():
-                        if not line:
-                            continue
-                        data = json.loads(line)
-                        content = data.get("message", {}).get("content", "")
+        async with client.stream(
+            "POST",
+            f"{self.gemini_base_url}/v1/chat/completions",
+            headers=headers,
+            json=payload,
+            timeout=timeout,
+        ) as response:
+            response.raise_for_status()
+            async for line in response.aiter_lines():
+                if not line:
+                    continue
+                line = line.strip()
+                if not line.startswith("data:"):
+                    continue
+                data_str = line[len("data:"):].strip()
+                if data_str == "[DONE]":
+                    break
+                try:
+                    data = json.loads(data_str)
+                    choices = data.get("choices", [])
+                    if choices:
+                        content = choices[0].get("delta", {}).get("content", "")
                         if content:
                             yield content
-                        if data.get("done", False):
-                            break
+                except json.JSONDecodeError:
+                    continue
+
+    async def _stream_ollama(
+        self,
+        client: httpx.AsyncClient,
+        model: str,
+        messages: list[dict],
+        timeout: float,
+    ) -> AsyncGenerator[str, None]:
+        payload = {"model": model, "messages": messages, "stream": True}
+
+        async with client.stream(
+            "POST",
+            f"{self.host}/api/chat",
+            json=payload,
+            timeout=timeout,
+        ) as response:
+            response.raise_for_status()
+            async for line in response.aiter_lines():
+                if not line:
+                    continue
+                try:
+                    data = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                content = data.get("message", {}).get("content", "")
+                if content:
+                    yield content
+                if data.get("done", False):
+                    break
 
     async def _post_with_retry(
         self,
@@ -106,10 +154,14 @@ class UnifiedLLMClient:
         headers: Optional[dict],
         timeout: float,
     ) -> dict[str, Any]:
+        """POST with exponential backoff retry on transient errors."""
+        client = self._get_http(timeout)
+
         for attempt in range(_MAX_RETRIES + 1):
             try:
-                async with httpx.AsyncClient(timeout=timeout) as client:
-                    response = await client.post(url, headers=headers, json=payload)
+                response = await client.post(
+                    url, headers=headers, json=payload, timeout=timeout
+                )
                 response.raise_for_status()
                 return response.json()
             except httpx.HTTPStatusError as e:
@@ -177,19 +229,20 @@ class UnifiedLLMClient:
             if not self.gemini_api_key or self.gemini_api_key.startswith("YOUR_"):
                 return False
             try:
-                # Query Google API models list to verify key validation and connection
-                async with httpx.AsyncClient(timeout=5.0) as client:
-                    r = await client.get(
-                        f"https://generativelanguage.googleapis.com/v1beta/models?key={self.gemini_api_key}"
-                    )
-                    return r.status_code == 200
+                client = self._get_http(5.0)
+                r = await client.get(
+                    "https://generativelanguage.googleapis.com/v1beta/models",
+                    headers={"Authorization": f"Bearer {self.gemini_api_key}"},
+                    timeout=5.0,
+                )
+                return r.status_code == 200
             except Exception:
                 return False
         else:
             try:
-                async with httpx.AsyncClient(timeout=5.0) as client:
-                    r = await client.get(f"{self.host}/api/tags")
-                    return r.status_code == 200
+                client = self._get_http(5.0)
+                r = await client.get(f"{self.host}/api/tags", timeout=5.0)
+                return r.status_code == 200
             except httpx.ConnectError:
                 return False
 
