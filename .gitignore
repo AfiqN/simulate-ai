@@ -157,3 +157,7 @@ CLAUDE.md
 
 # Test transcripts (regenerated per run)
 tests/runs/
+
+# SQLite databases
+*.db
+data/

@@ -3,7 +3,7 @@ import httpx
 import json
 from typing import Any, AsyncGenerator, Optional
 
-from config import LLM_PROVIDER, OLLAMA_HOST, GEMINI_API_KEY
+from config import LLM_PROVIDER, OLLAMA_HOST, GEMINI_API_KEY, OPENAI_API_KEY, OPENAI_BASE_URL
 
 
 _RETRYABLE_STATUSES = (429, 500, 502, 503, 504)
@@ -26,6 +26,8 @@ class UnifiedLLMClient:
         self.model = model
         self.gemini_api_key = GEMINI_API_KEY
         self.gemini_base_url = "https://generativelanguage.googleapis.com/v1beta/openai"
+        self.openai_api_key = OPENAI_API_KEY
+        self.openai_base_url = (OPENAI_BASE_URL or "https://api.openai.com/v1").rstrip("/")
         self._http: Optional[httpx.AsyncClient] = None
 
     def _get_http(self, timeout: float = 120.0) -> httpx.AsyncClient:
@@ -66,6 +68,9 @@ class UnifiedLLMClient:
                 if self.provider == "gemini":
                     async for chunk in self._stream_gemini(client, target_model, messages, timeout):
                         yield chunk
+                elif self.provider == "openai":
+                    async for chunk in self._stream_openai(client, target_model, messages, timeout):
+                        yield chunk
                 else:
                     async for chunk in self._stream_ollama(client, target_model, messages, timeout):
                         yield chunk
@@ -94,6 +99,46 @@ class UnifiedLLMClient:
         async with client.stream(
             "POST",
             f"{self.gemini_base_url}/v1/chat/completions",
+            headers=headers,
+            json=payload,
+            timeout=timeout,
+        ) as response:
+            response.raise_for_status()
+            async for line in response.aiter_lines():
+                if not line:
+                    continue
+                line = line.strip()
+                if not line.startswith("data:"):
+                    continue
+                data_str = line[len("data:"):].strip()
+                if data_str == "[DONE]":
+                    break
+                try:
+                    data = json.loads(data_str)
+                    choices = data.get("choices", [])
+                    if choices:
+                        content = choices[0].get("delta", {}).get("content", "")
+                        if content:
+                            yield content
+                except json.JSONDecodeError:
+                    continue
+
+    async def _stream_openai(
+        self,
+        client: httpx.AsyncClient,
+        model: str,
+        messages: list[dict],
+        timeout: float,
+    ) -> AsyncGenerator[str, None]:
+        headers = {
+            "Authorization": f"Bearer {self.openai_api_key}",
+            "Content-Type": "application/json",
+        }
+        payload = {"model": model, "messages": messages, "stream": True}
+
+        async with client.stream(
+            "POST",
+            f"{self.openai_base_url}/chat/completions",
             headers=headers,
             json=payload,
             timeout=timeout,
@@ -181,11 +226,20 @@ class UnifiedLLMClient:
     ) -> str:
         target_model = model or self.model
 
-        if self.provider == "gemini":
-            headers = {
-                "Authorization": f"Bearer {self.gemini_api_key}",
-                "Content-Type": "application/json",
-            }
+        if self.provider in ("gemini", "openai"):
+            if self.provider == "gemini":
+                headers = {
+                    "Authorization": f"Bearer {self.gemini_api_key}",
+                    "Content-Type": "application/json",
+                }
+                url = f"{self.gemini_base_url}/v1/chat/completions"
+            else:
+                headers = {
+                    "Authorization": f"Bearer {self.openai_api_key}",
+                    "Content-Type": "application/json",
+                }
+                url = f"{self.openai_base_url}/chat/completions"
+
             payload = {
                 "model": target_model,
                 "messages": messages,
@@ -193,17 +247,13 @@ class UnifiedLLMClient:
             }
             if response_format:
                 payload["response_format"] = response_format
-            data = await self._post_with_retry(
-                f"{self.gemini_base_url}/v1/chat/completions",
-                payload,
-                headers,
-                timeout,
-            )
+            data = await self._post_with_retry(url, payload, headers, timeout)
             choices = data.get("choices", [])
             if choices:
                 return choices[0].get("message", {}).get("content", "")
             return ""
 
+        # Ollama
         payload = {
             "model": target_model,
             "messages": messages,
@@ -230,10 +280,22 @@ class UnifiedLLMClient:
                 return False
             try:
                 client = self._get_http(5.0)
-                # Use x-goog-api-key header (safe — not exposed in URL or logs)
                 r = await client.get(
                     "https://generativelanguage.googleapis.com/v1beta/models",
                     headers={"x-goog-api-key": self.gemini_api_key},
+                    timeout=5.0,
+                )
+                return r.status_code == 200
+            except Exception:
+                return False
+        elif self.provider == "openai":
+            if not self.openai_api_key or self.openai_api_key.startswith("YOUR_"):
+                return False
+            try:
+                client = self._get_http(5.0)
+                r = await client.get(
+                    f"{self.openai_base_url}/models",
+                    headers={"Authorization": f"Bearer {self.openai_api_key}"},
                     timeout=5.0,
                 )
                 return r.status_code == 200

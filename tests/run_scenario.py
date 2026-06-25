@@ -5,6 +5,9 @@ Usage:
     python tests/run_scenario.py fintech               # by name fragment
     python tests/run_scenario.py --all                 # every scenario
     python tests/run_scenario.py 02 --agents 5 --concurrency 3
+    python tests/run_scenario.py --all --parallel 2    # run 2 scenarios concurrently
+    python tests/run_scenario.py 04 --crisis "A massive data breach occurs"
+    python tests/run_scenario.py 01 --provider openai --model gpt-4o
 """
 import argparse
 import asyncio
@@ -20,8 +23,9 @@ sys.path.insert(0, str(ROOT))
 from src.cli import console  # noqa: E402
 from src.cli.simulation import check_llm_provider, run_simulation_pipeline  # noqa: E402
 from src.llm.client import OllamaClient  # noqa: E402
-from config import DEFAULT_MODEL, OLLAMA_HOST  # noqa: E402
+from config import DEFAULT_MODEL, MAX_CONCURRENCY, OLLAMA_HOST  # noqa: E402
 from src.agent.swarm import SwarmGenerationError  # noqa: E402
+from src.export.bundle import write_bundle  # noqa: E402
 from src.schema.architect import SchemaDesignError  # noqa: E402
 
 SCENARIOS_DIR = ROOT / "tests" / "scenarios"
@@ -91,7 +95,11 @@ def serialize_result(result: dict) -> dict:
 
 
 async def run_one(
-    client: OllamaClient, scenario_path: Path, agent_count: int, concurrency: int
+    client: OllamaClient,
+    scenario_path: Path,
+    agent_count: int,
+    concurrency: int,
+    crisis_override: str | None = None,
 ) -> tuple[Path, str]:
     stimulus = scenario_path.read_text(encoding="utf-8").strip()
 
@@ -104,12 +112,17 @@ async def run_one(
     start = time.time()
 
     try:
-        result = await run_simulation_pipeline(client, stimulus, agent_count, concurrency)
+        result = await run_simulation_pipeline(
+            client, stimulus, agent_count, concurrency,
+            crisis_override=crisis_override,
+        )
         (out_dir / "report.md").write_text(result["report_md"], encoding="utf-8")
         (out_dir / "metrics.json").write_text(
             json.dumps(serialize_result(result), indent=2, default=str),
             encoding="utf-8",
         )
+        # Write shareable export bundle
+        write_bundle(result, out_dir)
         status = "ok"
     except (SchemaDesignError, SwarmGenerationError) as e:
         console.print(f"[red]Pipeline failed: {e}[/red]")
@@ -167,19 +180,50 @@ async def main() -> None:
     parser.add_argument("--all", action="store_true", help="Run every scenario in tests/scenarios/.")
     parser.add_argument("--agents", type=int, default=5, help="Agent count per scenario (default: 5).")
     parser.add_argument("--concurrency", type=int, default=2, help="Max concurrent LLM calls (default: 2).")
+    parser.add_argument("--parallel", type=int, default=1, help="Run N scenarios concurrently (default: 1 = sequential).")
+    parser.add_argument("--model", type=str, default=None, help="Override LLM model name.")
+    parser.add_argument("--provider", type=str, choices=["gemini", "ollama", "openai"], default=None, help="Override LLM provider.")
+    parser.add_argument("--crisis", type=str, default=None, help="Inject a custom crisis event for Round 3.")
     args = parser.parse_args()
+
+    # Clamp concurrency
+    concurrency = max(1, min(args.concurrency, MAX_CONCURRENCY))
 
     paths = resolve_scenarios(args.scenario, args.all)
     RUNS_DIR.mkdir(parents=True, exist_ok=True)
 
-    client = OllamaClient(host=OLLAMA_HOST, model=DEFAULT_MODEL)
+    # Resolve model/provider overrides
+    model = args.model or DEFAULT_MODEL
+    provider = args.provider  # None means use config default
+
+    client = OllamaClient(host=OLLAMA_HOST, model=model, provider=provider)
     if not await check_llm_provider(client):
         sys.exit(1)
 
     batch_start = time.time()
     results: list[tuple[Path, str]] = []
-    for path in paths:
-        results.append(await run_one(client, path, args.agents, args.concurrency))
+
+    parallel_count = max(1, min(args.parallel, len(paths)))
+
+    if parallel_count <= 1:
+        # Sequential execution (original behavior)
+        for path in paths:
+            results.append(await run_one(client, path, args.agents, concurrency, crisis_override=args.crisis))
+    else:
+        # Parallel scenario execution — each scenario gets its own client instance
+        sem = asyncio.Semaphore(parallel_count)
+
+        async def _run_with_semaphore(path: Path) -> tuple[Path, str]:
+            async with sem:
+                # Each parallel scenario gets a fresh client to avoid shared state
+                scenario_client = OllamaClient(host=OLLAMA_HOST, model=model, provider=provider)
+                try:
+                    return await run_one(scenario_client, path, args.agents, concurrency, crisis_override=args.crisis)
+                finally:
+                    await scenario_client.aclose()
+
+        results = await asyncio.gather(*[_run_with_semaphore(p) for p in paths])
+        results = list(results)
 
     # Write batch summary when running multiple scenarios
     if len(results) > 1:

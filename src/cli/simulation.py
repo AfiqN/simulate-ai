@@ -10,7 +10,7 @@ from rich.rule import Rule
 from rich.spinner import Spinner
 from rich.table import Table
 
-from config import DEFAULT_MODEL, LLM_PROVIDER, OLLAMA_HOST
+from config import DEFAULT_MODEL, LLM_PROVIDER, MAX_CONCURRENCY, OLLAMA_HOST
 from src.agent.adversary import compute_adversary_map
 from src.agent.agent import Agent
 from src.agent.swarm import SwarmGenerationError, generate_llm_swarm
@@ -240,38 +240,52 @@ async def run_simulation_pipeline(
     stimulus: str,
     agent_count: int,
     concurrency: int,
+    crisis_override: Optional[str] = None,
+    headless: bool = False,
 ) -> dict[str, Any]:
-    with Live(
-        Spinner("aesthetic", text="[bold yellow]Architect is designing the simulation schema...[/bold yellow]"),
-        refresh_per_second=10,
-    ) as live:
+    concurrency = max(1, min(concurrency, MAX_CONCURRENCY))
+
+    if not headless:
+        with Live(
+            Spinner("aesthetic", text="[bold yellow]Architect is designing the simulation schema...[/bold yellow]"),
+            refresh_per_second=10,
+        ) as live:
+            schema = await design_schema(client, stimulus)
+            live.update("[bold green]✔ Schema designed.[/bold green]")
+    else:
         schema = await design_schema(client, stimulus)
-        live.update("[bold green]✔ Schema designed.[/bold green]")
 
-    render_schema_panel(schema)
+    if not headless:
+        render_schema_panel(schema)
 
-    console.print()
-    with Live(
-        Spinner("aesthetic", text="[bold yellow]Generating agent personas...[/bold yellow]"),
-        refresh_per_second=10,
-    ) as live:
+        console.print()
+        with Live(
+            Spinner("aesthetic", text="[bold yellow]Generating agent personas...[/bold yellow]"),
+            refresh_per_second=10,
+        ) as live:
+            profiles = await generate_llm_swarm(client, schema, stimulus, agent_count)
+            live.update("[bold green]✔ Personas generated.[/bold green]")
+    else:
         profiles = await generate_llm_swarm(client, schema, stimulus, agent_count)
-        live.update("[bold green]✔ Personas generated.[/bold green]")
 
     agents = [Agent(profile, client, schema) for profile in profiles]
-    render_agent_table(profiles, schema)
+    if not headless:
+        render_agent_table(profiles, schema)
 
     semaphore = asyncio.Semaphore(concurrency)
 
-    console.print()
-    console.print(Rule("[bold cyan]ROUND 1 — INITIAL PERCEPTION[/bold cyan]"))
+    # --- Round 1 ---
+    if not headless:
+        console.print()
+        console.print(Rule("[bold cyan]ROUND 1 — INITIAL PERCEPTION[/bold cyan]"))
     statuses_r1 = _make_statuses(agents)
     t0 = time.time()
     tasks_r1 = [
         asyncio.create_task(_run_perception(i, a, stimulus, statuses_r1, semaphore))
         for i, a in enumerate(agents)
     ]
-    await _drive_live_table(statuses_r1, "Round 1 Monitor", {"Thinking..."})
+    if not headless:
+        await _drive_live_table(statuses_r1, "Round 1 Monitor", {"Thinking..."})
     await asyncio.gather(*tasks_r1)
     dur_r1 = time.time() - t0
 
@@ -280,7 +294,8 @@ async def run_simulation_pipeline(
     for i, a in enumerate(agents):
         d = _extract_decision(a, statuses_r1[i], schema)
         decisions_r1.append(d)
-        render_round_panel("Round 1 — Initial Perception", d, schema, statuses_r1[i]["duration"])
+        if not headless:
+            render_round_panel("Round 1 — Initial Perception", d, schema, statuses_r1[i]["duration"])
         transcript_parts_r1.append(
             f"Agent: {d['archetype']} (ID: {d['id']})\n"
             f"- Public Statement: \"{d['statement']}\"\n"
@@ -288,24 +303,27 @@ async def run_simulation_pipeline(
         )
     full_round1_transcript = "\n\n".join(transcript_parts_r1)
 
-    console.print()
     adversary_map = compute_adversary_map(decisions_r1, agents)
-    console.print(
-        Panel(
-            "\n".join(
-                f"[bold yellow]{decisions_r1[i]['archetype']}[/bold yellow] → challenges → "
-                f"[bold red]"
-                f"{adversary_map[decisions_r1[i]['id']]['archetype'] if adversary_map[decisions_r1[i]['id']] else 'no adversary (homogeneous swarm)'}"
-                f"[/bold red]"
-                for i in range(len(agents))
-            ),
-            title="[bold cyan]Directed Interaction Graph (ΔU Pairing)[/bold cyan]",
-            border_style="cyan",
+    if not headless:
+        console.print()
+        console.print(
+            Panel(
+                "\n".join(
+                    f"[bold yellow]{decisions_r1[i]['archetype']}[/bold yellow] → challenges → "
+                    f"[bold red]"
+                    f"{adversary_map[decisions_r1[i]['id']]['archetype'] if adversary_map[decisions_r1[i]['id']] else 'no adversary (homogeneous swarm)'}"
+                    f"[/bold red]"
+                    for i in range(len(agents))
+                ),
+                title="[bold cyan]Directed Interaction Graph (ΔU Pairing)[/bold cyan]",
+                border_style="cyan",
+            )
         )
-    )
 
-    console.print()
-    console.print(Rule("[bold magenta]ROUND 2 — DIRECTED DEBATE[/bold magenta]"))
+    # --- Round 2 ---
+    if not headless:
+        console.print()
+        console.print(Rule("[bold magenta]ROUND 2 — DIRECTED DEBATE[/bold magenta]"))
     statuses_r2 = _make_statuses(agents)
     t0 = time.time()
     tasks_r2 = [
@@ -316,7 +334,8 @@ async def run_simulation_pipeline(
         ))
         for i, a in enumerate(agents)
     ]
-    await _drive_live_table(statuses_r2, "Round 2 Debate Monitor", {"Thinking...", "Debating..."})
+    if not headless:
+        await _drive_live_table(statuses_r2, "Round 2 Debate Monitor", {"Thinking...", "Debating..."})
     await asyncio.gather(*tasks_r2)
     dur_r2 = time.time() - t0
 
@@ -324,10 +343,13 @@ async def run_simulation_pipeline(
     for i, a in enumerate(agents):
         d = _extract_decision(a, statuses_r2[i], schema)
         decisions_r2.append(d)
-        render_round_panel("Round 2 — Directed Debate", d, schema, statuses_r2[i]["duration"])
+        if not headless:
+            render_round_panel("Round 2 — Directed Debate", d, schema, statuses_r2[i]["duration"])
 
-    console.print()
-    console.print(Rule("[bold red]ROUND 3 — CRISIS STRESS-TEST[/bold red]"))
+    # --- Round 3 ---
+    if not headless:
+        console.print()
+        console.print(Rule("[bold red]ROUND 3 — CRISIS STRESS-TEST[/bold red]"))
     transcript_parts_r2 = [
         f"Agent: {d['archetype']} (ID: {d['id']})\n"
         f"- Public Statement: \"{d['statement']}\"\n"
@@ -336,28 +358,38 @@ async def run_simulation_pipeline(
     ]
     full_round2_transcript = "\n\n".join(transcript_parts_r2)
 
-    await asyncio.sleep(2)
     compiler = ExecutiveCompiler(client, schema)
     valence: Valence = _pick_valence(stimulus)
-    with Live(
-        Spinner("aesthetic", text=f"[bold red]Catalyst Agent synthesizing {valence} event...[/bold red]"),
-        refresh_per_second=10,
-    ) as live:
-        crisis_event = await compiler.generate_crisis_event(
-            stimulus, full_round2_transcript, valence=valence,
-        )
-        live.update(f"[bold red]⚡ {valence.title()} Event Injected[/bold red]")
 
-    panel_color = "green" if valence == "validation" else "red"
-    panel_label = "Validation Shock" if valence == "validation" else "Crisis"
-    console.print()
-    console.print(
-        Panel(
-            f"[bold {panel_color}]{crisis_event}[/bold {panel_color}]",
-            title=f"[bold]⚡ External {panel_label} Event — Injected by System[/bold]",
-            border_style=panel_color,
+    if crisis_override:
+        crisis_event = crisis_override
+    else:
+        if not headless:
+            await asyncio.sleep(2)
+            with Live(
+                Spinner("aesthetic", text=f"[bold red]Catalyst Agent synthesizing {valence} event...[/bold red]"),
+                refresh_per_second=10,
+            ) as live:
+                crisis_event = await compiler.generate_crisis_event(
+                    stimulus, full_round2_transcript, valence=valence,
+                )
+                live.update(f"[bold red]⚡ {valence.title()} Event Injected[/bold red]")
+        else:
+            crisis_event = await compiler.generate_crisis_event(
+                stimulus, full_round2_transcript, valence=valence,
+            )
+
+    if not headless:
+        panel_color = "green" if valence == "validation" else "red"
+        panel_label = "Validation Shock" if valence == "validation" else "Crisis"
+        console.print()
+        console.print(
+            Panel(
+                f"[bold {panel_color}]{crisis_event}[/bold {panel_color}]",
+                title=f"[bold]⚡ External {panel_label} Event — Injected by System[/bold]",
+                border_style=panel_color,
+            )
         )
-    )
 
     statuses_r3 = _make_statuses(agents)
     t0 = time.time()
@@ -365,7 +397,8 @@ async def run_simulation_pipeline(
         asyncio.create_task(_run_crisis(i, a, crisis_event, stimulus, statuses_r3, semaphore))
         for i, a in enumerate(agents)
     ]
-    await _drive_live_table(statuses_r3, "Round 3 Crisis Monitor", {"Reacting..."})
+    if not headless:
+        await _drive_live_table(statuses_r3, "Round 3 Crisis Monitor", {"Reacting..."})
     await asyncio.gather(*tasks_r3)
     dur_r3 = time.time() - t0
 
@@ -373,42 +406,51 @@ async def run_simulation_pipeline(
     for i, a in enumerate(agents):
         d = _extract_decision(a, statuses_r3[i], schema)
         decisions_r3.append(d)
-        render_round_panel("Round 3 — Crisis Reaction", d, schema, statuses_r3[i]["duration"])
+        if not headless:
+            render_round_panel("Round 3 — Crisis Reaction", d, schema, statuses_r3[i]["duration"])
 
-    console.print()
-    console.print(Rule("[bold yellow]COMPILING EXECUTIVE DIAGNOSTIC REPORT[/bold yellow]"))
+    # --- Report compilation ---
     resilience_metrics = compute_resilience_metrics(decisions_r2, decisions_r3, schema)
-    console.print(
-        Panel(
-            f"[bold]Verdict:[/bold] {resilience_metrics['verdict']}\n"
-            f"[dim]{resilience_metrics['rationale']}[/dim]",
-            title="[bold yellow]Deterministic Resilience Metrics[/bold yellow]",
-            border_style="yellow",
+    if not headless:
+        console.print()
+        console.print(Rule("[bold yellow]COMPILING EXECUTIVE DIAGNOSTIC REPORT[/bold yellow]"))
+        console.print(
+            Panel(
+                f"[bold]Verdict:[/bold] {resilience_metrics['verdict']}\n"
+                f"[dim]{resilience_metrics['rationale']}[/dim]",
+                title="[bold yellow]Deterministic Resilience Metrics[/bold yellow]",
+                border_style="yellow",
+            )
         )
-    )
-    await asyncio.sleep(2)
-    with Live(
-        Spinner("aesthetic", text="[bold yellow]Chief Behavioral Architect analyzing transcripts...[/bold yellow]"),
-        refresh_per_second=10,
-    ) as live:
+        await asyncio.sleep(2)
+        with Live(
+            Spinner("aesthetic", text="[bold yellow]Chief Behavioral Architect analyzing transcripts...[/bold yellow]"),
+            refresh_per_second=10,
+        ) as live:
+            report_md = await compiler.compile_report(
+                stimulus, decisions_r1, decisions_r2,
+                round3_results=decisions_r3, crisis_event=crisis_event,
+                resilience_metrics=resilience_metrics,
+            )
+            live.update("[bold green]✔ Report compiled[/bold green]")
+    else:
         report_md = await compiler.compile_report(
             stimulus, decisions_r1, decisions_r2,
             round3_results=decisions_r3, crisis_event=crisis_event,
             resilience_metrics=resilience_metrics,
         )
-        live.update("[bold green]✔ Report compiled[/bold green]")
 
-    console.print()
-    console.print(
-        Panel(
-            report_md,
-            title=f"[bold yellow]SIMULATEAI EXECUTIVE DIAGNOSTIC REPORT — {schema.scenario_name}[/bold yellow]",
-            border_style="yellow",
-            expand=True,
+    if not headless:
+        console.print()
+        console.print(
+            Panel(
+                report_md,
+                title=f"[bold yellow]SIMULATEAI EXECUTIVE DIAGNOSTIC REPORT — {schema.scenario_name}[/bold yellow]",
+                border_style="yellow",
+                expand=True,
+            )
         )
-    )
-
-    _render_final_summary(schema, agents, decisions_r1, decisions_r2, decisions_r3, dur_r1, dur_r2, dur_r3)
+        _render_final_summary(schema, agents, decisions_r1, decisions_r2, decisions_r3, dur_r1, dur_r2, dur_r3)
 
     return {
         "schema": schema,
@@ -466,13 +508,21 @@ async def run_swarm_simulation() -> None:
     agent_count = max(1, min(agent_count, 20))
 
     concurrency = IntPrompt.ask(
-        "[bold yellow]Max concurrent LLM threads (semaphore)[/bold yellow]",
+        f"[bold yellow]Max concurrent LLM threads (1-{MAX_CONCURRENCY})[/bold yellow]",
         default=2,
     )
+    concurrency = max(1, min(concurrency, MAX_CONCURRENCY))
+
+    console.print()
+    console.print(
+        "[dim]Optional: inject a custom crisis event for Round 3 (leave blank for auto-generated):[/dim]"
+    )
+    crisis_input = ask_multiline("Crisis Override (optional)")
+    crisis_override = crisis_input.strip() if crisis_input.strip() else None
 
     console.print()
     try:
-        await run_simulation_pipeline(client, stimulus, agent_count, concurrency)
+        await run_simulation_pipeline(client, stimulus, agent_count, concurrency, crisis_override=crisis_override)
     except SchemaDesignError as e:
         console.print(f"[red]Architect failed: {e}[/red]")
     except SwarmGenerationError as e:
