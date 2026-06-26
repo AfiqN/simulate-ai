@@ -12,10 +12,17 @@ Usage:
 import argparse
 import asyncio
 import json
+import os
 import sys
 import time
 from datetime import datetime
 from pathlib import Path
+
+# Force UTF-8 on Windows to avoid Rich encoding errors
+if sys.platform == "win32":
+    os.environ.setdefault("PYTHONUTF8", "1")
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
