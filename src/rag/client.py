@@ -12,10 +12,14 @@ from src.rag.models import SearchResult
 logger = logging.getLogger(__name__)
 
 try:
-    from duckduckgo_search import DDGS
+    from ddgs import DDGS
     DDGS_AVAILABLE = True
 except ImportError:
-    DDGS_AVAILABLE = False
+    try:
+        from duckduckgo_search import DDGS
+        DDGS_AVAILABLE = True
+    except ImportError:
+        DDGS_AVAILABLE = False
 
 
 # --- HTML cleaning helpers ---
@@ -26,6 +30,54 @@ _BOILERPLATE_TAGS = re.compile(
     r"<(script|style|nav|footer|header|aside|iframe|noscript)[^>]*>.*?</\1>",
     re.DOTALL | re.IGNORECASE,
 )
+_HTML_ENTITY_NAMED = re.compile(r"&([a-zA-Z]+);")
+_HTML_ENTITY_NUM = re.compile(r"&#x?([0-9a-fA-F]+);")
+
+# Common navigation/boilerplate phrases to strip from scraped content
+_BOILERPLATE_PHRASES = [
+    "Skip to content", "Skip to main content", "Skip to navigation",
+    "Sign in", "Log in", "Sign up", "Register", "Subscribe",
+    "Close menu", "Open menu", "Open navigation menu",
+    "Close suggestions", "Search Search", "REGISTER FREE",
+    "Cookie", "Accept all", "Reject all",
+]
+
+# Stopwords for relevance scoring — removed from query before computing overlap
+_SCORE_STOPWORDS = frozenset({
+    "the", "a", "an", "is", "are", "was", "were", "be", "been", "being",
+    "have", "has", "had", "do", "does", "did", "will", "would", "could",
+    "should", "may", "might", "shall", "can", "need", "to", "of", "in",
+    "for", "on", "with", "at", "by", "from", "as", "into", "through",
+    "during", "before", "after", "between", "out", "off", "over", "under",
+    "and", "or", "but", "if", "while", "this", "that", "these", "those",
+    "it", "its", "what", "which", "who", "whom", "how", "when", "where",
+    "why", "not", "no", "nor", "so", "than", "too", "very", "just",
+    "about", "also", "new", "current", "recent",
+})
+
+
+def _decode_entity(match: re.Match) -> str:
+    """Decode a named HTML entity to its character."""
+    name = match.group(1)
+    entities = {
+        "amp": "&", "lt": "<", "gt": ">", "quot": '"', "apos": "'",
+        "nbsp": " ", "ndash": "-", "mdash": "-", "laquo": '"',
+        "raquo": '"', "ldquo": "“", "rdquo": "”",
+        "lsquo": "‘", "rsquo": "’", "hellip": "...",
+        "uarr": "", "darr": "", "larr": "", "rarr": "",
+    }
+    return entities.get(name.lower(), "")
+
+
+def _decode_numeric_entity(match: re.Match) -> str:
+    """Decode a numeric HTML entity."""
+    val = match.group(1)
+    try:
+        if match.group(0).startswith("&#x"):
+            return chr(int(val, 16))
+        return chr(int(val))
+    except (ValueError, OverflowError):
+        return ""
 
 
 def _clean_html(html: str) -> str:
@@ -34,33 +86,52 @@ def _clean_html(html: str) -> str:
     text = _BOILERPLATE_TAGS.sub("", html)
     # Remove remaining tags
     text = _TAG_RE.sub(" ", text)
-    # Decode common HTML entities
+    # Decode HTML entities
+    text = _HTML_ENTITY_NAMED.sub(_decode_entity, text)
+    text = _HTML_ENTITY_NUM.sub(_decode_numeric_entity, text)
+    # Legacy entity decoding (catch any stragglers)
     text = text.replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">")
     text = text.replace("&quot;", '"').replace("&#39;", "'").replace("&nbsp;", " ")
+    # Strip boilerplate phrases
+    for phrase in _BOILERPLATE_PHRASES:
+        text = text.replace(phrase, " ")
     # Collapse whitespace
     text = _MULTI_SPACE_RE.sub(" ", text).strip()
     return text
 
 
 def _compute_relevance(query: str, title: str, content: str) -> float:
-    """Compute a 0-1 relevance score based on keyword overlap with the query."""
-    query_words = set(query.lower().split())
+    """Compute a 0-1 relevance score based on keyword overlap with the query.
+
+    Strips stopwords from the query so that long natural-language queries
+    (common from LLM-generated search strings) aren't penalized for having
+    many non-content words that won't appear verbatim in results.
+    """
+    # Strip stopwords from query to keep only content words
+    query_words = {w for w in query.lower().split() if w not in _SCORE_STOPWORDS and len(w) > 2}
+    if not query_words:
+        # Fallback: use all words if stopword removal was too aggressive
+        query_words = set(query.lower().split())
     if not query_words:
         return 0.5
 
     # Combine title (weighted higher) and content
     title_words = set(title.lower().split())
-    content_words = set(content.lower().split()[:200])  # first 200 words
+    content_words = set(content.lower().split()[:300])  # first 300 words
 
     # Title overlap (0-1, weighted 0.4)
-    title_overlap = len(query_words & title_words) / len(query_words) if query_words else 0
+    title_overlap = len(query_words & title_words) / len(query_words)
     # Content overlap (0-1, weighted 0.6)
-    content_overlap = len(query_words & content_words) / len(query_words) if query_words else 0
+    content_overlap = len(query_words & content_words) / len(query_words)
 
     score = (title_overlap * 0.4) + (content_overlap * 0.6)
-    # Boost if content has substantial length (indicates real content, not stub)
+
+    # Boost if content has substantial length (real content, not stub)
     if len(content) > 200:
         score = min(1.0, score + 0.1)
+    # Boost if title has high overlap (strong signal even with low content match)
+    if title_overlap >= 0.5:
+        score = min(1.0, score + 0.05)
 
     return round(min(1.0, max(0.0, score)), 3)
 
@@ -121,8 +192,12 @@ class WebSearchClient:
             resp = await self._http.get(url)
             if resp.status_code == 200 and "text/html" in resp.headers.get("content-type", ""):
                 full_text = _clean_html(resp.text)
-                # Take a meaningful chunk (first 1500 chars after cleanup)
-                if len(full_text) > len(snippet) + 50:
+                # Skip the first ~200 chars (usually nav/breadcrumb) and take a meaningful chunk
+                if len(full_text) > 300:
+                    # Find a good starting point after initial boilerplate
+                    start = min(200, len(full_text) // 5)
+                    content = full_text[start:start + 1500]
+                elif len(full_text) > len(snippet) + 50:
                     content = full_text[:1500]
         except Exception:
             # Scraping failed — fall back to snippet from search results
