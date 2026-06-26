@@ -85,6 +85,7 @@ class ExecutiveCompiler:
         debate_transcript: str,
         valence: Valence = "stress",
         model: Optional[str] = None,
+        rag_crisis_facts: Optional[list[str]] = None,
     ) -> str:
         crisis_axes = ", ".join(self.schema.crisis_dimensions) or "any plausible external shock"
         macro = self.schema.macro_context_text() or "(no specific environmental anchors)"
@@ -126,6 +127,15 @@ Round 2 debate transcript:
 {debate_transcript}
 
 Output ONLY one short sentence describing the event. Do not include explanation, preamble, quotation marks, markdown, or <thought> tags. One declarative sentence, nothing else."""
+
+        if rag_crisis_facts:
+            facts_block = "\n".join(f"- {fact}" for fact in rag_crisis_facts)
+            crisis_prompt += f"""
+
+REAL-WORLD PRECEDENTS (use to ground the crisis in actual events):
+{facts_block}
+
+Base your crisis event on a real or plausible variation of these precedents."""
 
         messages = [
             {

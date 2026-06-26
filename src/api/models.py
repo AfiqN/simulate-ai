@@ -12,6 +12,7 @@ class SimulationRequest(BaseModel):
     model: Optional[str] = Field(default=None, description="Override LLM model name.")
     provider: Optional[str] = Field(default=None, description="Override LLM provider (gemini/ollama/openai).")
     crisis_override: Optional[str] = Field(default=None, description="Custom crisis event for Round 3.")
+    rag_enabled: Optional[bool] = Field(default=None, description="Override RAG. None=use config default, True=force on, False=force off.")
 
 
 class SimulationStatus(BaseModel):

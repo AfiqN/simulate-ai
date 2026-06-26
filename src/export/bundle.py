@@ -49,6 +49,7 @@ def write_bundle(result: dict[str, Any], out_dir: Path) -> Path:
         "valence": result["valence"],
         "crisis_event": result["crisis_event"],
         "resilience_metrics": result["resilience_metrics"],
+        "rag_metadata": result.get("rag_metadata"),
         "agents": [
             {
                 "id": p.agent_id,

@@ -23,7 +23,7 @@ class SimulationJob:
 
     def __init__(self, run_id: str, stimulus: str, agent_count: int, concurrency: int,
                  model: str | None = None, provider: str | None = None,
-                 crisis_override: str | None = None):
+                 crisis_override: str | None = None, rag_enabled: bool | None = None):
         self.run_id = run_id
         self.stimulus = stimulus
         self.agent_count = agent_count
@@ -31,6 +31,7 @@ class SimulationJob:
         self.model = model or DEFAULT_MODEL
         self.provider = provider
         self.crisis_override = crisis_override
+        self.rag_enabled = rag_enabled
         self.status: str = "queued"
         self.scenario_name: str | None = None
         self.verdict: str | None = None
@@ -74,6 +75,7 @@ async def _execute_simulation(job: SimulationJob, db) -> None:
             job.concurrency,
             crisis_override=job.crisis_override,
             headless=True,
+            rag_enabled=job.rag_enabled,
         )
 
         job.elapsed_s = time.time() - start

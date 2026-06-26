@@ -32,6 +32,7 @@ async def start_simulation(req: SimulationRequest, request: Request):
         model=req.model,
         provider=req.provider,
         crisis_override=req.crisis_override,
+        rag_enabled=req.rag_enabled,
     )
 
     await insert_run(

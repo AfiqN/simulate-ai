@@ -64,7 +64,18 @@ def _action_coverage_block(schema: SimulationSchema, count: int) -> str:
     return "\n".join(lines)
 
 
-def _build_prompt(schema: SimulationSchema, stimulus: str, count: int) -> str:
+def _build_prompt(schema: SimulationSchema, stimulus: str, count: int, rag_facts: list[str] | None = None) -> str:
+    rag_block = ""
+    if rag_facts:
+        facts = "\n".join(f"  - {fact}" for fact in rag_facts)
+        rag_block = f"""
+
+DOMAIN FACTS (use to ground memory_vectors in reality — agents should have realistic knowledge):
+{facts}
+
+When designing memory_vectors, incorporate relevant domain knowledge from these facts. Each agent should have memories that reflect awareness of real-world conditions in this space.
+"""
+
     return f"""You are the SimulateAI Swarm Generator. Design exactly {count} distinct agent personas for the scenario "{schema.scenario_name}".
 
 Scenario description: {schema.scenario_description}
@@ -89,7 +100,7 @@ Constraints:
 {_cluster_block(schema)}
 
 {_resource_block(schema)}
-
+{rag_block}
 Return ONLY a JSON object of this exact shape (no markdown, no <thought> tags, no preamble):
 
 {{
@@ -159,8 +170,9 @@ async def generate_llm_swarm(
     stimulus: str,
     count: int,
     model: Optional[str] = None,
+    rag_facts: Optional[list[str]] = None,
 ) -> list[AgentProfile]:
-    prompt = _build_prompt(schema, stimulus, count)
+    prompt = _build_prompt(schema, stimulus, count, rag_facts=rag_facts)
     messages = [
         {
             "role": "system",

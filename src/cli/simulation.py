@@ -242,18 +242,54 @@ async def run_simulation_pipeline(
     concurrency: int,
     crisis_override: Optional[str] = None,
     headless: bool = False,
+    rag_enabled: Optional[bool] = None,
 ) -> dict[str, Any]:
     concurrency = max(1, min(concurrency, MAX_CONCURRENCY))
+
+    # --- RAG Setup ---
+    from src.rag.client import TavilySearchClient
+    from src.rag.query_gen import generate_stimulus_queries, generate_domain_queries, generate_crisis_query
+    from src.rag.processor import process_search_results
+    from src.rag.models import RAGMetadata
+
+    rag_client = None
+    rag_metadata = RAGMetadata()
+    if rag_enabled is not False:
+        rag_client = TavilySearchClient.create_if_available()
+
+    # --- RAG Point 1: Pre-Architect ---
+    architect_rag_context = None
+    if rag_client:
+        queries = await generate_stimulus_queries(client, stimulus)
+        all_results = []
+        for q in queries:
+            all_results.extend(await rag_client.search(q))
+        if all_results:
+            processed = process_search_results(all_results, max_facts=4)
+            architect_rag_context = processed.facts if processed.facts else None
+            rag_metadata.record("pre_architect", queries, processed)
 
     if not headless:
         with Live(
             Spinner("aesthetic", text="[bold yellow]Architect is designing the simulation schema...[/bold yellow]"),
             refresh_per_second=10,
         ) as live:
-            schema = await design_schema(client, stimulus)
+            schema = await design_schema(client, stimulus, rag_context=architect_rag_context)
             live.update("[bold green]✔ Schema designed.[/bold green]")
     else:
-        schema = await design_schema(client, stimulus)
+        schema = await design_schema(client, stimulus, rag_context=architect_rag_context)
+
+    # --- RAG Point 2: Post-Architect ---
+    swarm_rag_facts = None
+    if rag_client:
+        queries = await generate_domain_queries(client, schema)
+        all_results = []
+        for q in queries:
+            all_results.extend(await rag_client.search(q))
+        if all_results:
+            processed = process_search_results(all_results, max_facts=4)
+            swarm_rag_facts = processed.facts if processed.facts else None
+            rag_metadata.record("post_architect", queries, processed)
 
     if not headless:
         render_schema_panel(schema)
@@ -263,10 +299,10 @@ async def run_simulation_pipeline(
             Spinner("aesthetic", text="[bold yellow]Generating agent personas...[/bold yellow]"),
             refresh_per_second=10,
         ) as live:
-            profiles = await generate_llm_swarm(client, schema, stimulus, agent_count)
+            profiles = await generate_llm_swarm(client, schema, stimulus, agent_count, rag_facts=swarm_rag_facts)
             live.update("[bold green]✔ Personas generated.[/bold green]")
     else:
-        profiles = await generate_llm_swarm(client, schema, stimulus, agent_count)
+        profiles = await generate_llm_swarm(client, schema, stimulus, agent_count, rag_facts=swarm_rag_facts)
 
     agents = [Agent(profile, client, schema) for profile in profiles]
     if not headless:
@@ -358,6 +394,18 @@ async def run_simulation_pipeline(
     ]
     full_round2_transcript = "\n\n".join(transcript_parts_r2)
 
+    # --- RAG Point 3: Pre-Crisis ---
+    crisis_rag_facts = None
+    if rag_client and not crisis_override:
+        queries = await generate_crisis_query(client, full_round2_transcript, schema)
+        all_results = []
+        for q in queries:
+            all_results.extend(await rag_client.search(q))
+        if all_results:
+            processed = process_search_results(all_results, max_facts=3)
+            crisis_rag_facts = processed.facts if processed.facts else None
+            rag_metadata.record("pre_crisis", queries, processed)
+
     compiler = ExecutiveCompiler(client, schema)
     valence: Valence = _pick_valence(stimulus)
 
@@ -372,11 +420,13 @@ async def run_simulation_pipeline(
             ) as live:
                 crisis_event = await compiler.generate_crisis_event(
                     stimulus, full_round2_transcript, valence=valence,
+                    rag_crisis_facts=crisis_rag_facts,
                 )
                 live.update(f"[bold red]⚡ {valence.title()} Event Injected[/bold red]")
         else:
             crisis_event = await compiler.generate_crisis_event(
                 stimulus, full_round2_transcript, valence=valence,
+                rag_crisis_facts=crisis_rag_facts,
             )
 
     if not headless:
@@ -470,6 +520,7 @@ async def run_simulation_pipeline(
             "r3": dur_r3,
             "total": dur_r1 + dur_r2 + dur_r3,
         },
+        "rag_metadata": rag_metadata.to_dict() if rag_metadata.injections else None,
     }
 
 
