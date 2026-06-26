@@ -247,7 +247,7 @@ async def run_simulation_pipeline(
     concurrency = max(1, min(concurrency, MAX_CONCURRENCY))
 
     # --- RAG Setup ---
-    from src.rag.client import TavilySearchClient
+    from src.rag.client import WebSearchClient
     from src.rag.query_gen import generate_stimulus_queries, generate_domain_queries, generate_crisis_query
     from src.rag.processor import process_search_results
     from src.rag.models import RAGMetadata
@@ -255,7 +255,7 @@ async def run_simulation_pipeline(
     rag_client = None
     rag_metadata = RAGMetadata()
     if rag_enabled is not False:
-        rag_client = TavilySearchClient.create_if_available()
+        rag_client = WebSearchClient.create_if_available()
 
     # --- RAG Point 1: Pre-Architect ---
     architect_rag_context = None

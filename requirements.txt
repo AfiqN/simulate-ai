@@ -3,6 +3,6 @@ rich==13.*
 fastapi==0.115.*
 uvicorn[standard]==0.32.*
 aiosqlite==0.20.*
-tavily-python==0.5.*
+duckduckgo-search==7.*
 
 pytest==8.*
