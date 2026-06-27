@@ -14,19 +14,7 @@ ARCHITECT_SYSTEM_PROMPT = (
 )
 
 
-def _user_prompt(stimulus: str, rag_context: list[str] | None = None) -> str:
-    rag_block = ""
-    if rag_context:
-        facts = "\n".join(f"- {fact}" for fact in rag_context)
-        rag_block = f"""
-
-REAL-WORLD CONTEXT (retrieved from web — use to inform your macro_context and crisis_dimensions):
-{facts}
-
-Incorporate these verified facts into the macro_context field and let them inform realistic crisis_dimensions. Do not copy them verbatim — synthesize and adapt to the scenario.
-
-"""
-
+def _user_prompt(stimulus: str) -> str:
     return f"""Analyze the following user stimulus and design a SimulationSchema tailored to its domain.
 
 STIMULUS:
@@ -57,7 +45,7 @@ REQUIRED FIELDS (all required, no extras):
 9. "crisis_dimensions" — array of 4 to 8 short labels naming the kinds of shocks that would make sense to inject into THIS scenario in Round 3 (e.g. for a fintech product: "regulatory_freeze", "competitor_price_war", "data_breach"; for a policy debate: "public_backlash", "leaked_document", "opposition_amendment"; for a hackathon: "scope_creep", "team_withdrawal", "judge_skepticism_spike"). The crisis generator will pick one of these later.
 
 OUTPUT FORMAT — return ONLY a valid JSON object with exactly these top-level keys: scenario_name, scenario_description, verdict_label, actions, state_vocabulary, resource_model, linguistic_clusters, macro_context, crisis_dimensions. No markdown, no preamble, no <thought> tags.
-{rag_block}"""
+"""
 
 
 RETRY_USER_HINT = (
@@ -75,11 +63,10 @@ async def design_schema(
     client: OllamaClient,
     stimulus: str,
     model: Optional[str] = None,
-    rag_context: Optional[list[str]] = None,
 ) -> SimulationSchema:
     messages = [
         {"role": "system", "content": ARCHITECT_SYSTEM_PROMPT},
-        {"role": "user", "content": _user_prompt(stimulus, rag_context=rag_context)},
+        {"role": "user", "content": _user_prompt(stimulus)},
     ]
 
     last_error: Optional[str] = None

@@ -248,7 +248,7 @@ async def run_simulation_pipeline(
 
     # --- RAG Setup ---
     from src.rag.client import WebSearchClient
-    from src.rag.query_gen import generate_stimulus_queries, generate_domain_queries, generate_crisis_query
+    from src.rag.query_gen import generate_perspective_queries, generate_crisis_query
     from src.rag.processor import process_search_results
     from src.rag.models import RAGMetadata
 
@@ -257,39 +257,30 @@ async def run_simulation_pipeline(
     if rag_enabled is not False:
         rag_client = WebSearchClient.create_if_available()
 
-    # --- RAG Point 1: Pre-Architect ---
-    architect_rag_context = None
-    if rag_client:
-        queries = await generate_stimulus_queries(client, stimulus)
-        all_results = []
-        for q in queries:
-            all_results.extend(await rag_client.search(q))
-        if all_results:
-            processed = process_search_results(all_results, max_facts=4)
-            architect_rag_context = processed.facts if processed.facts else None
-            rag_metadata.record("pre_architect", queries, processed)
-
     if not headless:
         with Live(
             Spinner("aesthetic", text="[bold yellow]Architect is designing the simulation schema...[/bold yellow]"),
             refresh_per_second=10,
         ) as live:
-            schema = await design_schema(client, stimulus, rag_context=architect_rag_context)
+            schema = await design_schema(client, stimulus)
             live.update("[bold green]✔ Schema designed.[/bold green]")
     else:
-        schema = await design_schema(client, stimulus, rag_context=architect_rag_context)
+        schema = await design_schema(client, stimulus)
 
-    # --- RAG Point 2: Post-Architect ---
-    swarm_rag_facts = None
+    # --- RAG: Post-Architect, Per-Role Perspectives ---
+    swarm_rag_perspectives = None
     if rag_client:
-        queries = await generate_domain_queries(client, schema)
-        all_results = []
-        for q in queries:
-            all_results.extend(await rag_client.search(q))
-        if all_results:
-            processed = process_search_results(all_results, max_facts=4)
-            swarm_rag_facts = processed.facts if processed.facts else None
-            rag_metadata.record("post_architect", queries, processed)
+        perspective_queries = await generate_perspective_queries(client, schema)
+        all_perspectives: dict[str, list[str]] = {}
+        for cluster_id, query in perspective_queries.items():
+            results = await rag_client.search(query)
+            if results:
+                processed = process_search_results(results, max_facts=3)
+                if processed.facts:
+                    all_perspectives[cluster_id] = processed.facts
+        if all_perspectives:
+            swarm_rag_perspectives = all_perspectives
+            rag_metadata.record("post_architect_perspectives", list(perspective_queries.values()), processed)
 
     if not headless:
         render_schema_panel(schema)
@@ -299,10 +290,10 @@ async def run_simulation_pipeline(
             Spinner("aesthetic", text="[bold yellow]Generating agent personas...[/bold yellow]"),
             refresh_per_second=10,
         ) as live:
-            profiles = await generate_llm_swarm(client, schema, stimulus, agent_count, rag_facts=swarm_rag_facts)
+            profiles = await generate_llm_swarm(client, schema, stimulus, agent_count, rag_perspectives=swarm_rag_perspectives)
             live.update("[bold green]✔ Personas generated.[/bold green]")
     else:
-        profiles = await generate_llm_swarm(client, schema, stimulus, agent_count, rag_facts=swarm_rag_facts)
+        profiles = await generate_llm_swarm(client, schema, stimulus, agent_count, rag_perspectives=swarm_rag_perspectives)
 
     agents = [Agent(profile, client, schema) for profile in profiles]
     if not headless:

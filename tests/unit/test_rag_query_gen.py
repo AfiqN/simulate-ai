@@ -5,8 +5,8 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock
 
 from src.rag.query_gen import (
-    generate_stimulus_queries, generate_domain_queries, generate_crisis_query,
-    _extract_keywords, _fallback_stimulus_queries,
+    generate_perspective_queries, generate_crisis_query,
+    _extract_keywords, _fallback_perspective_queries,
 )
 
 
@@ -20,10 +20,25 @@ def mock_client():
 
 @pytest.fixture
 def mock_schema():
-    """Create a mock schema with scenario_name and crisis_dimensions."""
+    """Create a mock schema with linguistic_clusters."""
     schema = MagicMock()
     schema.scenario_name = "Fintech Lending Platform Launch"
+    schema.scenario_description = "A digital lending startup launches in rural Indonesia"
     schema.crisis_dimensions = ["regulatory_freeze", "data_breach", "liquidity_crisis"]
+
+    cluster1 = MagicMock()
+    cluster1.cluster_id = "traditional_merchant"
+    cluster1.description = "Small market traders who prefer cash transactions"
+
+    cluster2 = MagicMock()
+    cluster2.cluster_id = "tech_savvy_youth"
+    cluster2.description = "Young urban adopters who embrace digital payments"
+
+    cluster3 = MagicMock()
+    cluster3.cluster_id = "rural_farmer"
+    cluster3.description = "Agricultural workers with limited internet access"
+
+    schema.linguistic_clusters = [cluster1, cluster2, cluster3]
     return schema
 
 
@@ -44,88 +59,114 @@ def test_extract_keywords_prefers_proper_nouns():
     assert "Indonesian" in kw
 
 
-def test_fallback_stimulus_queries_returns_two():
-    queries = _fallback_stimulus_queries("A new fintech lending platform launch in Indonesia")
-    assert len(queries) == 2
-    assert "2024 2025" in queries[0]
+# --- _fallback_perspective_queries ---
+
+def test_fallback_perspective_queries_returns_per_cluster(mock_schema):
+    result = _fallback_perspective_queries(mock_schema)
+    assert isinstance(result, dict)
+    assert "traditional_merchant" in result
+    assert "tech_savvy_youth" in result
+    assert "rural_farmer" in result
+    # Each query should contain keywords from the cluster description
+    assert "perspective" in result["traditional_merchant"].lower() or "opinion" in result["traditional_merchant"].lower()
 
 
-# --- generate_stimulus_queries ---
+def test_fallback_perspective_queries_empty_clusters():
+    schema = MagicMock()
+    schema.scenario_name = "Test"
+    schema.linguistic_clusters = []
+    result = _fallback_perspective_queries(schema)
+    assert result == {}
+
+
+# --- generate_perspective_queries ---
 
 @pytest.mark.asyncio
-async def test_stimulus_queries_returns_list(mock_client):
-    mock_client.chat.return_value = json.dumps({"queries": ["fintech regulation 2024", "digital lending market"]})
-    result = await generate_stimulus_queries(mock_client, "A new digital lending app in Indonesia")
-    assert result == ["fintech regulation 2024", "digital lending market"]
+async def test_perspective_queries_returns_dict(mock_client, mock_schema):
+    mock_client.chat.return_value = json.dumps({
+        "queries": {
+            "traditional_merchant": "small merchants complaints about digital payments Indonesia",
+            "tech_savvy_youth": "young Indonesians enthusiasm e-wallet cashback",
+            "rural_farmer": "rural farmers struggle with mobile banking access",
+        }
+    })
+    result = await generate_perspective_queries(mock_client, mock_schema)
+    assert isinstance(result, dict)
+    assert len(result) == 3
+    assert "traditional_merchant" in result
+    assert "complaints" in result["traditional_merchant"]
 
 
 @pytest.mark.asyncio
-async def test_stimulus_queries_falls_back_on_invalid_json(mock_client):
+async def test_perspective_queries_filters_invalid_cluster_ids(mock_client, mock_schema):
+    mock_client.chat.return_value = json.dumps({
+        "queries": {
+            "traditional_merchant": "merchants complaints cash",
+            "nonexistent_cluster": "should be filtered out",
+            "tech_savvy_youth": "youth digital payment enthusiasm",
+        }
+    })
+    result = await generate_perspective_queries(mock_client, mock_schema)
+    assert "nonexistent_cluster" not in result
+    assert "traditional_merchant" in result
+    assert "tech_savvy_youth" in result
+
+
+@pytest.mark.asyncio
+async def test_perspective_queries_falls_back_on_invalid_json(mock_client, mock_schema):
     mock_client.chat.return_value = "not json at all"
-    result = await generate_stimulus_queries(mock_client, "Some stimulus about fintech")
-    # Should return keyword-based fallback, not empty
-    assert len(result) == 2
-    assert any("fintech" in q.lower() for q in result)
+    result = await generate_perspective_queries(mock_client, mock_schema)
+    # Should return keyword-based fallback per cluster
+    assert isinstance(result, dict)
+    assert len(result) == 3
 
 
 @pytest.mark.asyncio
-async def test_stimulus_queries_falls_back_on_exception(mock_client):
+async def test_perspective_queries_falls_back_on_exception(mock_client, mock_schema):
     mock_client.chat.side_effect = RuntimeError("LLM down")
-    result = await generate_stimulus_queries(mock_client, "Digital lending in Indonesia")
-    # Should return keyword-based fallback
-    assert len(result) == 2
+    result = await generate_perspective_queries(mock_client, mock_schema)
+    assert isinstance(result, dict)
+    assert len(result) == 3
 
 
 @pytest.mark.asyncio
-async def test_stimulus_queries_falls_back_on_missing_key(mock_client):
-    mock_client.chat.return_value = json.dumps({"wrong_key": ["a", "b"]})
-    result = await generate_stimulus_queries(mock_client, "Some stimulus text")
+async def test_perspective_queries_falls_back_on_missing_key(mock_client, mock_schema):
+    mock_client.chat.return_value = json.dumps({"wrong_key": {}})
+    result = await generate_perspective_queries(mock_client, mock_schema)
     # Fallback is keyword-based
-    assert len(result) == 2
+    assert isinstance(result, dict)
+    assert len(result) == 3
 
 
 @pytest.mark.asyncio
-async def test_stimulus_queries_coerces_non_string_items(mock_client):
-    mock_client.chat.return_value = json.dumps({"queries": [123, True]})
-    result = await generate_stimulus_queries(mock_client, "Some stimulus")
-    assert result == ["123", "True"]
+async def test_perspective_queries_passes_clusters_to_prompt(mock_client, mock_schema):
+    mock_client.chat.return_value = json.dumps({
+        "queries": {"traditional_merchant": "q1", "tech_savvy_youth": "q2", "rural_farmer": "q3"}
+    })
+    await generate_perspective_queries(mock_client, mock_schema)
 
-
-@pytest.mark.asyncio
-async def test_stimulus_queries_handles_markdown_wrapped_json(mock_client):
-    mock_client.chat.return_value = '```json\n{"queries": ["query one", "query two"]}\n```'
-    result = await generate_stimulus_queries(mock_client, "Test stimulus")
-    assert result == ["query one", "query two"]
-
-
-# --- generate_domain_queries ---
-
-@pytest.mark.asyncio
-async def test_domain_queries_returns_list(mock_client, mock_schema):
-    mock_client.chat.return_value = json.dumps({"queries": ["recent fintech data breaches SE Asia"]})
-    result = await generate_domain_queries(mock_client, mock_schema)
-    assert result == ["recent fintech data breaches SE Asia"]
-
-
-@pytest.mark.asyncio
-async def test_domain_queries_falls_back_on_exception(mock_client, mock_schema):
-    mock_client.chat.side_effect = RuntimeError("timeout")
-    result = await generate_domain_queries(mock_client, mock_schema)
-    # Should return keyword-based fallback from schema
-    assert len(result) >= 1
-    assert any("Fintech" in q or "regulatory" in q for q in result)
-
-
-@pytest.mark.asyncio
-async def test_domain_queries_passes_schema_to_prompt(mock_client, mock_schema):
-    mock_client.chat.return_value = json.dumps({"queries": ["q1"]})
-    await generate_domain_queries(mock_client, mock_schema)
-
-    # Verify the user message contains schema info
+    # Verify the user message contains cluster info
     call_args = mock_client.chat.call_args[0][0]  # messages list
     user_msg = call_args[1]["content"]
-    assert "Fintech Lending Platform Launch" in user_msg
-    assert "regulatory_freeze" in user_msg
+    assert "traditional_merchant" in user_msg
+    assert "tech_savvy_youth" in user_msg
+    assert "Small market traders" in user_msg
+
+
+@pytest.mark.asyncio
+async def test_perspective_queries_empty_clusters(mock_client):
+    schema = MagicMock()
+    schema.linguistic_clusters = []
+    result = await generate_perspective_queries(mock_client, schema)
+    assert result == {}
+    mock_client.chat.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_perspective_queries_handles_markdown_wrapped_json(mock_client, mock_schema):
+    mock_client.chat.return_value = '```json\n{"queries": {"traditional_merchant": "q1", "tech_savvy_youth": "q2", "rural_farmer": "q3"}}\n```'
+    result = await generate_perspective_queries(mock_client, mock_schema)
+    assert "traditional_merchant" in result
 
 
 # --- generate_crisis_query ---

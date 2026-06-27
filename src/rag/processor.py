@@ -115,39 +115,64 @@ def _extract_best_sentence(content: str, max_chars: int) -> str:
         if re.search(r'(?i)(does not imply|endorsement|not responsible for|disclaimer|we make no|no guarantee)', sentence):
             score -= 4.0
 
-        # === POSITIVE SIGNALS (require at least one for a good fact) ===
+        # === POSITIVE SIGNALS — prioritize PERSPECTIVES and SENTIMENTS ===
         has_positive = False
 
-        # Specific data points (numbers with units)
-        if re.search(r'\b\d+\s*(%|percent|billion|million|trillion)\b', sentence, re.I):
+        # HIGH PRIORITY: Opinions, complaints, sentiments (strongest signal)
+        if re.search(r'(?i)\b(complain|frustrated|skeptical|enthusiastic|reluctant|resistant|refuse|hesitant|worried|angry|disappointed|excited|hopeful|fearful|distrust|resent|oppose|support|embrace|reject|struggle|suffer)\b', sentence):
+            score += 4.0
+            has_positive = True
+        # HIGH PRIORITY: Attributed perspectives ("merchants say", "locals believe")
+        if re.search(r'(?i)\b(say|believe|feel|think|argue|claim|insist|worry|fear|complain|prefer|tend to|usually|rarely|often|seldom)\b.{0,20}\b(that|about|is|are|they|we|it)\b', sentence):
+            score += 3.5
+            has_positive = True
+        # HIGH PRIORITY: Behavioral patterns and habits
+        if re.search(r'(?i)\b(tend to|usually|rarely|often avoid|prefer to|accustomed to|habit of|reluctant to|unwilling to|eager to|known for|notorious for|famous for|stereotype)\b', sentence):
+            score += 3.5
+            has_positive = True
+        # HIGH PRIORITY: Social dynamics and cultural attitudes
+        if re.search(r'(?i)\b(community|neighbors?|locals?|residents?|villagers?|traders?|merchants?|vendors?|drivers?|workers?|employees?|students?|youth|elderly|generation)\b.{0,30}\b(feel|say|believe|complain|prefer|struggle|tend|resist|embrace|reject)\b', sentence):
+            score += 4.0
+            has_positive = True
+        # MEDIUM: Quotes or direct speech patterns
+        if re.search(r'["“”].{10,}["“”]', sentence):
             score += 3.0
             has_positive = True
-        # Named laws, regulations, acts
-        if re.search(r'\b(regulation|law|act|policy|requires?|prohibits?|mandates?|according to|compliance|GDPR|BIPA|ACA|HIPAA|OJK|POJK)\b', sentence, re.I):
+        # MEDIUM: Causal/impact from human perspective
+        if re.search(r'(?i)\b(led to|caused|resulted in|forced|pushed|drove|made them|left them|struggle with)\b', sentence):
             score += 2.0
             has_positive = True
-        # Research findings / conclusions
-        if re.search(r'\b(found that|shows? that|reveals? that|reports? that|demonstrates? that|indicates? that|concludes? that|suggests? that|research shows|studies? show|data shows?|survey)\b', sentence, re.I):
-            score += 2.0
-            has_positive = True
-        # Named authoritative organizations
-        if re.search(r'\b(CDC|WHO|FDA|OJK|Bank Indonesia|Federal Reserve|KFF|Pew Research|according to)\b', sentence):
+        # MEDIUM: Comparative/causal claims (still useful for grounding)
+        if re.search(r'(?i)\b(increased|decreased|reduced|grew|declined|rose|fell|compared to)\b', sentence):
             score += 1.5
             has_positive = True
-        # Years with context (not just a date)
-        if re.search(r'\b(in|since|from|by|until)\s+(19|20)\d{2}\b', sentence, re.I):
+        # LOWER: Research findings (useful but not primary)
+        if re.search(r'(?i)\b(found that|shows? that|reveals? that|reports? that|survey|poll|interview)\b', sentence):
+            score += 1.5
+            has_positive = True
+        # LOWER: Data points (still okay, not primary goal)
+        if re.search(r'\b\d+\s*(%|percent|billion|million|trillion)\b', sentence, re.I):
             score += 1.0
             has_positive = True
-        # Comparative/causal claims
-        if re.search(r'\b(increased|decreased|reduced|grew|declined|rose|fell|led to|caused|resulted in|compared to)\b', sentence, re.I):
-            score += 1.5
+        # LOWER: Named organizations (context, not primary)
+        if re.search(r'\b(CDC|WHO|FDA|OJK|Bank Indonesia|Federal Reserve|KFF|Pew Research|according to)\b', sentence):
+            score += 1.0
+            has_positive = True
+        # LOWER: Years with context
+        if re.search(r'\b(in|since|from|by|until)\s+(19|20)\d{2}\b', sentence, re.I):
+            score += 0.5
             has_positive = True
 
         # If no positive signal found, this is likely filler
         if not has_positive:
             score -= 2.0
 
-        # Penalize author bylines (unless they contain data)
+        # DEMOTE: Pure regulatory/legal language without human perspective
+        if re.search(r'(?i)\b(regulation|compliance|mandate|pursuant|statutory|provision|subsection|hereby)\b', sentence):
+            if not re.search(r'(?i)\b(complain|frustrat|struggle|resist|worry|fear|oppose)\b', sentence):
+                score -= 1.5
+
+        # Penalize author bylines (unless they contain perspective)
         if re.search(r'(?i)(professor|university|department|author|written by|published by)', sentence):
             if not has_positive:
                 score -= 2.0

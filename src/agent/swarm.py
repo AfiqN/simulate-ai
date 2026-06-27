@@ -64,16 +64,26 @@ def _action_coverage_block(schema: SimulationSchema, count: int) -> str:
     return "\n".join(lines)
 
 
-def _build_prompt(schema: SimulationSchema, stimulus: str, count: int, rag_facts: list[str] | None = None) -> str:
+def _build_prompt(schema: SimulationSchema, stimulus: str, count: int, rag_perspectives: dict[str, list[str]] | None = None) -> str:
     rag_block = ""
-    if rag_facts:
-        facts = "\n".join(f"  - {fact}" for fact in rag_facts)
-        rag_block = f"""
+    if rag_perspectives:
+        lines = []
+        for cluster in schema.linguistic_clusters:
+            facts = rag_perspectives.get(cluster.cluster_id, [])
+            if facts:
+                facts_str = "\n".join(f"    - {fact}" for fact in facts)
+                lines.append(f'  For cluster "{cluster.cluster_id}" ({cluster.description}):\n{facts_str}')
+        if lines:
+            perspectives = "\n\n".join(lines)
+            rag_block = f"""
 
-DOMAIN FACTS (use to ground memory_vectors in reality — agents should have realistic knowledge):
-{facts}
+STAKEHOLDER PERSPECTIVES (real-world attitudes — use to shape each agent's worldview):
 
-When designing memory_vectors, incorporate relevant domain knowledge from these facts. Each agent should have memories that reflect awareness of real-world conditions in this space.
+{perspectives}
+
+Use these real-world perspectives to shape each agent's memory_vectors and attitudes.
+Agents should reflect the genuine sentiments and worldview of their stakeholder group.
+Do NOT copy verbatim — synthesize into character-defining beliefs.
 """
 
     return f"""You are the SimulateAI Swarm Generator. Design exactly {count} distinct agent personas for the scenario "{schema.scenario_name}".
@@ -170,9 +180,9 @@ async def generate_llm_swarm(
     stimulus: str,
     count: int,
     model: Optional[str] = None,
-    rag_facts: Optional[list[str]] = None,
+    rag_perspectives: Optional[dict[str, list[str]]] = None,
 ) -> list[AgentProfile]:
-    prompt = _build_prompt(schema, stimulus, count, rag_facts=rag_facts)
+    prompt = _build_prompt(schema, stimulus, count, rag_perspectives=rag_perspectives)
     messages = [
         {
             "role": "system",

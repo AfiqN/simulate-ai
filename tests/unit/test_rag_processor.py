@@ -32,12 +32,34 @@ def test_jaccard_case_insensitive():
     assert _jaccard_similarity("Hello World", "hello world") == 1.0
 
 
-# --- _extract_best_sentence ---
+# --- _extract_best_sentence: perspective-first scoring ---
 
-def test_extract_best_sentence_prefers_numbers():
-    content = "This is a vague statement. Revenue grew 45% in 2024. Another filler."
-    result = _extract_best_sentence(content, 150)
-    assert "45%" in result or "2024" in result
+def test_extract_best_sentence_prefers_opinions_over_data():
+    content = (
+        "Revenue grew 45% in 2024. "
+        "Local merchants complain that the new fees are cutting into their thin margins and they refuse to adopt the system."
+    )
+    result = _extract_best_sentence(content, 200)
+    # Should prefer the opinion/complaint sentence over pure data
+    assert "complain" in result or "refuse" in result
+
+
+def test_extract_best_sentence_prefers_attributed_perspectives():
+    content = (
+        "The regulation was enacted in March 2024. "
+        "Drivers say they feel exploited by the commission structure and tend to avoid long-distance rides."
+    )
+    result = _extract_best_sentence(content, 200)
+    assert "say" in result or "feel" in result or "tend to" in result
+
+
+def test_extract_best_sentence_prefers_behavioral_patterns():
+    content = (
+        "The GDP growth rate was 5.2% annually. "
+        "Rural communities usually prefer cash transactions and are reluctant to trust mobile apps with their savings."
+    )
+    result = _extract_best_sentence(content, 200)
+    assert "usually" in result or "reluctant" in result
 
 
 def test_extract_best_sentence_respects_max_chars():
@@ -57,6 +79,16 @@ def test_extract_best_sentence_single_sentence():
     assert result == "Only one sentence here but it needs to be long enough to pass filters"
 
 
+def test_extract_best_sentence_demotes_pure_regulatory():
+    content = (
+        "Pursuant to regulation 12/2024, all entities must comply with subsection 3(a) of the mandate. "
+        "Workers feel frustrated because the new policy forced them to change their routines overnight."
+    )
+    result = _extract_best_sentence(content, 200)
+    # Should prefer the human perspective over regulatory boilerplate
+    assert "frustrated" in result or "forced" in result
+
+
 # --- process_search_results ---
 
 def _make_result(title="T", url="http://x.com", content="Some content here.", score=0.8) -> SearchResult:
@@ -66,7 +98,7 @@ def _make_result(title="T", url="http://x.com", content="Some content here.", sc
 def test_process_filters_low_score_results():
     results = [
         _make_result(score=0.3, content="Low score content that is filtered out by minimum threshold."),
-        _make_result(score=0.9, content="According to a 2024 KFF poll, two-thirds of insured adults believe claim denials are a major problem."),
+        _make_result(score=0.9, content="Local vendors say they struggle with the new payment system and often refuse to use it with customers."),
     ]
     processed = process_search_results(results, max_facts=4)
     assert len(processed.facts) == 1
@@ -84,8 +116,8 @@ def test_process_deduplicates_similar_content():
 
 def test_process_keeps_distinct_content():
     results = [
-        _make_result(score=0.9, content="Indonesia fintech regulation update 2024."),
-        _make_result(score=0.85, content="Global semiconductor shortage impacts manufacturing."),
+        _make_result(score=0.9, content="Merchants complain that QRIS fees are too high and refuse to adopt the new system in their shops."),
+        _make_result(score=0.85, content="Young consumers feel frustrated when their favorite warung does not accept digital payments yet."),
     ]
     processed = process_search_results(results, max_facts=4)
     assert len(processed.facts) == 2
@@ -93,11 +125,11 @@ def test_process_keeps_distinct_content():
 
 def test_process_respects_max_facts():
     contents = [
-        "According to the CDC, childhood obesity rates increased by 15% between 2019 and 2023 in the United States.",
-        "The Federal Reserve raised interest rates to 5.25% in 2024, the highest level since 2001 according to official data.",
-        "A 2025 WHO report found that global vaccination coverage declined by 8% during the pandemic recovery period.",
-        "Research from MIT indicates that renewable energy costs fell by 40% between 2020 and 2025 in developed nations.",
-        "The European GDPR regulation resulted in 2.1 billion euros in fines issued across member states by end of 2024.",
+        "Elderly residents say they feel confused by the smartphone interface and prefer dealing with cash at the local market stalls.",
+        "Drivers complain that the commission structure forced them to work longer hours just to maintain their previous income levels.",
+        "Students believe the cashback promotions are the main reason they switched from cash and they tend to avoid places without e-wallet.",
+        "Small shop owners feel frustrated because customers now expect digital payment but the transaction fees eat into thin profit margins.",
+        "Rural farmers usually distrust mobile banking apps because they worry about losing their savings to technical glitches or scams.",
     ]
     results = [_make_result(score=0.9, content=c, url=f"http://x{i}.com") for i, c in enumerate(contents)]
     processed = process_search_results(results, max_facts=3)
@@ -114,15 +146,15 @@ def test_process_returns_empty_for_no_results():
 
 def test_process_sorts_by_score_descending():
     results = [
-        _make_result(score=0.6, content="A 2023 study found that lower-priority policies reduced compliance by 12% across the sector.", url="http://low.com"),
-        _make_result(score=0.95, content="According to the FDA, the regulation required manufacturers to report 95% of adverse events within 30 days.", url="http://high.com"),
+        _make_result(score=0.6, content="Workers say they feel exploited by the new gig economy rules and tend to avoid taking short rides.", url="http://low.com"),
+        _make_result(score=0.95, content="Community leaders believe the policy forced residents to abandon traditional practices they had relied on for decades.", url="http://high.com"),
     ]
     processed = process_search_results(results, max_facts=4)
     assert processed.citations[0].url == "http://high.com"
 
 
 def test_process_returns_processed_facts_type():
-    results = [_make_result(score=0.7, content="Research indicates that the policy led to a 25% reduction in processing delays across federal agencies.")]
+    results = [_make_result(score=0.7, content="Villagers say they usually refuse to adopt new technology because they worry it will replace their livelihoods.")]
     processed = process_search_results(results, max_facts=4)
     assert isinstance(processed, ProcessedFacts)
     assert isinstance(processed.citations[0], Citation)
