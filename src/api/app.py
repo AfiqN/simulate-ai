@@ -1,12 +1,17 @@
 """FastAPI application factory for SimulateAI."""
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from src.api.routes import router
 from src.persistence.db import init_db
+
+STATIC_DIR = Path(__file__).resolve().parent.parent.parent / "static"
 
 
 @asynccontextmanager
@@ -40,5 +45,13 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(router)
+
+    # Serve static assets
+    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
+    # Root → index.html
+    @app.get("/")
+    async def root():
+        return FileResponse(STATIC_DIR / "index.html")
 
     return app
