@@ -24,6 +24,7 @@ class SimulationStatus(BaseModel):
     elapsed_s: Optional[float] = None
     error: Optional[str] = None
     result: Optional[dict[str, Any]] = None
+    progress: Optional[str] = None  # current phase description
 
 
 class RunSummary(BaseModel):

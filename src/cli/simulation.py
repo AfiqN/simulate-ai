@@ -235,6 +235,19 @@ def _render_final_summary(
     console.print(res_table)
 
 
+def _detect_language(text: str) -> str | None:
+    """Detect if stimulus is written in a non-English language. Returns language name or None."""
+    # Simple heuristic: check for common Indonesian/Malay markers
+    indo_markers = {"dan", "yang", "untuk", "dengan", "dari", "ini", "itu", "akan",
+                    "pada", "tidak", "atau", "juga", "sudah", "bisa", "ada", "ke",
+                    "di", "agar", "serta", "oleh", "karena", "jika", "bahwa"}
+    words = set(text.lower().split())
+    indo_hits = words & indo_markers
+    if len(indo_hits) >= 3 or (len(indo_hits) >= 2 and len(words) < 20):
+        return "Indonesian"
+    return None
+
+
 async def run_simulation_pipeline(
     client: OllamaClient,
     stimulus: str,
@@ -243,8 +256,13 @@ async def run_simulation_pipeline(
     crisis_override: Optional[str] = None,
     headless: bool = False,
     rag_enabled: Optional[bool] = None,
+    progress_callback: Optional[Any] = None,
 ) -> dict[str, Any]:
     concurrency = max(1, min(concurrency, MAX_CONCURRENCY))
+
+    def _progress(msg: str):
+        if progress_callback:
+            progress_callback(msg)
 
     # --- RAG Setup ---
     from src.rag.client import WebSearchClient
@@ -257,19 +275,25 @@ async def run_simulation_pipeline(
     if rag_enabled is not False:
         rag_client = WebSearchClient.create_if_available()
 
+    # Detect stimulus language for report output
+    stimulus_language = _detect_language(stimulus)
+
     if not headless:
         with Live(
             Spinner("aesthetic", text="[bold yellow]Architect is designing the simulation schema...[/bold yellow]"),
             refresh_per_second=10,
         ) as live:
+            _progress("Designing simulation schema...")
             schema = await design_schema(client, stimulus)
             live.update("[bold green]✔ Schema designed.[/bold green]")
     else:
+        _progress("Designing simulation schema...")
         schema = await design_schema(client, stimulus)
 
     # --- RAG: Post-Architect, Per-Role Perspectives ---
     swarm_rag_perspectives = None
     if rag_client:
+        _progress("RAG: searching perspectives per role...")
         perspective_queries = await generate_perspective_queries(client, schema)
         all_perspectives: dict[str, list[str]] = {}
         for cluster_id, query in perspective_queries.items():
@@ -290,9 +314,11 @@ async def run_simulation_pipeline(
             Spinner("aesthetic", text="[bold yellow]Generating agent personas...[/bold yellow]"),
             refresh_per_second=10,
         ) as live:
+            _progress(f"Generating {agent_count} agent personas...")
             profiles = await generate_llm_swarm(client, schema, stimulus, agent_count, rag_perspectives=swarm_rag_perspectives)
             live.update("[bold green]✔ Personas generated.[/bold green]")
     else:
+        _progress(f"Generating {agent_count} agent personas...")
         profiles = await generate_llm_swarm(client, schema, stimulus, agent_count, rag_perspectives=swarm_rag_perspectives)
 
     agents = [Agent(profile, client, schema) for profile in profiles]
@@ -302,6 +328,7 @@ async def run_simulation_pipeline(
     semaphore = asyncio.Semaphore(concurrency)
 
     # --- Round 1 ---
+    _progress("Round 1: agents perceiving stimulus...")
     if not headless:
         console.print()
         console.print(Rule("[bold cyan]ROUND 1 — INITIAL PERCEPTION[/bold cyan]"))
@@ -348,6 +375,7 @@ async def run_simulation_pipeline(
         )
 
     # --- Round 2 ---
+    _progress("Round 2: directed debate...")
     if not headless:
         console.print()
         console.print(Rule("[bold magenta]ROUND 2 — DIRECTED DEBATE[/bold magenta]"))
@@ -374,6 +402,7 @@ async def run_simulation_pipeline(
             render_round_panel("Round 2 — Directed Debate", d, schema, statuses_r2[i]["duration"])
 
     # --- Round 3 ---
+    _progress("Round 3: crisis stress-test...")
     if not headless:
         console.print()
         console.print(Rule("[bold red]ROUND 3 — CRISIS STRESS-TEST[/bold red]"))
@@ -451,6 +480,7 @@ async def run_simulation_pipeline(
             render_round_panel("Round 3 — Crisis Reaction", d, schema, statuses_r3[i]["duration"])
 
     # --- Report compilation ---
+    _progress("Compiling executive diagnostic report...")
     resilience_metrics = compute_resilience_metrics(decisions_r2, decisions_r3, schema)
     if not headless:
         console.print()
@@ -472,6 +502,7 @@ async def run_simulation_pipeline(
                 stimulus, decisions_r1, decisions_r2,
                 round3_results=decisions_r3, crisis_event=crisis_event,
                 resilience_metrics=resilience_metrics,
+                language=stimulus_language,
             )
             live.update("[bold green]✔ Report compiled[/bold green]")
     else:
@@ -479,6 +510,7 @@ async def run_simulation_pipeline(
             stimulus, decisions_r1, decisions_r2,
             round3_results=decisions_r3, crisis_event=crisis_event,
             resilience_metrics=resilience_metrics,
+            language=stimulus_language,
         )
 
     if not headless:

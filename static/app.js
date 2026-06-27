@@ -69,7 +69,7 @@ async function pollStatus(runId) {
       updateStatusLine('failed', elapsed, data.error);
       $('button[type="submit"]').disabled = false;
     } else {
-      updateStatusLine(data.status, elapsed, data.scenario_name);
+      updateStatusLine(data.progress || data.status, elapsed, data.scenario_name);
     }
   } catch (err) {
     // network blip — keep polling

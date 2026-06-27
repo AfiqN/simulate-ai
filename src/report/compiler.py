@@ -162,6 +162,7 @@ Base your crisis event on a real or plausible variation of these precedents."""
         crisis_event: Optional[str] = None,
         resilience_metrics: Optional[dict[str, Any]] = None,
         model: Optional[str] = None,
+        language: Optional[str] = None,
     ) -> str:
         transcript = _build_transcript(round1_results, round2_results, round3_results)
         crisis_section = ""
@@ -241,6 +242,9 @@ Rules:
 - Do not wrap the report in code fences or quote it.
 - Use Markdown headers (## and ###), bullet lists, and bold sparingly. Do not use backticks for paths or filenames.
 """
+
+        if language:
+            prompt += f"\n\nIMPORTANT: Write the entire report in {language}. All section headers, analysis, and recommendations must be in {language}."
 
         messages = [
             {

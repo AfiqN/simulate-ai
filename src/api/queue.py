@@ -39,6 +39,7 @@ class SimulationJob:
         self.error: str | None = None
         self.result: dict[str, Any] | None = None
         self.run_dir: Path | None = None
+        self.progress: str | None = None
 
 
 # Global job registry (in-memory — lost on restart)
@@ -62,6 +63,7 @@ async def enqueue_simulation(job: SimulationJob, db) -> None:
 async def _execute_simulation(job: SimulationJob, db) -> None:
     """Run the simulation pipeline in the background."""
     job.status = "running"
+    job.progress = "Connecting to LLM provider..."
     await update_run(db, job.run_id, status="running")
 
     client = OllamaClient(host=OLLAMA_HOST, model=job.model, provider=job.provider)
@@ -76,6 +78,7 @@ async def _execute_simulation(job: SimulationJob, db) -> None:
             crisis_override=job.crisis_override,
             headless=True,
             rag_enabled=job.rag_enabled,
+            progress_callback=lambda msg: setattr(job, 'progress', msg),
         )
 
         job.elapsed_s = time.time() - start

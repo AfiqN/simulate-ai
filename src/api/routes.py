@@ -66,6 +66,7 @@ async def get_simulation_status(run_id: str, request: Request):
             elapsed_s=job.elapsed_s,
             error=job.error,
             result=job.result,
+            progress=job.progress,
         )
 
     # Fall back to database (historical runs)
