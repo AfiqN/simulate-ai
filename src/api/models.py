@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 class SimulationRequest(BaseModel):
     """Request body for POST /api/simulate."""
     stimulus: str = Field(..., min_length=1, description="The scenario stimulus text.")
-    agent_count: int = Field(default=5, ge=1, le=20, description="Number of agents (1-20).")
+    agent_count: int = Field(default=5, ge=1, le=100, description="Number of agents (1-100).")
     concurrency: int = Field(default=2, ge=1, le=5, description="Max concurrent LLM calls.")
     model: Optional[str] = Field(default=None, description="Override LLM model name.")
     provider: Optional[str] = Field(default=None, description="Override LLM provider (gemini/ollama/openai).")
