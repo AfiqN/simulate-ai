@@ -32,6 +32,11 @@ async def init_db(db_path: Path | None = None) -> aiosqlite.Connection:
     db = await aiosqlite.connect(str(path))
     db.row_factory = aiosqlite.Row
     await db.execute(_CREATE_TABLE)
+    # Mark orphaned jobs as failed (server crashed mid-run)
+    await db.execute(
+        "UPDATE runs SET status = 'failed', error_message = 'Server restarted' "
+        "WHERE status IN ('queued', 'running')"
+    )
     await db.commit()
     return db
 
