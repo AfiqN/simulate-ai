@@ -2,6 +2,7 @@ from typing import Any, Literal, Optional
 
 from src.llm.client import OllamaClient
 from src.llm.json_parse import strip_thought_tags
+from src.report.metrics import compute_quantitative_metrics, format_metrics_block
 from src.schema.simulation_schema import SimulationSchema
 
 
@@ -183,6 +184,13 @@ Base your crisis event on a real or plausible variation of these precedents."""
         depth: str = "standard",
     ) -> str:
         transcript = _build_transcript(round1_results, round2_results, round3_results)
+
+        # Pre-compute quantitative metrics
+        quant_metrics = compute_quantitative_metrics(
+            round1_results, round2_results, round3_results or [], self.schema
+        )
+        quant_block = format_metrics_block(quant_metrics)
+
         crisis_section = ""
         if crisis_event:
             crisis_section = f"""
@@ -236,6 +244,7 @@ User stimulus:
 {stimulus}
 \"\"\"
 {crisis_section}{resilience_block}
+{quant_block}
 Raw simulation transcript:
 {transcript}
 
@@ -243,7 +252,7 @@ Write a concise Markdown report with ONLY these 3 sections:
 
 1. VERDICT & SUMMARY
    - State the {self.schema.verdict_label} as one of: High / Mixed / Low (or domain-appropriate equivalent).
-   - 2-3 sentences of synthesis. Be direct, no filler.
+   - 2-3 sentences of synthesis. Reference the vote tally and consensus index above.
 
 2. KEY CONCERNS
    - Top 3 risks or objections surfaced by agents, as bullets.
@@ -252,6 +261,7 @@ Write a concise Markdown report with ONLY these 3 sections:
    - Single most impactful modification to the original stimulus.
 
 Rules:
+- Reference the pre-computed metrics above when citing numbers. Do NOT invent statistics.
 - Do not output <thought> blocks, scratch reasoning, or section drafts. Output only the final report.
 - Do not wrap the report in code fences or quote it.
 - Keep the entire output under 300 words.
@@ -270,6 +280,7 @@ User stimulus:
 {stimulus}
 \"\"\"
 {crisis_section}{resilience_block}
+{quant_block}
 Raw simulation transcript:
 {transcript}
 
@@ -278,17 +289,18 @@ Write a professional Markdown report with these sections, in this order. Adapt t
 1. EXECUTIVE SUMMARY & VERDICT
    - State the {self.schema.verdict_label} as one of: High / Mixed / Low (or domain-appropriate equivalent).
    - One paragraph of brutally honest synthesis. No sycophancy.
+   - Reference the vote tally and consensus index from the metrics above.
 
 2. FACTION MAPPING & ALIGNMENT
    - Group agents into emergent factions based on the actions they took and the reasoning they revealed.
-   - Note any agent who shifted position between rounds and why.
+   - Note any agent who shifted position between rounds and why (use the swing analysis above).
 
 3. STRUCTURAL BLIND SPOTS (RED-TEAMING)
    - Pull concrete flaws, frictions, or skepticism from the agents' private monologues and public statements.
    - List them as bullets with the evidence (which agent surfaced which concern).
 
 4. SYSTEM STABILITY & CONSENSUS INDEX
-   - Is the swarm polarized, converging, or fragmented?
+   - Is the swarm polarized, converging, or fragmented? Reference the HHI values and state transitions above.
    - Cite specific transitions you observed.
 
 5. CRISIS RESILIENCE VERDICT
@@ -296,6 +308,12 @@ Write a professional Markdown report with these sections, in this order. Adapt t
 
 6. STRATEGIC PIVOT RECOMMENDATIONS
    - Three concrete, actionable modifications to the original stimulus that would address the strongest objections surfaced in the swarm.
+
+Rules:
+- Reference the pre-computed metrics above when citing numbers. Do NOT invent statistics.
+- Do not output <thought> blocks, scratch reasoning, or section drafts. Output only the final report.
+- Do not wrap the report in code fences or quote it.
+- Use Markdown headers (## and ###), bullet lists, and bold sparingly. Do not use backticks for paths or filenames.
 """
             if depth == "deep":
                 prompt += """
@@ -304,13 +322,6 @@ Write a professional Markdown report with these sections, in this order. Adapt t
    - Reconstruct their full argument: what did they see that the majority missed?
    - Assess whether their concern represents a tail risk, a fundamental flaw, or a solvable friction.
    - If their argument were correct, what would the consequences be?
-"""
-
-            prompt += """
-Rules:
-- Do not output <thought> blocks, scratch reasoning, or section drafts. Output only the final report.
-- Do not wrap the report in code fences or quote it.
-- Use Markdown headers (## and ###), bullet lists, and bold sparingly. Do not use backticks for paths or filenames.
 """
 
         if language:
@@ -372,6 +383,11 @@ def _build_transcript(
         dims_r1 = a.get("utility_dimensions")
         if dims_r1:
             block += "- Round 1 Dimension Scores: " + ", ".join(f"{k}={v:+.2f}" for k, v in dims_r1.items()) + "\n"
+        chain_r1 = a.get("reasoning_chain")
+        if chain_r1:
+            block += "- Round 1 Reasoning:\n" + "".join(
+                f"    {entry['dimension']}: {entry['reasoning']}\n" for entry in chain_r1 if entry.get("reasoning")
+            )
 
         if b and not b.get("error"):
             block += (
@@ -383,6 +399,11 @@ def _build_transcript(
             dims_r2 = b.get("utility_dimensions")
             if dims_r2:
                 block += "- Round 2 Dimension Scores: " + ", ".join(f"{k}={v:+.2f}" for k, v in dims_r2.items()) + "\n"
+            chain_r2 = b.get("reasoning_chain")
+            if chain_r2:
+                block += "- Round 2 Reasoning:\n" + "".join(
+                    f"    {entry['dimension']}: {entry['reasoning']}\n" for entry in chain_r2 if entry.get("reasoning")
+                )
 
         if c and not c.get("error"):
             block += (
@@ -394,6 +415,11 @@ def _build_transcript(
             dims_r3 = c.get("utility_dimensions")
             if dims_r3:
                 block += "- Round 3 Dimension Scores: " + ", ".join(f"{k}={v:+.2f}" for k, v in dims_r3.items()) + "\n"
+            chain_r3 = c.get("reasoning_chain")
+            if chain_r3:
+                block += "- Round 3 Reasoning:\n" + "".join(
+                    f"    {entry['dimension']}: {entry['reasoning']}\n" for entry in chain_r3 if entry.get("reasoning")
+                )
 
         parts.append(block)
     return "\n---\n".join(parts)

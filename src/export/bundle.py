@@ -49,6 +49,7 @@ def write_bundle(result: dict[str, Any], out_dir: Path) -> Path:
         "valence": result["valence"],
         "crisis_event": result["crisis_event"],
         "resilience_metrics": result["resilience_metrics"],
+        "quantitative_metrics": result.get("quantitative_metrics"),
         "rag_metadata": result.get("rag_metadata"),
         "agents": [
             {
@@ -95,6 +96,8 @@ def _serialize_decisions(decisions: list[dict]) -> list[dict]:
             "archetype": d["archetype"],
             "action": d["action"],
             "utility": d["utility"],
+            "utility_dimensions": d.get("utility_dimensions", {}),
+            "reasoning_chain": d.get("reasoning_chain", []),
             "new_state": d["new_state"],
             "duration": d.get("duration", 0.0),
         }

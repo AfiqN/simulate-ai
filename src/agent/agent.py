@@ -204,17 +204,26 @@ Your reflection should be a detailed paragraph, not a single sentence."""
         # Multi-dimensional utility parsing
         dimensions = calc.get("dimensions")
         if isinstance(dimensions, dict) and dimensions:
-            # Parse per-dimension scores
+            # Parse per-dimension scores and reasoning
             utility_dimensions = {}
+            reasoning_chain = []
             scores = []
             for dim_name, dim_data in dimensions.items():
                 if isinstance(dim_data, dict):
                     score = _coerce_float(dim_data.get("score"), 0.0)
+                    reasoning = str(dim_data.get("reasoning", "")).strip()
                 else:
                     score = _coerce_float(dim_data, 0.0)
+                    reasoning = ""
                 utility_dimensions[dim_name] = score
                 scores.append(score)
+                reasoning_chain.append({
+                    "dimension": dim_name,
+                    "score": score,
+                    "reasoning": reasoning,
+                })
             parsed["utility_dimensions"] = utility_dimensions
+            parsed["reasoning_chain"] = reasoning_chain
             # Aggregate: mean of dimension scores
             utility = _coerce_float(calc.get("aggregate_utility"), sum(scores) / len(scores) if scores else 0.0)
         else:
@@ -223,6 +232,7 @@ Your reflection should be a detailed paragraph, not a single sentence."""
             costs = _coerce_float(calc.get("perceived_costs"), 0.0)
             utility = _coerce_float(calc.get("final_utility"), gains - costs)
             parsed["utility_dimensions"] = {}
+            parsed["reasoning_chain"] = []
 
         parsed["utility"] = utility
 

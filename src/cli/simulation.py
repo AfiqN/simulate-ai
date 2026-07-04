@@ -26,6 +26,7 @@ from src.cli.rendering import (
 )
 from src.llm.client import OllamaClient
 from src.report.compiler import ExecutiveCompiler, Valence, compute_resilience_metrics
+from src.report.metrics import compute_quantitative_metrics
 from src.schema.architect import SchemaDesignError, design_schema
 from src.schema.simulation_schema import SimulationSchema
 
@@ -157,6 +158,7 @@ def _extract_decision(agent: Agent, status_entry: dict, schema: SimulationSchema
             "action": fallback_action,
             "utility": 0.0,
             "utility_dimensions": {},
+            "reasoning_chain": [],
             "monologue": f"Error: {result.get('error', 'no response')}",
             "statement": "(no response)",
             "new_state": agent.profile.current_internal_state,
@@ -168,6 +170,7 @@ def _extract_decision(agent: Agent, status_entry: dict, schema: SimulationSchema
         "action": result.get("action_decision", fallback_action),
         "utility": result.get("utility", 0.0),
         "utility_dimensions": result.get("utility_dimensions", {}),
+        "reasoning_chain": result.get("reasoning_chain", []),
         "monologue": result.get("internal_reflection", "..."),
         "statement": result.get("public_statement", "..."),
         "new_state": result.get("new_internal_state", agent.profile.current_internal_state),
@@ -546,6 +549,9 @@ async def run_simulation_pipeline(
         "valence": valence,
         "crisis_event": crisis_event,
         "resilience_metrics": resilience_metrics,
+        "quantitative_metrics": compute_quantitative_metrics(
+            decisions_r1, decisions_r2, decisions_r3, schema
+        ),
         "report_md": report_md,
         "timings": {
             "r1": dur_r1,
