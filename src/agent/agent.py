@@ -84,7 +84,7 @@ class Agent:
   "new_memory_to_store": "one short sentence summarizing what you learned"
 }}"""
 
-    def build_system_prompt(self, context_summary: str = "") -> str:
+    def build_system_prompt(self, context_summary: str = "", depth: str = "standard") -> str:
         attrs = self.profile.attributes
         memories = "\n".join(f"- {m}" for m in self.profile.memory_vectors) or "- (no prior memories)"
 
@@ -98,7 +98,7 @@ class Agent:
 
         state_vocab = ", ".join(self.schema.state_vocabulary)
 
-        return f"""You are an autonomous agent participating in a simulation: "{self.schema.scenario_name}".
+        base = f"""You are an autonomous agent participating in a simulation: "{self.schema.scenario_name}".
 Scenario context: {self.schema.scenario_description}
 
 You MUST stay strictly in character — direct, opinionated, biased. Do not sound like an AI assistant.
@@ -144,6 +144,22 @@ Return ONLY a valid JSON object matching this template. No prose, no markdown fe
 
 {self._render_response_template()}
 """
+
+        if depth == "quick":
+            base += """
+--- DEPTH: QUICK ---
+Be concise. Your internal_reflection should be 1-2 sentences maximum. Decide fast based on your strongest instinct given your archetype. Do not overthink."""
+        elif depth == "deep":
+            base += """
+--- DEPTH: DEEP ANALYSIS ---
+Think step by step. In your internal_reflection, explain your reasoning thoroughly:
+1. What are the key dimensions you're evaluating? (e.g. financial, social, risk, feasibility)
+2. For each dimension, what's your assessment and why?
+3. What's your biggest uncertainty?
+4. State your confidence level (low/medium/high) in your final decision.
+Your reflection should be a detailed paragraph, not a single sentence."""
+
+        return base
 
     def _evaluate_utility_and_transition(self, parsed: dict[str, Any]) -> None:
         calc = parsed.get("utility_calculation") or {}
@@ -200,9 +216,9 @@ Return ONLY a valid JSON object matching this template. No prose, no markdown fe
 
         parsed["resource_deductions"] = clean
 
-    async def perceive_and_react(self, stimulus: str, model: Optional[str] = None) -> dict[str, Any]:
+    async def perceive_and_react(self, stimulus: str, model: Optional[str] = None, depth: str = "standard") -> dict[str, Any]:
         return await self._llm_round(
-            system=self.build_system_prompt(),
+            system=self.build_system_prompt(depth=depth),
             user=f"STIMULUS TO EVALUATE:\n{stimulus}",
             model=model,
         )
@@ -213,6 +229,7 @@ Return ONLY a valid JSON object matching this template. No prose, no markdown fe
         round1_transcript: str,
         adversary: Optional[dict] = None,
         model: Optional[str] = None,
+        depth: str = "standard",
     ) -> dict[str, Any]:
         context_summary = "You are now in ROUND 2 (Debate & Reflection). You have read your peers' initial reactions and must engage with their positions."
         user_prompt = f"""You are now in ROUND 2 (DEBATE & REFLECTION).
@@ -235,7 +252,7 @@ Your peers in the swarm have voiced their initial reactions to this stimulus:
 You MUST address their stance in your public_statement and internal_reflection. Defend, concede, or reframe — but engage with them by name.
 """
         return await self._llm_round(
-            system=self.build_system_prompt(context_summary=context_summary),
+            system=self.build_system_prompt(context_summary=context_summary, depth=depth),
             user=user_prompt,
             model=model,
         )
@@ -245,6 +262,7 @@ You MUST address their stance in your public_statement and internal_reflection. 
         crisis: str,
         original_stimulus: str,
         model: Optional[str] = None,
+        depth: str = "standard",
     ) -> dict[str, Any]:
         context_summary = f"EXTERNAL EVENT: {crisis}"
         user_prompt = f"""An external event has hit the scenario.
@@ -256,7 +274,7 @@ Re-evaluate your utility under this new condition. The event may raise OR lower 
 If the event genuinely changes your calculus, update your numbers and action. If it does not meaningfully affect your prior reasoning, hold your previous position — agents who flip without justification look weak. Commit to exactly one action from the available actions list and defend your reasoning in public_statement.
 """
         return await self._llm_round(
-            system=self.build_system_prompt(context_summary=context_summary),
+            system=self.build_system_prompt(context_summary=context_summary, depth=depth),
             user=user_prompt,
             model=model,
         )

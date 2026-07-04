@@ -1,6 +1,6 @@
 """Pydantic models for API request/response schemas."""
 
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 from pydantic import BaseModel, Field
 
 
@@ -13,6 +13,7 @@ class SimulationRequest(BaseModel):
     provider: Optional[str] = Field(default=None, description="Override LLM provider (gemini/ollama/openai).")
     crisis_override: Optional[str] = Field(default=None, description="Custom crisis event for Round 3.")
     rag_enabled: Optional[bool] = Field(default=None, description="Override RAG. None=use config default, True=force on, False=force off.")
+    depth: Literal["quick", "standard", "deep"] = Field(default="standard", description="Analysis depth: quick (2 rounds, concise), standard (full), deep (verbose + minority report).")
 
 
 class SimulationStatus(BaseModel):

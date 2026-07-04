@@ -163,6 +163,7 @@ Base your crisis event on a real or plausible variation of these precedents."""
         resilience_metrics: Optional[dict[str, Any]] = None,
         model: Optional[str] = None,
         language: Optional[str] = None,
+        depth: str = "standard",
     ) -> str:
         transcript = _build_transcript(round1_results, round2_results, round3_results)
         crisis_section = ""
@@ -197,7 +198,43 @@ The following external crisis was synthesized and injected into the simulation:
             )
 
         action_vocab = ", ".join(self.schema.action_names())
-        prompt = f"""You are the SimulateAI Chief Behavioral Architect & Diagnostic Director.
+
+        if depth == "quick":
+            prompt = f"""You are the SimulateAI Chief Behavioral Architect.
+Compile a brief diagnostic summary based on the multi-agent simulation below.
+
+Scenario: {self.schema.scenario_name}
+Scenario description: {self.schema.scenario_description}
+Verdict label for this scenario: {self.schema.verdict_label}
+Action vocabulary used by agents: {action_vocab}
+
+User stimulus:
+\"\"\"
+{stimulus}
+\"\"\"
+{crisis_section}{resilience_block}
+Raw simulation transcript:
+{transcript}
+
+Write a concise Markdown report with ONLY these 3 sections:
+
+1. VERDICT & SUMMARY
+   - State the {self.schema.verdict_label} as one of: High / Mixed / Low (or domain-appropriate equivalent).
+   - 2-3 sentences of synthesis. Be direct, no filler.
+
+2. KEY CONCERNS
+   - Top 3 risks or objections surfaced by agents, as bullets.
+
+3. ONE RECOMMENDATION
+   - Single most impactful modification to the original stimulus.
+
+Rules:
+- Do not output <thought> blocks, scratch reasoning, or section drafts. Output only the final report.
+- Do not wrap the report in code fences or quote it.
+- Keep the entire output under 300 words.
+"""
+        else:
+            prompt = f"""You are the SimulateAI Chief Behavioral Architect & Diagnostic Director.
 Compile a sharp, objective, actionable Executive Diagnostic Report based on the multi-agent simulation below.
 
 Scenario: {self.schema.scenario_name}
@@ -236,7 +273,17 @@ Write a professional Markdown report with these sections, in this order. Adapt t
 
 6. STRATEGIC PIVOT RECOMMENDATIONS
    - Three concrete, actionable modifications to the original stimulus that would address the strongest objections surfaced in the swarm.
+"""
+            if depth == "deep":
+                prompt += """
+7. MINORITY REPORT
+   - Identify the single strongest dissenting voice in the simulation.
+   - Reconstruct their full argument: what did they see that the majority missed?
+   - Assess whether their concern represents a tail risk, a fundamental flaw, or a solvable friction.
+   - If their argument were correct, what would the consequences be?
+"""
 
+            prompt += """
 Rules:
 - Do not output <thought> blocks, scratch reasoning, or section drafts. Output only the final report.
 - Do not wrap the report in code fences or quote it.

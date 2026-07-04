@@ -57,6 +57,7 @@ async def _run_perception(
     stimulus: str,
     statuses: list[dict],
     semaphore: asyncio.Semaphore,
+    depth: str = "standard",
 ) -> None:
     await asyncio.sleep(idx * 2)
     await _execute_round(
@@ -64,7 +65,7 @@ async def _run_perception(
         statuses,
         semaphore,
         in_progress_label="Thinking...",
-        coroutine_factory=lambda: agent.perceive_and_react(stimulus),
+        coroutine_factory=lambda: agent.perceive_and_react(stimulus, depth=depth),
     )
 
 
@@ -76,6 +77,7 @@ async def _run_debate(
     adversary: Optional[dict],
     statuses: list[dict],
     semaphore: asyncio.Semaphore,
+    depth: str = "standard",
 ) -> None:
     await asyncio.sleep(4 + idx * 3)
     await _execute_round(
@@ -84,7 +86,7 @@ async def _run_debate(
         semaphore,
         in_progress_label="Debating...",
         coroutine_factory=lambda: agent.debate_and_react(
-            stimulus, round1_transcript, adversary=adversary if adversary else None
+            stimulus, round1_transcript, adversary=adversary if adversary else None, depth=depth
         ),
     )
 
@@ -96,6 +98,7 @@ async def _run_crisis(
     original_stimulus: str,
     statuses: list[dict],
     semaphore: asyncio.Semaphore,
+    depth: str = "standard",
 ) -> None:
     await asyncio.sleep(4 + idx * 3)
     await _execute_round(
@@ -103,7 +106,7 @@ async def _run_crisis(
         statuses,
         semaphore,
         in_progress_label="Reacting...",
-        coroutine_factory=lambda: agent.react_to_crisis(crisis, original_stimulus),
+        coroutine_factory=lambda: agent.react_to_crisis(crisis, original_stimulus, depth=depth),
     )
 
 
@@ -257,6 +260,7 @@ async def run_simulation_pipeline(
     headless: bool = False,
     rag_enabled: Optional[bool] = None,
     progress_callback: Optional[Any] = None,
+    depth: str = "standard",
 ) -> dict[str, Any]:
     concurrency = max(1, min(concurrency, MAX_CONCURRENCY))
 
@@ -335,7 +339,7 @@ async def run_simulation_pipeline(
     statuses_r1 = _make_statuses(agents)
     t0 = time.time()
     tasks_r1 = [
-        asyncio.create_task(_run_perception(i, a, stimulus, statuses_r1, semaphore))
+        asyncio.create_task(_run_perception(i, a, stimulus, statuses_r1, semaphore, depth=depth))
         for i, a in enumerate(agents)
     ]
     if not headless:
@@ -374,45 +378,47 @@ async def run_simulation_pipeline(
             )
         )
 
-    # --- Round 2 ---
-    _progress("Round 2: directed debate...")
-    if not headless:
-        console.print()
-        console.print(Rule("[bold magenta]ROUND 2 — DIRECTED DEBATE[/bold magenta]"))
-    statuses_r2 = _make_statuses(agents)
-    t0 = time.time()
-    tasks_r2 = [
-        asyncio.create_task(_run_debate(
-            i, a, stimulus, full_round1_transcript,
-            adversary_map.get(a.profile.agent_id),
-            statuses_r2, semaphore,
-        ))
-        for i, a in enumerate(agents)
-    ]
-    if not headless:
-        await _drive_live_table(statuses_r2, "Round 2 Debate Monitor", {"Thinking...", "Debating..."})
-    await asyncio.gather(*tasks_r2)
-    dur_r2 = time.time() - t0
-
+    # --- Round 2 (skipped in quick mode) ---
+    dur_r2 = 0.0
     decisions_r2: list[dict] = []
-    for i, a in enumerate(agents):
-        d = _extract_decision(a, statuses_r2[i], schema)
-        decisions_r2.append(d)
-        if not headless:
-            render_round_panel("Round 2 — Directed Debate", d, schema, statuses_r2[i]["duration"])
+    full_round2_transcript = full_round1_transcript  # fallback for quick mode
 
-    # --- Round 3 ---
-    _progress("Round 3: crisis stress-test...")
-    if not headless:
-        console.print()
-        console.print(Rule("[bold red]ROUND 3 — CRISIS STRESS-TEST[/bold red]"))
-    transcript_parts_r2 = [
-        f"Agent: {d['archetype']} (ID: {d['id']})\n"
-        f"- Public Statement: \"{d['statement']}\"\n"
-        f"- Action: {d['action']}"
-        for d in decisions_r2
-    ]
-    full_round2_transcript = "\n\n".join(transcript_parts_r2)
+    if depth != "quick":
+        _progress("Round 2: directed debate...")
+        if not headless:
+            console.print()
+            console.print(Rule("[bold magenta]ROUND 2 — DIRECTED DEBATE[/bold magenta]"))
+        statuses_r2 = _make_statuses(agents)
+        t0 = time.time()
+        tasks_r2 = [
+            asyncio.create_task(_run_debate(
+                i, a, stimulus, full_round1_transcript,
+                adversary_map.get(a.profile.agent_id),
+                statuses_r2, semaphore, depth=depth,
+            ))
+            for i, a in enumerate(agents)
+        ]
+        if not headless:
+            await _drive_live_table(statuses_r2, "Round 2 Debate Monitor", {"Thinking...", "Debating..."})
+        await asyncio.gather(*tasks_r2)
+        dur_r2 = time.time() - t0
+
+        for i, a in enumerate(agents):
+            d = _extract_decision(a, statuses_r2[i], schema)
+            decisions_r2.append(d)
+            if not headless:
+                render_round_panel("Round 2 — Directed Debate", d, schema, statuses_r2[i]["duration"])
+
+        transcript_parts_r2 = [
+            f"Agent: {d['archetype']} (ID: {d['id']})\n"
+            f"- Public Statement: \"{d['statement']}\"\n"
+            f"- Action: {d['action']}"
+            for d in decisions_r2
+        ]
+        full_round2_transcript = "\n\n".join(transcript_parts_r2)
+    else:
+        # Quick mode: use R1 decisions as R2 stand-in for resilience comparison
+        decisions_r2 = decisions_r1
 
     # --- RAG Point 3: Pre-Crisis ---
     crisis_rag_facts = None
@@ -464,7 +470,7 @@ async def run_simulation_pipeline(
     statuses_r3 = _make_statuses(agents)
     t0 = time.time()
     tasks_r3 = [
-        asyncio.create_task(_run_crisis(i, a, crisis_event, stimulus, statuses_r3, semaphore))
+        asyncio.create_task(_run_crisis(i, a, crisis_event, stimulus, statuses_r3, semaphore, depth=depth))
         for i, a in enumerate(agents)
     ]
     if not headless:
@@ -503,6 +509,7 @@ async def run_simulation_pipeline(
                 round3_results=decisions_r3, crisis_event=crisis_event,
                 resilience_metrics=resilience_metrics,
                 language=stimulus_language,
+                depth=depth,
             )
             live.update("[bold green]✔ Report compiled[/bold green]")
     else:
@@ -511,6 +518,7 @@ async def run_simulation_pipeline(
             round3_results=decisions_r3, crisis_event=crisis_event,
             resilience_metrics=resilience_metrics,
             language=stimulus_language,
+            depth=depth,
         )
 
     if not headless:

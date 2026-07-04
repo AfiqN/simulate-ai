@@ -23,6 +23,7 @@ async function submitSimulation(e) {
     provider: $('#provider').value || null,
     crisis_override: $('#crisis').value.trim() || null,
     rag_enabled: $('#rag').value === '' ? null : $('#rag').value === 'true',
+    depth: $('#depth').value || 'standard',
   };
 
   if (!body.stimulus) { btn.disabled = false; return; }

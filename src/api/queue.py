@@ -23,7 +23,8 @@ class SimulationJob:
 
     def __init__(self, run_id: str, stimulus: str, agent_count: int, concurrency: int,
                  model: str | None = None, provider: str | None = None,
-                 crisis_override: str | None = None, rag_enabled: bool | None = None):
+                 crisis_override: str | None = None, rag_enabled: bool | None = None,
+                 depth: str = "standard"):
         self.run_id = run_id
         self.stimulus = stimulus
         self.agent_count = agent_count
@@ -32,6 +33,7 @@ class SimulationJob:
         self.provider = provider
         self.crisis_override = crisis_override
         self.rag_enabled = rag_enabled
+        self.depth = depth
         self.status: str = "queued"
         self.scenario_name: str | None = None
         self.verdict: str | None = None
@@ -79,6 +81,7 @@ async def _execute_simulation(job: SimulationJob, db) -> None:
             headless=True,
             rag_enabled=job.rag_enabled,
             progress_callback=lambda msg: setattr(job, 'progress', msg),
+            depth=job.depth,
         )
 
         job.elapsed_s = time.time() - start
