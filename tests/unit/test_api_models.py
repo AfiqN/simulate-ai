@@ -75,7 +75,7 @@ def test_simulation_request_agent_count_below_minimum_raises():
 
 def test_simulation_request_agent_count_above_maximum_raises():
     with pytest.raises(ValidationError):
-        SimulationRequest(stimulus="Test", agent_count=21)
+        SimulationRequest(stimulus="Test", agent_count=101)
 
 
 def test_simulation_request_agent_count_negative_raises():
