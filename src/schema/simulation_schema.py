@@ -42,6 +42,7 @@ class SimulationSchema:
     linguistic_clusters: list[LinguisticCluster]
     macro_context: list[str]
     crisis_dimensions: list[str]
+    evaluation_dimensions: list[str] = field(default_factory=list)
 
     def action_names(self) -> list[str]:
         return [a.name for a in self.actions]
@@ -101,6 +102,7 @@ class SimulationSchema:
             linguistic_clusters=clusters,
             macro_context=[str(m) for m in data["macro_context"]],
             crisis_dimensions=[str(c) for c in data["crisis_dimensions"]],
+            evaluation_dimensions=[str(d) for d in data.get("evaluation_dimensions", [])],
         )
 
 

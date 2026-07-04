@@ -59,6 +59,29 @@ class Agent:
             )
         return "\n".join(lines)
 
+    def _render_decision_logic_prompt(self) -> str:
+        if self.schema.evaluation_dimensions:
+            dims = ", ".join(self.schema.evaluation_dimensions)
+            return (
+                f"Evaluate the stimulus across these dimensions: {dims}\n"
+                "For each dimension, assign a score in [-1.0, 1.0] where:\n"
+                "  -1.0 = extremely negative outcome on this dimension\n"
+                "   0.0 = neutral / no impact\n"
+                "  +1.0 = extremely positive outcome on this dimension\n"
+                "Express each score to exactly 2 decimal places (e.g. 0.35, not 0.3 or 0.4).\n"
+                "Reflect genuine nuance — avoid round numbers like 0.50, 0.80, 1.00 unless truly warranted.\n"
+                "Include a brief reasoning string (1 sentence) for each dimension.\n"
+                "Then compute aggregate_utility as the arithmetic mean of all dimension scores (also 2 decimal places)."
+            )
+        else:
+            return (
+                "Compute your utility internally as:\n"
+                "  final_utility = perceived_gains - perceived_costs\n"
+                "where both inputs are in [0.0, 1.0] and final_utility ends up in [-1.0, 1.0].\n"
+                "Express ALL three values to exactly 2 decimal places (e.g. 0.35, not 0.3 or 0.4).\n"
+                "Reflect genuine nuance — avoid round numbers like 0.50, 0.80, 1.00 unless truly warranted."
+            )
+
     def _render_response_template(self) -> str:
         if self.schema.resource_model.kind == "none" or not self.profile.resources:
             resource_field = ""
@@ -71,14 +94,30 @@ class Agent:
             )
         action_names = " | ".join(self.schema.action_names())
         state_examples = ", ".join(self.schema.state_vocabulary[:6])
-        return f"""{{
-  "internal_reflection": "private thoughts about the stimulus",
-  "public_statement": "what you say out loud to peers, in your linguistic style",
-  "utility_calculation": {{
+
+        # Multi-dimensional utility template when dimensions are defined
+        if self.schema.evaluation_dimensions:
+            dim_entries = ",\n".join(
+                f'      "{d}": {{"score": 0.0, "reasoning": "brief rationale for this dimension"}}'
+                for d in self.schema.evaluation_dimensions
+            )
+            utility_block = f'''"utility_calculation": {{
+    "dimensions": {{
+{dim_entries}
+    }},
+    "aggregate_utility": 0.0
+  }}'''
+        else:
+            utility_block = '''"utility_calculation": {{
     "perceived_gains": 0.0,
     "perceived_costs": 0.0,
     "final_utility": 0.0
-  }},
+  }}'''
+
+        return f"""{{
+  "internal_reflection": "private thoughts about the stimulus",
+  "public_statement": "what you say out loud to peers, in your linguistic style",
+  {utility_block},
   "decision": "{action_names}",
   "emotional_state": "one of: {state_examples}, ...",{resource_field}
   "new_memory_to_store": "one short sentence summarizing what you learned"
@@ -130,11 +169,7 @@ You must commit to exactly one of these action verbs:
 {self._render_actions_block()}
 
 --- DECISION LOGIC ---
-Compute your utility internally as:
-  final_utility = perceived_gains - perceived_costs
-where both inputs are in [0.0, 1.0] and final_utility ends up in [-1.0, 1.0].
-Express ALL three values to exactly 2 decimal places (e.g. 0.35, not 0.3 or 0.4).
-Reflect genuine nuance — avoid round numbers like 0.50, 0.80, 1.00 unless truly warranted.
+{self._render_decision_logic_prompt()}
 
 --- EMOTIONAL STATE VOCABULARY ---
 Pick one state that reflects your shift after this stimulus. Available states: {state_vocab}.
@@ -166,9 +201,29 @@ Your reflection should be a detailed paragraph, not a single sentence."""
         if not isinstance(calc, dict):
             calc = {}
 
-        gains = _coerce_float(calc.get("perceived_gains"), 0.0)
-        costs = _coerce_float(calc.get("perceived_costs"), 0.0)
-        utility = _coerce_float(calc.get("final_utility"), gains - costs)
+        # Multi-dimensional utility parsing
+        dimensions = calc.get("dimensions")
+        if isinstance(dimensions, dict) and dimensions:
+            # Parse per-dimension scores
+            utility_dimensions = {}
+            scores = []
+            for dim_name, dim_data in dimensions.items():
+                if isinstance(dim_data, dict):
+                    score = _coerce_float(dim_data.get("score"), 0.0)
+                else:
+                    score = _coerce_float(dim_data, 0.0)
+                utility_dimensions[dim_name] = score
+                scores.append(score)
+            parsed["utility_dimensions"] = utility_dimensions
+            # Aggregate: mean of dimension scores
+            utility = _coerce_float(calc.get("aggregate_utility"), sum(scores) / len(scores) if scores else 0.0)
+        else:
+            # Fallback: flat gains/costs format (backward compat)
+            gains = _coerce_float(calc.get("perceived_gains"), 0.0)
+            costs = _coerce_float(calc.get("perceived_costs"), 0.0)
+            utility = _coerce_float(calc.get("final_utility"), gains - costs)
+            parsed["utility_dimensions"] = {}
+
         parsed["utility"] = utility
 
         action = _normalize_action(parsed.get("decision"), self.schema, utility, self.profile.attributes.aggressiveness, self.decision_threshold)

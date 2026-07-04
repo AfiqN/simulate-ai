@@ -45,6 +45,22 @@ def compute_resilience_metrics(
     drift = [r3.get("utility", 0.0) - r2.get("utility", 0.0) for r2, r3 in paired]
     utility_drift_mean = sum(drift) / n
 
+    # Per-dimension drift (when multi-dim utility is available)
+    per_dimension_drift: dict[str, float] = {}
+    all_dims: set[str] = set()
+    for r2, r3 in paired:
+        all_dims.update((r2.get("utility_dimensions") or {}).keys())
+        all_dims.update((r3.get("utility_dimensions") or {}).keys())
+    for dim in sorted(all_dims):
+        dim_drifts = []
+        for r2, r3 in paired:
+            r2_score = (r2.get("utility_dimensions") or {}).get(dim)
+            r3_score = (r3.get("utility_dimensions") or {}).get(dim)
+            if r2_score is not None and r3_score is not None:
+                dim_drifts.append(r3_score - r2_score)
+        if dim_drifts:
+            per_dimension_drift[dim] = sum(dim_drifts) / len(dim_drifts)
+
     terminal_r2 = sum(1 for r2, _ in paired if r2.get("action") in terminal_set) / n
     terminal_r3 = sum(1 for _, r3 in paired if r3.get("action") in terminal_set) / n
     terminal_delta = terminal_r3 - terminal_r2
@@ -71,6 +87,7 @@ def compute_resilience_metrics(
         "verdict": verdict,
         "rationale": rationale,
         "paired_count": n,
+        "per_dimension_drift": per_dimension_drift,
     }
 
 
@@ -176,13 +193,19 @@ The following external crisis was synthesized and injected into the simulation:
 
         if resilience_metrics:
             r = resilience_metrics
+            dim_drift = r.get("per_dimension_drift", {})
+            dim_drift_line = ""
+            if dim_drift:
+                dim_drift_line = "- Per-dimension drift (R3 − R2): " + ", ".join(
+                    f"{k}={v:+.2f}" for k, v in dim_drift.items()
+                ) + "\n"
             resilience_block = f"""
 ## DETERMINISTIC RESILIENCE METRICS (pre-computed — DO NOT override)
 - Verdict: {r['verdict']}
 - Decision stability (R2→R3): {r['decision_stability']:.2f} ({r['paired_count']} agents tracked)
 - Mean utility drift (R3 − R2): {r['utility_drift_mean']:+.2f}
 - Terminal-action share R2 → R3: {r['terminal_share_r2']:.2f} → {r['terminal_share_r3']:.2f} (Δ {r['terminal_share_delta']:+.2f})
-- Rationale: {r['rationale']}
+{dim_drift_line}- Rationale: {r['rationale']}
 """
             resilience_instruction = (
                 f"   - The resilience verdict is **{r['verdict']}** — this is pre-computed from the metrics above and is authoritative. "
@@ -346,6 +369,10 @@ def _build_transcript(
             f"- Round 1 Inner Monologue: \"{a.get('monologue', '')}\"\n"
             f"- Round 1 Public Statement: \"{a.get('statement', '')}\"\n"
         )
+        dims_r1 = a.get("utility_dimensions")
+        if dims_r1:
+            block += "- Round 1 Dimension Scores: " + ", ".join(f"{k}={v:+.2f}" for k, v in dims_r1.items()) + "\n"
+
         if b and not b.get("error"):
             block += (
                 f"- Round 2 Action: {b.get('action')} (Utility: {b.get('utility', 0.0):.4f})\n"
@@ -353,6 +380,10 @@ def _build_transcript(
                 f"- Round 2 Public Statement: \"{b.get('statement', '')}\"\n"
                 f"- State after Round 2: {b.get('new_state')}\n"
             )
+            dims_r2 = b.get("utility_dimensions")
+            if dims_r2:
+                block += "- Round 2 Dimension Scores: " + ", ".join(f"{k}={v:+.2f}" for k, v in dims_r2.items()) + "\n"
+
         if c and not c.get("error"):
             block += (
                 f"- Round 3 Action: {c.get('action')} (Utility: {c.get('utility', 0.0):.4f})\n"
@@ -360,5 +391,9 @@ def _build_transcript(
                 f"- Round 3 Public Statement: \"{c.get('statement', '')}\"\n"
                 f"- State after Round 3: {c.get('new_state')}\n"
             )
+            dims_r3 = c.get("utility_dimensions")
+            if dims_r3:
+                block += "- Round 3 Dimension Scores: " + ", ".join(f"{k}={v:+.2f}" for k, v in dims_r3.items()) + "\n"
+
         parts.append(block)
     return "\n---\n".join(parts)

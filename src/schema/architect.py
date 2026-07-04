@@ -44,7 +44,9 @@ REQUIRED FIELDS (all required, no extras):
 
 9. "crisis_dimensions" — array of 4 to 8 short labels naming the kinds of shocks that would make sense to inject into THIS scenario in Round 3 (e.g. for a fintech product: "regulatory_freeze", "competitor_price_war", "data_breach"; for a policy debate: "public_backlash", "leaked_document", "opposition_amendment"; for a hackathon: "scope_creep", "team_withdrawal", "judge_skepticism_spike"). The crisis generator will pick one of these later.
 
-OUTPUT FORMAT — return ONLY a valid JSON object with exactly these top-level keys: scenario_name, scenario_description, verdict_label, actions, state_vocabulary, resource_model, linguistic_clusters, macro_context, crisis_dimensions. No markdown, no preamble, no <thought> tags.
+10. "evaluation_dimensions" — array of 3 to 5 evaluation dimensions that agents should score independently when computing their utility. Each dimension is a short snake_case label representing a distinct axis of value/risk. Choose dimensions native to this scenario — examples: for a business pitch: "financial_return", "market_fit", "execution_risk", "team_capability"; for a policy debate: "equity_impact", "economic_feasibility", "political_viability"; for a personal decision: "happiness", "career_growth", "financial_security". Do NOT default to generic labels — derive from the stimulus.
+
+OUTPUT FORMAT — return ONLY a valid JSON object with exactly these top-level keys: scenario_name, scenario_description, verdict_label, actions, state_vocabulary, resource_model, linguistic_clusters, macro_context, crisis_dimensions, evaluation_dimensions. No markdown, no preamble, no <thought> tags.
 """
 
 
