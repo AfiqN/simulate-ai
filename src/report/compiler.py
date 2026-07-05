@@ -182,12 +182,15 @@ Base your crisis event on a real or plausible variation of these precedents."""
         model: Optional[str] = None,
         language: Optional[str] = None,
         depth: str = "standard",
+        profiles: Optional[list] = None,
+        round4_results: Optional[list[dict[str, Any]]] = None,
     ) -> str:
-        transcript = _build_transcript(round1_results, round2_results, round3_results)
+        transcript = _build_transcript(round1_results, round2_results, round3_results, profiles=profiles, r4=round4_results)
 
         # Pre-compute quantitative metrics
         quant_metrics = compute_quantitative_metrics(
-            round1_results, round2_results, round3_results or [], self.schema
+            round1_results, round2_results, round3_results or [], self.schema,
+            profiles=profiles,
         )
         quant_block = format_metrics_block(quant_metrics)
 
@@ -380,19 +383,35 @@ def _build_transcript(
     r1: list[dict[str, Any]],
     r2: list[dict[str, Any]],
     r3: Optional[list[dict[str, Any]]],
+    profiles: Optional[list] = None,
+    r4: Optional[list[dict[str, Any]]] = None,
 ) -> str:
     # Align by agent ID to prevent cross-contamination when a round has missing/failed entries
     r2_by_id = {d.get("id"): d for d in r2}
     r3_by_id = {d.get("id"): d for d in (r3 or [])}
+    r4_by_id = {d.get("id"): d for d in (r4 or [])}
+    profile_by_id = {p.agent_id: p for p in (profiles or [])}
 
     parts: list[str] = []
     for a in r1:
         aid = a.get("id")
         b = r2_by_id.get(aid, {})
         c = r3_by_id.get(aid, {})
+        profile = profile_by_id.get(aid)
 
         block = (
             f"Agent: {a.get('archetype', '?')} (ID: {aid})\n"
+        )
+        # Include persona context when available
+        if profile:
+            if profile.influence_weight != 1.0:
+                block += f"- Influence Weight: {profile.influence_weight:.1f}x\n"
+            if profile.decision_framework:
+                block += f"- Decision Framework: {profile.decision_framework}\n"
+            if profile.constraints:
+                block += f"- Hard Constraints: {'; '.join(profile.constraints)}\n"
+
+        block += (
             f"- Round 1 Action: {a.get('action')} (Utility: {a.get('utility', 0.0):.4f})\n"
             f"- Round 1 Inner Monologue: \"{a.get('monologue', '')}\"\n"
             f"- Round 1 Public Statement: \"{a.get('statement', '')}\"\n"
@@ -436,6 +455,23 @@ def _build_transcript(
             if chain_r3:
                 block += "- Round 3 Reasoning:\n" + "".join(
                     f"    {entry['dimension']}: {entry['reasoning']}\n" for entry in chain_r3 if entry.get("reasoning")
+                )
+
+        e = r4_by_id.get(aid, {})
+        if e and not e.get("error"):
+            block += (
+                f"- Round 4 (Reconciliation) Action: {e.get('action')} (Utility: {e.get('utility', 0.0):.4f})\n"
+                f"- Round 4 Inner Monologue: \"{e.get('monologue', '')}\"\n"
+                f"- Round 4 Public Statement: \"{e.get('statement', '')}\"\n"
+                f"- State after Round 4: {e.get('new_state')}\n"
+            )
+            dims_r4 = e.get("utility_dimensions")
+            if dims_r4:
+                block += "- Round 4 Dimension Scores: " + ", ".join(f"{k}={v:+.2f}" for k, v in dims_r4.items()) + "\n"
+            chain_r4 = e.get("reasoning_chain")
+            if chain_r4:
+                block += "- Round 4 Reasoning:\n" + "".join(
+                    f"    {entry['dimension']}: {entry['reasoning']}\n" for entry in chain_r4 if entry.get("reasoning")
                 )
 
         parts.append(block)

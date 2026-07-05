@@ -17,6 +17,7 @@ def compute_quantitative_metrics(
     r2: list[dict[str, Any]],
     r3: list[dict[str, Any]],
     schema: SimulationSchema,
+    profiles: Optional[list] = None,
 ) -> dict[str, Any]:
     """Compute all quantitative metrics from round decisions.
 
@@ -26,9 +27,10 @@ def compute_quantitative_metrics(
         state_transitions: round-over-round state change tracking
         swing_analysis: agents who changed action + dimension that drove the flip
         consensus_index: per-round HHI of action concentration
+        weighted_consensus_index: per-round HHI weighted by influence_weight
         net_confidence: per-round average |utility|
     """
-    return {
+    result = {
         "vote_tally": _vote_tally(r1, r2, r3, schema),
         "dimension_stats": _dimension_stats(r1, r2, r3),
         "state_transitions": _state_transitions(r1, r2, r3),
@@ -36,6 +38,9 @@ def compute_quantitative_metrics(
         "consensus_index": _consensus_index(r1, r2, r3),
         "net_confidence": _net_confidence(r1, r2, r3),
     }
+    if profiles:
+        result["weighted_consensus_index"] = _weighted_consensus_index(r1, r2, r3, profiles)
+    return result
 
 
 def format_metrics_block(metrics: dict[str, Any]) -> str:
@@ -109,6 +114,14 @@ def format_metrics_block(metrics: dict[str, Any]) -> str:
         val = ci.get(round_key)
         if val is not None:
             lines.append(f"- {label}: {val:.3f}")
+    # Weighted consensus (influence-adjusted)
+    wci = metrics.get("weighted_consensus_index")
+    if wci:
+        lines.append("- Influence-weighted:")
+        for round_key, label in [("r1", "R1"), ("r2", "R2"), ("r3", "R3")]:
+            val = wci.get(round_key)
+            if val is not None:
+                lines.append(f"    {label}: {val:.3f}")
     lines.append("")
 
     # Net confidence
@@ -302,4 +315,34 @@ def _net_confidence(
             continue
         avg_abs = sum(abs(d.get("utility", 0.0)) for d in valid) / len(valid)
         result[round_key] = avg_abs
+    return result
+
+
+def _weighted_consensus_index(
+    r1: list[dict], r2: list[dict], r3: list[dict],
+    profiles: list,
+) -> dict[str, float]:
+    """Compute influence-weighted HHI per round.
+
+    Each agent's vote is weighted by their influence_weight. Higher influence
+    agents contribute more to consensus measurement.
+    """
+    weight_map = {p.agent_id: getattr(p, "influence_weight", 1.0) for p in profiles}
+
+    result = {}
+    for round_key, decisions in [("r1", r1), ("r2", r2), ("r3", r3)]:
+        valid = _valid(decisions)
+        if not valid:
+            continue
+        # Accumulate weighted votes per action
+        action_weights: dict[str, float] = {}
+        total_weight = 0.0
+        for d in valid:
+            w = weight_map.get(d.get("id", ""), 1.0)
+            action = d.get("action", "UNKNOWN")
+            action_weights[action] = action_weights.get(action, 0.0) + w
+            total_weight += w
+        if total_weight > 0:
+            hhi = sum((w / total_weight) ** 2 for w in action_weights.values())
+            result[round_key] = hhi
     return result
