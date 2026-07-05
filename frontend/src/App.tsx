@@ -5,7 +5,17 @@ import { SimForm } from "./components/simulation/SimForm";
 import { PipelineProgress } from "./components/simulation/PipelineProgress";
 import { AgentCard } from "./components/simulation/AgentCard";
 import { RoundTimeline } from "./components/simulation/RoundTimeline";
+import { VoteTally } from "./components/metrics/VoteTally";
+import { ConsensusGauge } from "./components/metrics/ConsensusGauge";
+import { DimensionChart } from "./components/metrics/DimensionChart";
+import { SwingTable } from "./components/metrics/SwingTable";
 import type { SimulationConfig } from "./types";
+
+function computeHHI(voteTally: Record<string, number>, totalAgents: number): number {
+  if (totalAgents === 0) return 0;
+  const shares = Object.values(voteTally).map((count) => count / totalAgents);
+  return shares.reduce((sum, s) => sum + s * s, 0);
+}
 
 export default function App() {
   const { state, dispatch } = useSimulation();
@@ -108,6 +118,28 @@ export default function App() {
               rounds={state.rounds}
               agentsByRound={state.agentsByRound}
             />
+          </div>
+        )}
+
+        {/* Metrics Dashboard */}
+        {state.status === "complete" && state.result && (
+          <div>
+            <h2 className="text-[15px] font-medium tracking-[-0.02em] mb-3">Metrics</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <VoteTally rounds={state.rounds} />
+              <ConsensusGauge
+                rounds={state.rounds.map((r) => ({
+                  round: r.round,
+                  hhi: r.consensus_index ?? computeHHI(r.vote_tally, r.decisions.length),
+                }))}
+              />
+              {state.result.quantitative_metrics?.dimension_stats && (
+                <DimensionChart stats={state.result.quantitative_metrics.dimension_stats} />
+              )}
+              {state.result.quantitative_metrics?.swing_analysis && (
+                <SwingTable swings={state.result.quantitative_metrics.swing_analysis} />
+              )}
+            </div>
           </div>
         )}
       </main>
