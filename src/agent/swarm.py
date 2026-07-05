@@ -106,6 +106,11 @@ Constraints:
   - risk_tolerance (1.0 = reckless, 0.0 = extremely cautious)
 - current_internal_state must be one of: {", ".join(schema.state_vocabulary)}.
 - memory_vectors: exactly 2 short, character-defining beliefs or recollections that shape how this agent will evaluate the stimulus.
+- decision_framework: a short phrase describing what this agent prioritizes when making decisions (e.g. "loss-averse, values precedent over innovation", "growth-at-all-costs, tolerates short-term losses for market share").
+- knowledge_base: a short sentence about this agent's domain-specific expertise or beliefs that inform their judgment (e.g. "10 years in SEA healthcare regulation, deeply skeptical of AI claims without clinical trials").
+- constraints: a list of 1-2 hard red lines this agent CANNOT accept or cross, no matter what (e.g. ["will not approve anything without independent audit", "refuses to compromise patient safety for speed"]).
+- influence_weight: a float from 0.5 to 3.0 representing this agent's relative voice weight in the scenario. NOT all agents are equal — a CEO or regulator should have higher influence (2.0-3.0) than a junior analyst or commentator (0.5-1.0). Default 1.0 for mid-level stakeholders.
+- backstory: 2-3 sentences grounding this persona in specific experience that explains WHY they think the way they do.
 
 {_cluster_block(schema)}
 
@@ -126,7 +131,12 @@ Return ONLY a JSON object of this exact shape (no markdown, no <thought> tags, n
       }},
       "resources": [],
       "memory_vectors": ["belief one", "belief two"],
-      "current_internal_state": "one of the vocabulary entries"
+      "current_internal_state": "one of the vocabulary entries",
+      "decision_framework": "short phrase about decision priorities",
+      "knowledge_base": "domain expertise sentence",
+      "constraints": ["red line 1", "red line 2"],
+      "influence_weight": 1.0,
+      "backstory": "2-3 sentences of grounding backstory."
     }}
   ]
 }}
@@ -280,6 +290,11 @@ def _materialize(
             resources=resources,
             memory_vectors=memories,
             current_internal_state=state,
+            decision_framework=str(raw.get("decision_framework", "")),
+            knowledge_base=str(raw.get("knowledge_base", "")),
+            constraints=[str(c) for c in raw.get("constraints", []) if str(c).strip()],
+            influence_weight=max(0.1, min(3.0, _coerce_float(raw.get("influence_weight", 1.0), 1.0))),
+            backstory=str(raw.get("backstory", "")),
         ))
     return profiles
 

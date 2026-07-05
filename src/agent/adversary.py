@@ -33,6 +33,53 @@ def compute_adversary_map(decisions: list[dict[str, Any]], agents: list[Agent]) 
     return adversary_map
 
 
+def evolve_adversary_map(
+    prev_map: dict[str, Optional[dict[str, Any]]],
+    prev_decisions: list[dict[str, Any]],
+    curr_decisions: list[dict[str, Any]],
+    agents: list[Agent],
+) -> dict[str, Optional[dict[str, Any]]]:
+    """Re-compute adversary pairings after a new round.
+
+    Agents who flipped actions get re-paired based on new positions.
+    Agents whose position held keep their existing adversary UNLESS their
+    adversary flipped to the same faction (in which case they also get re-paired).
+    """
+    prev_by_id = {d["id"]: d for d in prev_decisions}
+    curr_by_id = {d["id"]: d for d in curr_decisions}
+
+    # Identify who flipped and who stayed
+    flipped_ids: set[str] = set()
+    for d in curr_decisions:
+        aid = d["id"]
+        prev = prev_by_id.get(aid)
+        if prev and prev.get("action") != d.get("action"):
+            flipped_ids.add(aid)
+
+    # Start from fresh computation on current decisions
+    new_map = compute_adversary_map(curr_decisions, agents)
+
+    # For stable agents whose adversary didn't flip and is still cross-faction,
+    # preserve the prior pairing for narrative continuity
+    for aid, old_target in prev_map.items():
+        if aid in flipped_ids:
+            continue  # re-paired already
+        if old_target is None:
+            continue
+        old_target_id = old_target["id"]
+        if old_target_id in flipped_ids:
+            continue  # adversary flipped, need new pairing
+
+        # Check if old adversary is still cross-faction
+        curr_agent = curr_by_id.get(aid)
+        curr_target = curr_by_id.get(old_target_id)
+        if curr_agent and curr_target and curr_agent.get("action") != curr_target.get("action"):
+            new_map[aid] = curr_target  # preserve continuity
+
+    _rebalance_incoming(new_map, curr_decisions)
+    return new_map
+
+
 def _rebalance_incoming(
     adversary_map: dict[str, Optional[dict[str, Any]]],
     decisions: list[dict[str, Any]],

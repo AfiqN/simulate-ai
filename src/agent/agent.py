@@ -36,6 +36,17 @@ class Agent:
             lines.append(f"- {a.name}{tag}: {a.description}")
         return "\n".join(lines)
 
+    def _render_constraints_block(self) -> str:
+        if not self.profile.constraints:
+            return "No hard constraints — you may consider any option."
+        lines = [f"- {c}" for c in self.profile.constraints]
+        lines.append("")
+        lines.append(
+            "These are NON-NEGOTIABLE. If an action would violate any constraint above, "
+            "you MUST NOT choose it regardless of utility calculations."
+        )
+        return "\n".join(lines)
+
     def _render_resources_block(self) -> str:
         if self.schema.resource_model.kind == "none" or not self.profile.resources:
             return "This scenario does not track tangible resources for this agent."
@@ -154,6 +165,18 @@ Current Internal State: {self.profile.current_internal_state}
 - Rationality: {attrs.rationality_index:.2f} (1.0 = pure logic, 0.0 = pure emotion)
 - Aggressiveness: {attrs.aggressiveness:.2f} (1.0 = dominant/confrontational, 0.0 = passive)
 - Risk Tolerance: {attrs.risk_tolerance:.2f} (1.0 = reckless, 0.0 = extremely cautious)
+
+--- DECISION FRAMEWORK ---
+{self.profile.decision_framework or "No specific framework — rely on your archetype instincts."}
+
+--- DOMAIN KNOWLEDGE ---
+{self.profile.knowledge_base or "General domain knowledge appropriate to your archetype."}
+
+--- HARD CONSTRAINTS (RED LINES) ---
+{self._render_constraints_block()}
+
+--- BACKSTORY ---
+{self.profile.backstory or "No specific backstory provided."}
 
 --- RESOURCES ---
 {self._render_resources_block()}
@@ -338,6 +361,42 @@ Original stimulus: "{original_stimulus}"
 Re-evaluate your utility under BOTH new conditions. Weigh which event matters more to your archetype's priorities and constraints. The negative event may threaten your position; the positive event may open opportunities or remove blockers. Both are plausible and happening at the same time.
 
 If the net effect genuinely changes your calculus, update your numbers and action. If one event dominates the other for your perspective, explain why. If they roughly cancel out, hold your previous position — agents who flip without justification look weak. Commit to exactly one action from the available actions list and defend your reasoning in public_statement.
+"""
+        return await self._llm_round(
+            system=self.build_system_prompt(context_summary=context_summary, depth=depth),
+            user=user_prompt,
+            model=model,
+        )
+
+    async def reconcile(
+        self,
+        stimulus: str,
+        full_transcript: str,
+        model: Optional[str] = None,
+        depth: str = "standard",
+    ) -> dict[str, Any]:
+        """Round 4 — Reconciliation. Agents seek common ground after the crisis."""
+        context_summary = "RECONCILIATION ROUND: After crisis events and three rounds of deliberation, seek the highest-value compromise that respects your constraints."
+        user_prompt = f"""You are now in ROUND 4 (RECONCILIATION).
+
+The swarm has been through 3 rounds of deliberation on this stimulus:
+"{stimulus}"
+
+--- FULL DEBATE HISTORY ---
+{full_transcript}
+
+--- INSTRUCTIONS ---
+You've heard everyone's positions harden through debate, and watched the crisis test resolve. Now:
+
+1. Identify the 1-2 points of genuine common ground you share with your adversaries (even partial).
+2. Propose a CONCRETE compromise or conditional offer: "I would shift to X IF the following condition were met..."
+3. Name the single non-negotiable you REFUSE to yield on (from your hard constraints).
+4. In your public_statement, address the full group — not just your adversary. Speak as if drafting a joint communiqué.
+5. Your utility should reflect the VALUE OF THE COMPROMISE (not your ideal outcome). A good compromise that has buy-in is worth more than a perfect plan nobody accepts.
+
+If no compromise is possible that respects your constraints, say so explicitly and explain why — but this should be RARE. Most positions have overlapping interests if you look for them.
+
+Commit to exactly one action from the available actions list.
 """
         return await self._llm_round(
             system=self.build_system_prompt(context_summary=context_summary, depth=depth),

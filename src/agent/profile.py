@@ -25,6 +25,12 @@ class AgentProfile:
     resources: list[ResourceBalance] = field(default_factory=list)
     memory_vectors: list[str] = field(default_factory=list)
     current_internal_state: str = "Neutral"
+    # Phase 2 — Richer persona fields
+    decision_framework: str = ""        # e.g. "loss-averse, values precedent over innovation"
+    knowledge_base: str = ""            # domain-specific beliefs/expertise
+    constraints: list[str] = field(default_factory=list)  # red lines this agent cannot cross
+    influence_weight: float = 1.0       # 0.1–3.0, relative voice weight (CEO > intern)
+    backstory: str = ""                 # 2-3 sentences grounding the persona
 
     def primary_resource(self) -> Optional[ResourceBalance]:
         return self.resources[0] if self.resources else None
@@ -62,4 +68,9 @@ class AgentProfile:
             resources=resources,
             memory_vectors=list(data.get("memory_vectors", [])),
             current_internal_state=str(data.get("current_internal_state", "Neutral")),
+            decision_framework=str(data.get("decision_framework", "")),
+            knowledge_base=str(data.get("knowledge_base", "")),
+            constraints=list(data.get("constraints", [])),
+            influence_weight=float(data.get("influence_weight", 1.0)),
+            backstory=str(data.get("backstory", "")),
         )
