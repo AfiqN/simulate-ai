@@ -118,7 +118,6 @@ async def _execute_simulation(job: SimulationJob, db) -> None:
             "verdict": job.verdict,
             "resilience_metrics": result["resilience_metrics"],
             "crisis_event": result["crisis_event"],
-            "valence": result["valence"],
             "timings": result["timings"],
             "report_md": result["report_md"],
         }

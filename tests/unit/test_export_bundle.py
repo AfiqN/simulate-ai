@@ -81,8 +81,7 @@ def _make_result(out_dir: Path):
             "agent_0": {"id": "agent_1"},
             "agent_1": {"id": "agent_0"},
         },
-        "valence": 0.4,
-        "crisis_event": "Sudden budget freeze announced.",
+        "crisis_event": {"stress": "Sudden budget freeze announced.", "validation": "Major partner publicly endorses the initiative."},
         "resilience_metrics": {"verdict": "RESILIENT", "score": 0.8},
         "report_md": "# Executive Report\n\nAll clear.",
         "timings": {"r1": 5.1, "r2": 6.3, "r3": 4.8, "total": 16.2},
@@ -131,7 +130,7 @@ def test_manifest_required_keys(tmp_path):
     bundle_dir = write_bundle(result, tmp_path)
     manifest = json.loads((bundle_dir / "manifest.json").read_text(encoding="utf-8"))
     for key in ("version", "exported_at", "scenario_name", "scenario_description",
-                "verdict_label", "agent_count", "valence", "resilience_verdict", "timings"):
+                "verdict_label", "agent_count", "crisis_event", "resilience_verdict", "timings"):
         assert key in manifest, f"Missing key: {key}"
 
 
@@ -156,11 +155,12 @@ def test_manifest_agent_count(tmp_path):
     assert manifest["agent_count"] == 2
 
 
-def test_manifest_valence(tmp_path):
+def test_manifest_crisis_event(tmp_path):
     result = _make_result(tmp_path)
     bundle_dir = write_bundle(result, tmp_path)
     manifest = json.loads((bundle_dir / "manifest.json").read_text(encoding="utf-8"))
-    assert manifest["valence"] == pytest.approx(0.4)
+    assert manifest["crisis_event"]["stress"] == "Sudden budget freeze announced."
+    assert manifest["crisis_event"]["validation"] == "Major partner publicly endorses the initiative."
 
 
 def test_manifest_resilience_verdict(tmp_path):
@@ -186,7 +186,7 @@ def test_simulation_json_top_level_keys(tmp_path):
     bundle_dir = write_bundle(result, tmp_path)
     sim = json.loads((bundle_dir / "simulation.json").read_text(encoding="utf-8"))
     for key in ("scenario_name", "scenario_description", "verdict_label", "actions",
-                "state_vocabulary", "valence", "crisis_event", "resilience_metrics",
+                "state_vocabulary", "crisis_event", "resilience_metrics",
                 "agents", "rounds", "adversary_map", "timings", "report_md"):
         assert key in sim, f"Missing key: {key}"
 

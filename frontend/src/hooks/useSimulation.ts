@@ -18,7 +18,8 @@ export interface SimState {
   agents: { id: string; archetype: string; cluster_id: string }[];
   rounds: RoundSummary[];
   agentsByRound: Record<number, AgentDecision[]>;
-  crisisEvent: string | null;
+  stressEvent: string | null;
+  validationEvent: string | null;
   result: SimulationResult | null;
   error: string | null;
 }
@@ -38,7 +39,8 @@ const initialState: SimState = {
   agents: [],
   rounds: [],
   agentsByRound: {},
-  crisisEvent: null,
+  stressEvent: null,
+  validationEvent: null,
   result: null,
   error: null,
 };
@@ -70,7 +72,7 @@ function reducer(state: SimState, action: SimAction): SimState {
           return { ...state, rounds: [...state.rounds, rs] };
         }
         case "crisis":
-          return { ...state, crisisEvent: ev.event };
+          return { ...state, stressEvent: ev.stress_event ?? ev.event ?? null, validationEvent: ev.validation_event ?? null };
         case "complete":
           return { ...state, status: "complete", result: ev.result, progress: 100 };
         case "error":

@@ -53,8 +53,7 @@ export interface SimulationResult {
     utility_drift_mean: number;
     rationale?: string;
   };
-  crisis_event?: string;
-  valence?: string;
+  crisis_event?: { stress: string; validation: string | null } | string;
   timings?: { r1: number; r2: number; r3: number; total: number };
   report_md?: string;
   quantitative_metrics?: {

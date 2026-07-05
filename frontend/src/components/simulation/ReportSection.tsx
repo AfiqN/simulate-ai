@@ -44,11 +44,30 @@ export function ReportSection({ result }: Props) {
         )}
       </div>
 
-      {/* Crisis event */}
+      {/* External events */}
       {result.crisis_event && (
-        <div className="border-l-2 border-[#8B1A1A] pl-3">
-          <span className="text-[11px] text-[#8B1A1A] uppercase tracking-wider font-medium">Crisis</span>
-          <p className="text-[13px] text-[#0F0F0F] mt-0.5">{result.crisis_event}</p>
+        <div className="space-y-2">
+          {typeof result.crisis_event === "object" ? (
+            <>
+              {result.crisis_event.stress && (
+                <div className="border-l-2 border-[#8B1A1A] pl-3">
+                  <span className="text-[11px] text-[#8B1A1A] uppercase tracking-wider font-medium">Stress Event</span>
+                  <p className="text-[13px] text-[#0F0F0F] mt-0.5">{result.crisis_event.stress}</p>
+                </div>
+              )}
+              {result.crisis_event.validation && (
+                <div className="border-l-2 border-[#166534] pl-3">
+                  <span className="text-[11px] text-[#166534] uppercase tracking-wider font-medium">Validation Event</span>
+                  <p className="text-[13px] text-[#0F0F0F] mt-0.5">{result.crisis_event.validation}</p>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="border-l-2 border-[#8B1A1A] pl-3">
+              <span className="text-[11px] text-[#8B1A1A] uppercase tracking-wider font-medium">Crisis</span>
+              <p className="text-[13px] text-[#0F0F0F] mt-0.5">{result.crisis_event}</p>
+            </div>
+          )}
         </div>
       )}
 

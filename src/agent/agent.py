@@ -329,14 +329,15 @@ You MUST address their stance in your public_statement and internal_reflection. 
         model: Optional[str] = None,
         depth: str = "standard",
     ) -> dict[str, Any]:
-        context_summary = f"EXTERNAL EVENT: {crisis}"
-        user_prompt = f"""An external event has hit the scenario.
+        context_summary = f"EXTERNAL EVENTS: {crisis}"
+        user_prompt = f"""Two external events have hit the scenario simultaneously — one threatening, one favorable.
 Original stimulus: "{original_stimulus}"
-Event: "{crisis}"
 
-Re-evaluate your utility under this new condition. The event may raise OR lower your perceived_gains, perceived_costs, or both — judge honestly from your archetype's perspective. Do not assume the event is bad; it may equally be a vindication, an opening, or a neutral shift.
+{crisis}
 
-If the event genuinely changes your calculus, update your numbers and action. If it does not meaningfully affect your prior reasoning, hold your previous position — agents who flip without justification look weak. Commit to exactly one action from the available actions list and defend your reasoning in public_statement.
+Re-evaluate your utility under BOTH new conditions. Weigh which event matters more to your archetype's priorities and constraints. The negative event may threaten your position; the positive event may open opportunities or remove blockers. Both are plausible and happening at the same time.
+
+If the net effect genuinely changes your calculus, update your numbers and action. If one event dominates the other for your perspective, explain why. If they roughly cancel out, hold your previous position — agents who flip without justification look weak. Commit to exactly one action from the available actions list and defend your reasoning in public_statement.
 """
         return await self._llm_round(
             system=self.build_system_prompt(context_summary=context_summary, depth=depth),

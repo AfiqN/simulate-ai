@@ -1,5 +1,4 @@
 import asyncio
-import hashlib
 import time
 from collections import Counter
 from typing import Any, Optional
@@ -26,7 +25,7 @@ from src.cli.rendering import (
     render_schema_panel,
 )
 from src.llm.client import OllamaClient
-from src.report.compiler import ExecutiveCompiler, Valence, compute_resilience_metrics
+from src.report.compiler import ExecutiveCompiler, compute_resilience_metrics
 from src.report.metrics import compute_quantitative_metrics
 from src.schema.architect import SchemaDesignError, design_schema
 from src.schema.simulation_schema import SimulationSchema
@@ -187,10 +186,9 @@ async def _drive_live_table(statuses: list[dict], title: str, in_progress_labels
         live.update(make_parallel_status_table(statuses, title))
 
 
-def _pick_valence(stimulus: str) -> Valence:
-    """Deterministic valence selection using stable hash (not Python's randomized hash())."""
-    digest = hashlib.md5(stimulus.encode()).hexdigest()
-    return "validation" if int(digest[0], 16) % 2 == 0 else "stress"
+def _pick_valence(stimulus: str) -> str:
+    """Legacy stub — no longer used. Dual events are always generated."""
+    return "stress"
 
 
 def _render_final_summary(
@@ -465,41 +463,66 @@ async def run_simulation_pipeline(
             rag_metadata.record("pre_crisis", queries, processed)
 
     compiler = ExecutiveCompiler(client, schema)
-    valence: Valence = _pick_valence(stimulus)
 
     if crisis_override:
-        crisis_event = crisis_override
+        # Backward compat: user-provided override is used as-is (single event)
+        stress_event = crisis_override
+        validation_event = None
     else:
         if not headless:
             await asyncio.sleep(2)
             with Live(
-                Spinner("aesthetic", text=f"[bold red]Catalyst Agent synthesizing {valence} event...[/bold red]"),
+                Spinner("aesthetic", text="[bold red]Catalyst Agent synthesizing dual events...[/bold red]"),
                 refresh_per_second=10,
             ) as live:
-                crisis_event = await compiler.generate_crisis_event(
-                    stimulus, full_round2_transcript, valence=valence,
-                    rag_crisis_facts=crisis_rag_facts,
+                stress_event, validation_event = await asyncio.gather(
+                    compiler.generate_crisis_event(
+                        stimulus, full_round2_transcript, valence="stress",
+                        rag_crisis_facts=crisis_rag_facts,
+                    ),
+                    compiler.generate_crisis_event(
+                        stimulus, full_round2_transcript, valence="validation",
+                        rag_crisis_facts=crisis_rag_facts,
+                    ),
                 )
-                live.update(f"[bold red]⚡ {valence.title()} Event Injected[/bold red]")
+                live.update("[bold red]⚡ Dual Events Injected[/bold red]")
         else:
-            crisis_event = await compiler.generate_crisis_event(
-                stimulus, full_round2_transcript, valence=valence,
-                rag_crisis_facts=crisis_rag_facts,
+            stress_event, validation_event = await asyncio.gather(
+                compiler.generate_crisis_event(
+                    stimulus, full_round2_transcript, valence="stress",
+                    rag_crisis_facts=crisis_rag_facts,
+                ),
+                compiler.generate_crisis_event(
+                    stimulus, full_round2_transcript, valence="validation",
+                    rag_crisis_facts=crisis_rag_facts,
+                ),
             )
 
+    # Build combined crisis string for agents
+    if validation_event:
+        crisis_event = f"NEGATIVE: {stress_event}\nPOSITIVE: {validation_event}"
+    else:
+        crisis_event = stress_event
+
     if not headless:
-        panel_color = "green" if valence == "validation" else "red"
-        panel_label = "Validation Shock" if valence == "validation" else "Crisis"
         console.print()
         console.print(
             Panel(
-                f"[bold {panel_color}]{crisis_event}[/bold {panel_color}]",
-                title=f"[bold]⚡ External {panel_label} Event — Injected by System[/bold]",
-                border_style=panel_color,
+                f"[bold red]{stress_event}[/bold red]",
+                title="[bold]⚡ External Stress Event[/bold]",
+                border_style="red",
             )
         )
+        if validation_event:
+            console.print(
+                Panel(
+                    f"[bold green]{validation_event}[/bold green]",
+                    title="[bold]⚡ External Validation Event[/bold]",
+                    border_style="green",
+                )
+            )
     else:
-        _emit({"type": "crisis", "event": crisis_event})
+        _emit({"type": "crisis", "stress_event": stress_event, "validation_event": validation_event})
 
     if headless:
         _emit({"type": "stage", "stage": "round3", "progress": 66})
@@ -584,8 +607,7 @@ async def run_simulation_pipeline(
         "decisions_r2": decisions_r2,
         "decisions_r3": decisions_r3,
         "adversary_map": adversary_map,
-        "valence": valence,
-        "crisis_event": crisis_event,
+        "crisis_event": {"stress": stress_event, "validation": validation_event},
         "resilience_metrics": resilience_metrics,
         "quantitative_metrics": compute_quantitative_metrics(
             decisions_r1, decisions_r2, decisions_r3, schema

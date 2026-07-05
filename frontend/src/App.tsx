@@ -115,11 +115,19 @@ export default function App() {
               </div>
             )}
 
-            {/* Crisis event (during running) */}
-            {state.crisisEvent && state.status === "running" && (
-              <div className="border border-[#8B1A1A]/20 rounded-[6px] bg-[#FEF2F2] p-4">
-                <span className="text-[11px] text-[#8B1A1A] uppercase tracking-wider font-medium">Crisis Event</span>
-                <p className="text-[14px] text-[#0F0F0F] mt-1">{state.crisisEvent}</p>
+            {/* External events (during running) */}
+            {state.stressEvent && state.status === "running" && (
+              <div className="space-y-2">
+                <div className="border border-[#8B1A1A]/20 rounded-[6px] bg-[#FEF2F2] p-4">
+                  <span className="text-[11px] text-[#8B1A1A] uppercase tracking-wider font-medium">Stress Event</span>
+                  <p className="text-[14px] text-[#0F0F0F] mt-1">{state.stressEvent}</p>
+                </div>
+                {state.validationEvent && (
+                  <div className="border border-[#166534]/20 rounded-[6px] bg-[#F0FDF4] p-4">
+                    <span className="text-[11px] text-[#166534] uppercase tracking-wider font-medium">Validation Event</span>
+                    <p className="text-[14px] text-[#0F0F0F] mt-1">{state.validationEvent}</p>
+                  </div>
+                )}
               </div>
             )}
 

@@ -193,7 +193,24 @@ Base your crisis event on a real or plausible variation of these precedents."""
 
         crisis_section = ""
         if crisis_event:
-            crisis_section = f"""
+            if isinstance(crisis_event, dict):
+                stress = crisis_event.get("stress", "")
+                validation = crisis_event.get("validation", "")
+                parts = []
+                if stress:
+                    parts.append(f'STRESS EVENT: "{stress}"')
+                if validation:
+                    parts.append(f'VALIDATION EVENT: "{validation}"')
+                events_text = "\n".join(parts)
+                crisis_section = f"""
+## EXTERNAL EVENTS INJECTED (Round 3 — Dual Signals)
+The following external events were synthesized and injected into the simulation simultaneously:
+{events_text}
+
+Agents were required to weigh BOTH signals and determine which dominates their perspective.
+"""
+            else:
+                crisis_section = f"""
 ## CRISIS EVENT INJECTED (Round 3 Stress-Test)
 The following external crisis was synthesized and injected into the simulation:
 > "{crisis_event}"

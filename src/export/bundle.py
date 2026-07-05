@@ -31,7 +31,7 @@ def write_bundle(result: dict[str, Any], out_dir: Path) -> Path:
         "scenario_description": schema.scenario_description,
         "verdict_label": schema.verdict_label,
         "agent_count": len(result["profiles"]),
-        "valence": result["valence"],
+        "crisis_event": result["crisis_event"],
         "resilience_verdict": result["resilience_metrics"]["verdict"],
         "timings": result["timings"],
     }
@@ -46,7 +46,6 @@ def write_bundle(result: dict[str, Any], out_dir: Path) -> Path:
         "verdict_label": schema.verdict_label,
         "actions": [a.name for a in schema.actions],
         "state_vocabulary": schema.state_vocabulary,
-        "valence": result["valence"],
         "crisis_event": result["crisis_event"],
         "resilience_metrics": result["resilience_metrics"],
         "quantitative_metrics": result.get("quantitative_metrics"),

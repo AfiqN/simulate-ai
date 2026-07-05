@@ -80,7 +80,6 @@ def serialize_result(result: dict) -> dict:
         "scenario_name": schema.scenario_name,
         "verdict_label": schema.verdict_label,
         "actions": [a.name for a in schema.actions],
-        "valence": result["valence"],
         "crisis_event": result["crisis_event"],
         "resilience_metrics": result.get("resilience_metrics"),
         "agents": [
