@@ -160,4 +160,4 @@ tests/runs/
 
 # SQLite databases
 *.db
-data/
+data/frontend/node_modules/

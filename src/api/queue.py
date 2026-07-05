@@ -72,6 +72,11 @@ async def _execute_simulation(job: SimulationJob, db) -> None:
     start = time.time()
 
     try:
+        from src.api.websocket import event_bus
+
+        def _event_cb(event: dict):
+            event_bus.emit(job.run_id, event)
+
         result = await run_simulation_pipeline(
             client,
             job.stimulus,
@@ -81,6 +86,7 @@ async def _execute_simulation(job: SimulationJob, db) -> None:
             headless=True,
             rag_enabled=job.rag_enabled,
             progress_callback=lambda msg: setattr(job, 'progress', msg),
+            event_callback=_event_cb,
             depth=job.depth,
         )
 
@@ -125,10 +131,13 @@ async def _execute_simulation(job: SimulationJob, db) -> None:
             run_dir=str(out_dir),
         )
 
+        event_bus.emit(job.run_id, {"type": "complete", "result": job.result})
+
     except Exception as e:
         job.elapsed_s = time.time() - start
         job.status = "failed"
         job.error = f"{type(e).__name__}: {e}"
+        event_bus.emit(job.run_id, {"type": "error", "message": job.error})
         await update_run(
             db, job.run_id,
             status="failed",

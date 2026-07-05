@@ -5,10 +5,11 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, WebSocket, WebSocketDisconnect
 
 from src.api.models import RunListResponse, RunSummary, SimulationRequest, SimulationStatus
 from src.api.queue import SimulationJob, enqueue_simulation, get_job
+from src.api.websocket import event_bus
 from src.persistence.db import get_run, insert_run, list_runs
 
 
@@ -136,3 +137,20 @@ async def get_run_detail(run_id: str, request: Request):
         raise HTTPException(status_code=404, detail="Metrics file not found on disk.")
 
     return json.loads(metrics_path.read_text(encoding="utf-8"))
+
+
+@router.websocket("/ws/simulate/{run_id}")
+async def websocket_simulate(websocket: WebSocket, run_id: str):
+    """Stream simulation events to the client in real-time."""
+    await websocket.accept()
+    queue = event_bus.subscribe(run_id)
+    try:
+        while True:
+            event = await queue.get()
+            await websocket.send_json(event)
+            if event.get("type") in ("complete", "error"):
+                break
+    except WebSocketDisconnect:
+        pass
+    finally:
+        event_bus.unsubscribe(run_id, queue)

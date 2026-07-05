@@ -1,6 +1,7 @@
 import asyncio
 import hashlib
 import time
+from collections import Counter
 from typing import Any, Optional
 
 from rich.live import Live
@@ -265,6 +266,7 @@ async def run_simulation_pipeline(
     headless: bool = False,
     rag_enabled: Optional[bool] = None,
     progress_callback: Optional[Any] = None,
+    event_callback: Optional[Any] = None,
     depth: str = "standard",
 ) -> dict[str, Any]:
     concurrency = max(1, min(concurrency, MAX_CONCURRENCY))
@@ -272,6 +274,10 @@ async def run_simulation_pipeline(
     def _progress(msg: str):
         if progress_callback:
             progress_callback(msg)
+
+    def _emit(event: dict):
+        if event_callback:
+            event_callback(event)
 
     # --- RAG Setup ---
     from src.rag.client import WebSearchClient
@@ -297,6 +303,7 @@ async def run_simulation_pipeline(
             live.update("[bold green]✔ Schema designed.[/bold green]")
     else:
         _progress("Designing simulation schema...")
+        _emit({"type": "stage", "stage": "schema", "progress": 0})
         schema = await design_schema(client, stimulus)
 
     # --- RAG: Post-Architect, Per-Role Perspectives ---
@@ -315,6 +322,9 @@ async def run_simulation_pipeline(
             swarm_rag_perspectives = all_perspectives
             rag_metadata.record("post_architect_perspectives", list(perspective_queries.values()), processed)
 
+    if headless:
+        _emit({"type": "schema_ready", "data": {"scenario_name": schema.scenario_name, "evaluation_dimensions": schema.evaluation_dimensions, "actions": [{"name": a.name, "is_terminal": a.is_terminal} for a in schema.actions]}})
+
     if not headless:
         render_schema_panel(schema)
 
@@ -328,9 +338,12 @@ async def run_simulation_pipeline(
             live.update("[bold green]✔ Personas generated.[/bold green]")
     else:
         _progress(f"Generating {agent_count} agent personas...")
+        _emit({"type": "stage", "stage": "swarm", "progress": 16})
         profiles = await generate_llm_swarm(client, schema, stimulus, agent_count, rag_perspectives=swarm_rag_perspectives)
 
     agents = [Agent(profile, client, schema) for profile in profiles]
+    if headless:
+        _emit({"type": "swarm_ready", "agents": [{"id": p.agent_id, "archetype": p.archetype, "cluster_id": p.linguistic_cluster_id} for p in profiles]})
     if not headless:
         render_agent_table(profiles, schema)
 
@@ -338,6 +351,8 @@ async def run_simulation_pipeline(
 
     # --- Round 1 ---
     _progress("Round 1: agents perceiving stimulus...")
+    if headless:
+        _emit({"type": "stage", "stage": "round1", "progress": 33})
     if not headless:
         console.print()
         console.print(Rule("[bold cyan]ROUND 1 — INITIAL PERCEPTION[/bold cyan]"))
@@ -357,6 +372,8 @@ async def run_simulation_pipeline(
     for i, a in enumerate(agents):
         d = _extract_decision(a, statuses_r1[i], schema)
         decisions_r1.append(d)
+        if headless:
+            _emit({"type": "agent_done", "round": 1, "data": d})
         if not headless:
             render_round_panel("Round 1 — Initial Perception", d, schema, statuses_r1[i]["duration"])
         transcript_parts_r1.append(
@@ -365,6 +382,9 @@ async def run_simulation_pipeline(
             f"- Action Committed: {d['action']}"
         )
     full_round1_transcript = "\n\n".join(transcript_parts_r1)
+
+    if headless:
+        _emit({"type": "round_summary", "round": 1, "data": {"decisions": decisions_r1, "vote_tally": dict(Counter(d["action"] for d in decisions_r1 if "error" not in d))}})
 
     adversary_map = compute_adversary_map(decisions_r1, agents)
     if not headless:
@@ -390,6 +410,8 @@ async def run_simulation_pipeline(
 
     if depth != "quick":
         _progress("Round 2: directed debate...")
+        if headless:
+            _emit({"type": "stage", "stage": "round2", "progress": 50})
         if not headless:
             console.print()
             console.print(Rule("[bold magenta]ROUND 2 — DIRECTED DEBATE[/bold magenta]"))
@@ -411,8 +433,13 @@ async def run_simulation_pipeline(
         for i, a in enumerate(agents):
             d = _extract_decision(a, statuses_r2[i], schema)
             decisions_r2.append(d)
+            if headless:
+                _emit({"type": "agent_done", "round": 2, "data": d})
             if not headless:
                 render_round_panel("Round 2 — Directed Debate", d, schema, statuses_r2[i]["duration"])
+
+        if headless:
+            _emit({"type": "round_summary", "round": 2, "data": {"decisions": decisions_r2, "vote_tally": dict(Counter(d["action"] for d in decisions_r2 if "error" not in d))}})
 
         transcript_parts_r2 = [
             f"Agent: {d['archetype']} (ID: {d['id']})\n"
@@ -471,7 +498,11 @@ async def run_simulation_pipeline(
                 border_style=panel_color,
             )
         )
+    else:
+        _emit({"type": "crisis", "event": crisis_event})
 
+    if headless:
+        _emit({"type": "stage", "stage": "round3", "progress": 66})
     statuses_r3 = _make_statuses(agents)
     t0 = time.time()
     tasks_r3 = [
@@ -487,11 +518,18 @@ async def run_simulation_pipeline(
     for i, a in enumerate(agents):
         d = _extract_decision(a, statuses_r3[i], schema)
         decisions_r3.append(d)
+        if headless:
+            _emit({"type": "agent_done", "round": 3, "data": d})
         if not headless:
             render_round_panel("Round 3 — Crisis Reaction", d, schema, statuses_r3[i]["duration"])
 
+    if headless:
+        _emit({"type": "round_summary", "round": 3, "data": {"decisions": decisions_r3, "vote_tally": dict(Counter(d["action"] for d in decisions_r3 if "error" not in d))}})
+
     # --- Report compilation ---
     _progress("Compiling executive diagnostic report...")
+    if headless:
+        _emit({"type": "stage", "stage": "report", "progress": 83})
     resilience_metrics = compute_resilience_metrics(decisions_r2, decisions_r3, schema)
     if not headless:
         console.print()
