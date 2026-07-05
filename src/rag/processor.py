@@ -1,7 +1,18 @@
+"""RAG processor: extract structured facts from raw search results.
+
+Two-tier extraction:
+1. Rule-based fast extraction (fallback if no LLM available)
+2. LLM-powered fact extraction (preferred — produces clean, cited facts)
+"""
+
+import logging
 import re
+import json
+from typing import Optional
 
 from src.rag.models import SearchResult, ProcessedFacts, Citation
 
+logger = logging.getLogger(__name__)
 
 # Junk patterns commonly left over from scraped content
 _JUNK_PATTERNS = re.compile(
@@ -32,7 +43,6 @@ _JUNK_PATTERNS = re.compile(
     r"tailored care|mental health tools)"
 )
 
-# Patterns that indicate a sentence is navigation/UI rather than content
 _NAV_INDICATORS = re.compile(
     r"(?i)(home\s*[>»|/]|menu|sidebar|footer|"
     r"^\s*(home|about|contact|blog|news|login|register)\s*$|"
@@ -48,37 +58,92 @@ _SENTENCE_SPLIT = re.compile(r'(?<=[.!?])\s+(?=[A-Z])')
 
 
 def _jaccard_similarity(text_a: str, text_b: str) -> float:
-    """Word-level Jaccard similarity on lowercased word sets."""
     words_a = set(text_a.lower().split())
     words_b = set(text_b.lower().split())
     if not words_a or not words_b:
         return 0.0
-    intersection = words_a & words_b
-    union = words_a | words_b
-    return len(intersection) / len(union)
+    return len(words_a & words_b) / len(words_a | words_b)
 
 
 def _clean_fact_text(text: str) -> str:
-    """Remove residual HTML artifacts and navigation junk from fact text."""
-    # Strip numeric/named HTML entities that slipped through
     text = re.sub(r'&#x?[0-9a-fA-F]+;', '', text)
     text = re.sub(r'&[a-zA-Z]+;', '', text)
-    # Remove junk phrases
     text = _JUNK_PATTERNS.sub('', text)
-    # Remove dangling punctuation and collapse whitespace
     text = re.sub(r'\s{2,}', ' ', text).strip()
     text = re.sub(r'^[\s\-|>»]+', '', text)
     return text
 
 
-def _extract_best_sentence(content: str, max_chars: int) -> str:
-    """Pick the most factual sentence(s) from content.
+def _score_sentence(sentence: str) -> float:
+    """Score a sentence for factual/perspective value."""
+    score = 0.0
 
-    Aggressively filters navigation text, author bylines, and generic filler.
-    Prefers sentences with data points, legal/policy terms, and study findings.
-    """
+    # Hard reject
+    if _NAV_INDICATORS.search(sentence):
+        return -10.0
+    if _JUNK_PATTERNS.search(sentence):
+        return -10.0
+    if sentence and sentence[0].islower():
+        score -= 2.0
+    if re.search(r'https?://\S{30,}', sentence) and len(sentence) < 120:
+        return -10.0
+    if re.search(r'(?i)^table of contents\b', sentence):
+        return -10.0
+    if re.search(r'(?i)(tentang|hak cipta|hubungi kami|kreator|beriklan|persyaratan|kebijakan)', sentence):
+        return -10.0
+    if re.search(r'(\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b|PMCID|PMC Copyright)', sentence):
+        return -10.0
+
+    has_positive = False
+
+    # Opinions, sentiments (strongest signal for simulation)
+    if re.search(r'(?i)\b(complain|frustrated|skeptical|enthusiastic|reluctant|resistant|refuse|hesitant|worried|disappointed|excited|hopeful|distrust|oppose|support|embrace|reject|struggle)\b', sentence):
+        score += 4.0
+        has_positive = True
+    # Attributed perspectives
+    if re.search(r'(?i)\b(say|believe|feel|think|argue|claim|insist|worry|fear|complain|prefer)\b.{0,20}\b(that|about|is|are|they|we|it)\b', sentence):
+        score += 3.5
+        has_positive = True
+    # Behavioral patterns
+    if re.search(r'(?i)\b(tend to|usually|rarely|often avoid|prefer to|accustomed to|reluctant to|unwilling to|eager to|known for)\b', sentence):
+        score += 3.5
+        has_positive = True
+    # Data points
+    if re.search(r'\b\d+\s*(%|percent|billion|million|trillion)\b', sentence, re.I):
+        score += 2.5
+        has_positive = True
+    # Comparative/causal claims
+    if re.search(r'(?i)\b(increased|decreased|reduced|grew|declined|rose|fell|compared to|led to|caused|resulted in)\b', sentence):
+        score += 2.0
+        has_positive = True
+    # Research findings
+    if re.search(r'(?i)\b(found that|shows? that|reveals? that|according to|survey|study)\b', sentence):
+        score += 1.5
+        has_positive = True
+    # Named organizations
+    if re.search(r'\b(CDC|WHO|OJK|Bank Indonesia|McKinsey|according to)\b', sentence):
+        score += 1.0
+        has_positive = True
+    # Years
+    if re.search(r'\b(in|since|from|by|until)\s+(19|20)\d{2}\b', sentence, re.I):
+        score += 0.5
+        has_positive = True
+
+    if not has_positive:
+        score -= 2.0
+
+    # Length preferences
+    if len(sentence) < 40:
+        score -= 1.5
+    if len(sentence) > 80:
+        score += 0.5
+
+    return score
+
+
+def _extract_best_sentences(content: str, max_chars: int = 300) -> str:
+    """Extract most factual sentences from content using rule-based scoring."""
     sentences = _SENTENCE_SPLIT.split(content)
-    # Also split on period + space as fallback
     if len(sentences) <= 1:
         sentences = re.split(r'\.\s', content)
     sentences = [s.strip() for s in sentences if len(s.strip()) >= 30]
@@ -87,122 +152,8 @@ def _extract_best_sentence(content: str, max_chars: int) -> str:
         cleaned = _clean_fact_text(content[:max_chars])
         return cleaned if len(cleaned) >= 30 else ""
 
-    def _score_sentence(sentence: str) -> float:
-        score = 0.0
-        # Hard reject: navigation/UI text
-        if _NAV_INDICATORS.search(sentence):
-            return -10.0
-        # Hard reject: junk boilerplate
-        if _JUNK_PATTERNS.search(sentence):
-            return -10.0
-        # Hard reject: starts with a truncated word fragment
-        if sentence and sentence[0].islower():
-            score -= 2.0
-        # Hard reject: short sentence dominated by a URL
-        if re.search(r'https?://\S{30,}', sentence):
-            if len(sentence) < 120:
-                return -10.0
-        # Hard reject: table of contents header
-        if re.search(r'(?i)^table of contents\b', sentence):
-            return -10.0
-        # Hard reject: non-English UI noise
-        if re.search(r'(?i)(tentang|hak cipta|hubungi kami|kreator|beriklan|persyaratan|kebijakan)', sentence):
-            return -10.0
-        # Hard reject: academic citation metadata (emails, PMC IDs, received/accepted dates)
-        if re.search(r'(\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b|PMCID|PMC Copyright|Received \d{4}|Accepted \d{4})', sentence):
-            return -10.0
-        # Penalize disclaimer/legal boilerplate
-        if re.search(r'(?i)(does not imply|endorsement|not responsible for|disclaimer|we make no|no guarantee)', sentence):
-            score -= 4.0
-
-        # === POSITIVE SIGNALS — prioritize PERSPECTIVES and SENTIMENTS ===
-        has_positive = False
-
-        # HIGH PRIORITY: Opinions, complaints, sentiments (strongest signal)
-        if re.search(r'(?i)\b(complain|frustrated|skeptical|enthusiastic|reluctant|resistant|refuse|hesitant|worried|angry|disappointed|excited|hopeful|fearful|distrust|resent|oppose|support|embrace|reject|struggle|suffer)\b', sentence):
-            score += 4.0
-            has_positive = True
-        # HIGH PRIORITY: Attributed perspectives ("merchants say", "locals believe")
-        if re.search(r'(?i)\b(say|believe|feel|think|argue|claim|insist|worry|fear|complain|prefer|tend to|usually|rarely|often|seldom)\b.{0,20}\b(that|about|is|are|they|we|it)\b', sentence):
-            score += 3.5
-            has_positive = True
-        # HIGH PRIORITY: Behavioral patterns and habits
-        if re.search(r'(?i)\b(tend to|usually|rarely|often avoid|prefer to|accustomed to|habit of|reluctant to|unwilling to|eager to|known for|notorious for|famous for|stereotype)\b', sentence):
-            score += 3.5
-            has_positive = True
-        # HIGH PRIORITY: Social dynamics and cultural attitudes
-        if re.search(r'(?i)\b(community|neighbors?|locals?|residents?|villagers?|traders?|merchants?|vendors?|drivers?|workers?|employees?|students?|youth|elderly|generation)\b.{0,30}\b(feel|say|believe|complain|prefer|struggle|tend|resist|embrace|reject)\b', sentence):
-            score += 4.0
-            has_positive = True
-        # MEDIUM: Quotes or direct speech patterns
-        if re.search(r'["“”].{10,}["“”]', sentence):
-            score += 3.0
-            has_positive = True
-        # MEDIUM: Causal/impact from human perspective
-        if re.search(r'(?i)\b(led to|caused|resulted in|forced|pushed|drove|made them|left them|struggle with)\b', sentence):
-            score += 2.0
-            has_positive = True
-        # MEDIUM: Comparative/causal claims (still useful for grounding)
-        if re.search(r'(?i)\b(increased|decreased|reduced|grew|declined|rose|fell|compared to)\b', sentence):
-            score += 1.5
-            has_positive = True
-        # LOWER: Research findings (useful but not primary)
-        if re.search(r'(?i)\b(found that|shows? that|reveals? that|reports? that|survey|poll|interview)\b', sentence):
-            score += 1.5
-            has_positive = True
-        # LOWER: Data points (still okay, not primary goal)
-        if re.search(r'\b\d+\s*(%|percent|billion|million|trillion)\b', sentence, re.I):
-            score += 1.0
-            has_positive = True
-        # LOWER: Named organizations (context, not primary)
-        if re.search(r'\b(CDC|WHO|FDA|OJK|Bank Indonesia|Federal Reserve|KFF|Pew Research|according to)\b', sentence):
-            score += 1.0
-            has_positive = True
-        # LOWER: Years with context
-        if re.search(r'\b(in|since|from|by|until)\s+(19|20)\d{2}\b', sentence, re.I):
-            score += 0.5
-            has_positive = True
-
-        # If no positive signal found, this is likely filler
-        if not has_positive:
-            score -= 2.0
-
-        # DEMOTE: Pure regulatory/legal language without human perspective
-        if re.search(r'(?i)\b(regulation|compliance|mandate|pursuant|statutory|provision|subsection|hereby)\b', sentence):
-            if not re.search(r'(?i)\b(complain|frustrat|struggle|resist|worry|fear|oppose)\b', sentence):
-                score -= 1.5
-
-        # Penalize author bylines (unless they contain perspective)
-        if re.search(r'(?i)(professor|university|department|author|written by|published by)', sentence):
-            if not has_positive:
-                score -= 2.0
-        # Prefer sentences with proper nouns (not sentence-start)
-        words = sentence.split()
-        for word in words[1:5]:
-            if word[0:1].isupper() and word.isalpha() and len(word) > 2:
-                score += 0.3
-                break
-        # Penalize very short
-        if len(sentence) < 40:
-            score -= 1.5
-        # Penalize title-like strings (few words)
-        if sentence.count(' ') < 5:
-            score -= 1.5
-        # Penalize overly generic/truistic statements
-        if re.search(r'(?i)(being |it is |this is )?(healthy|important|crucial|essential|critical|necessary|vital)\b.{0,40}(important|well|good|better|necessary|longevity|living)', sentence):
-            score -= 3.0
-        # Penalize table-of-contents style lists (many capitalized words, no verbs)
-        cap_ratio = sum(1 for w in words if w[0:1].isupper()) / max(len(words), 1)
-        if cap_ratio > 0.6 and len(words) > 5 and not re.search(r'\b(is|are|was|were|has|have|requires?|found|shows?|indicates?)\b', sentence, re.I):
-            score -= 3.0
-        # Boost longer substantive sentences
-        if len(sentence) > 80:
-            score += 0.5
-        return score
-
     scored = sorted(sentences, key=_score_sentence, reverse=True)
 
-    # Take best sentence(s) up to max_chars, skipping junk
     result = ""
     for sentence in scored:
         if _score_sentence(sentence) <= -5.0:
@@ -224,53 +175,184 @@ def _extract_best_sentence(content: str, max_chars: int) -> str:
 def process_search_results(
     results: list[SearchResult],
     max_facts: int = 4,
-    max_chars_per_fact: int = 200,
-    min_score: float = 0.35,
+    max_chars_per_fact: int = 250,
+    min_score: float = 0.30,
 ) -> ProcessedFacts:
-    """Filter, deduplicate, and compress search results into concise facts.
+    """Rule-based extraction: filter, deduplicate, extract key sentences.
 
-    Args:
-        results: Raw scored search results from the web client.
-        max_facts: Maximum number of facts to return.
-        max_chars_per_fact: Maximum characters per extracted fact.
-        min_score: Minimum relevance score threshold (default lowered to 0.35
-            to avoid discarding relevant results from long natural-language queries).
+    Use this as fallback when LLM extraction is not available.
     """
-    # 1. Score filter — adaptive: if nothing passes, take top results anyway
+    # 1. Score filter (adaptive)
     filtered = [r for r in results if r.score >= min_score]
     if not filtered and results:
-        # Adaptive fallback: take top 2 results regardless of score
         filtered = sorted(results, key=lambda r: r.score, reverse=True)[:2]
 
-    # 2. Dedup via Jaccard similarity
+    # 2. Dedup via Jaccard
     kept: list[SearchResult] = []
     for result in filtered:
-        is_duplicate = False
+        is_dup = False
         for existing in kept:
-            if _jaccard_similarity(result.content, existing.content) > 0.8:
-                # Drop the lower-scored one
+            if _jaccard_similarity(result.content, existing.content) > 0.7:
                 if result.score <= existing.score:
-                    is_duplicate = True
+                    is_dup = True
                     break
                 else:
                     kept.remove(existing)
                     break
-        if not is_duplicate:
+        if not is_dup:
             kept.append(result)
 
-    # 3. Sort by score descending, take top max_facts
+    # 3. Top N
     kept.sort(key=lambda r: r.score, reverse=True)
     kept = kept[:max_facts]
 
-    # 4. Compress each result's content into factual sentences
+    # 4. Extract sentences
     facts: list[str] = []
     for result in kept:
-        compressed = _extract_best_sentence(result.content, max_chars_per_fact)
-        # Enforce minimum fact length to avoid junk like "11.2" or single words
+        compressed = _extract_best_sentences(result.content, max_chars_per_fact)
         if len(compressed) >= 30:
             facts.append(compressed)
 
-    # 5. Build citations (only for results that produced valid facts)
+    # 5. Citations
     citations = [Citation(url=r.url, title=r.title) for r in kept[:len(facts)]]
-
     return ProcessedFacts(facts=facts, citations=citations, raw_results=kept)
+
+
+async def extract_facts_with_llm(
+    llm_client,
+    results: list[SearchResult],
+    query: str,
+    context: str = "",
+    max_facts: int = 5,
+    model: Optional[str] = None,
+) -> ProcessedFacts:
+    """LLM-powered fact extraction — the preferred path.
+
+    Takes raw search results and uses an LLM to:
+    1. Filter out irrelevant/noisy content
+    2. Extract structured, cited facts
+    3. Identify perspectives, data points, and stakeholder sentiments
+    4. Return clean, simulation-ready insights
+
+    Falls back to rule-based extraction on LLM failure.
+    """
+    if not results:
+        return ProcessedFacts(facts=[], citations=[], raw_results=[])
+
+    # Pre-filter: only pass results with meaningful content
+    valid_results = [r for r in results if r.content and len(r.content) > 50]
+    if not valid_results:
+        return process_search_results(results, max_facts=max_facts)
+
+    # Resolve model — use client's default or config fallback
+    if not model:
+        model = getattr(llm_client, "model", None)
+    if not model:
+        try:
+            from config import DEFAULT_MODEL
+            model = DEFAULT_MODEL
+        except ImportError:
+            pass
+
+    # Build source blocks for LLM
+    source_blocks = []
+    for i, r in enumerate(valid_results[:6], 1):
+        # Truncate content to avoid token explosion
+        content_preview = r.content[:800]
+        source_blocks.append(
+            f"[Source {i}] Title: {r.title}\n"
+            f"URL: {r.url}\n"
+            f"Content: {content_preview}"
+        )
+    sources_text = "\n\n".join(source_blocks)
+
+    system_prompt = (
+        "You are a research analyst extracting actionable intelligence for a stakeholder simulation.\n\n"
+        "Your job: extract SPECIFIC, CITED facts from the sources below. Focus on:\n"
+        "1. QUANTITATIVE DATA — market sizes, growth rates, adoption percentages, user counts\n"
+        "2. STAKEHOLDER SENTIMENTS — how specific groups feel (frustrated, enthusiastic, skeptical)\n"
+        "3. BEHAVIORAL PATTERNS — what people actually do, habits, preferences\n"
+        "4. MARKET DYNAMICS — competitive landscape, pricing, regulatory constraints\n"
+        "5. REAL EVENTS — launches, failures, partnerships, policy changes with dates\n\n"
+        "Rules:\n"
+        "- Each fact must cite its source number [1], [2], etc.\n"
+        "- Each fact must be ONE specific claim, not a vague summary\n"
+        "- Prefer concrete numbers over qualitative statements\n"
+        "- Prefer recent data (2023-2026) over old data\n"
+        "- Skip generic/obvious statements everyone already knows\n"
+        "- Skip promotional content, ads, CTAs\n"
+        f"- Return exactly {max_facts} facts maximum\n\n"
+        "Respond with ONLY valid JSON:\n"
+        '{"facts": [{"text": "...", "source_idx": 1, "type": "data|sentiment|behavior|market|event"}]}'
+    )
+
+    user_content = f"Search query: {query}\n"
+    if context:
+        user_content += f"Simulation context: {context}\n"
+    user_content += f"\nSources:\n\n{sources_text}\n\nExtract the most valuable facts. JSON only."
+
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_content},
+    ]
+
+    try:
+        raw = await llm_client.chat(messages, model=model)
+        raw = raw.strip()
+
+        # Extract JSON
+        json_match = re.search(r'\{[^{}]*"facts"\s*:\s*\[.*?\]\s*\}', raw, re.DOTALL)
+        if json_match:
+            raw = json_match.group(0)
+
+        data = json.loads(raw)
+        extracted = data.get("facts", [])
+
+        if not extracted:
+            logger.warning("LLM extraction returned empty facts, falling back to rule-based")
+            return process_search_results(results, max_facts=max_facts)
+
+        # Build ProcessedFacts from LLM output
+        facts: list[str] = []
+        citations: list[Citation] = []
+        seen_sources: set[int] = set()
+
+        for item in extracted[:max_facts]:
+            text = item.get("text", "").strip()
+            src_idx = item.get("source_idx", 0)
+            fact_type = item.get("type", "")
+
+            if not text or len(text) < 20:
+                continue
+
+            # Add type prefix for context
+            prefix = ""
+            if fact_type == "data":
+                prefix = "[DATA] "
+            elif fact_type == "sentiment":
+                prefix = "[SENTIMENT] "
+            elif fact_type == "behavior":
+                prefix = "[BEHAVIOR] "
+            elif fact_type == "market":
+                prefix = "[MARKET] "
+            elif fact_type == "event":
+                prefix = "[EVENT] "
+
+            facts.append(f"{prefix}{text}")
+
+            # Track citation
+            if 1 <= src_idx <= len(valid_results):
+                r = valid_results[src_idx - 1]
+                if src_idx not in seen_sources:
+                    citations.append(Citation(url=r.url, title=r.title))
+                    seen_sources.add(src_idx)
+
+        if not facts:
+            return process_search_results(results, max_facts=max_facts)
+
+        logger.info(f"LLM extracted {len(facts)} facts from {len(valid_results)} sources")
+        return ProcessedFacts(facts=facts, citations=citations, raw_results=valid_results)
+
+    except Exception as e:
+        logger.warning(f"LLM fact extraction failed: {e}, falling back to rule-based")
+        return process_search_results(results, max_facts=max_facts)

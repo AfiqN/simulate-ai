@@ -11,7 +11,7 @@ from rich.spinner import Spinner
 from rich.table import Table
 
 from config import DEFAULT_MODEL, LLM_PROVIDER, MAX_CONCURRENCY, OLLAMA_HOST
-from src.agent.adversary import compute_adversary_map
+from src.agent.adversary import compute_adversary_map, evolve_adversary_map
 from src.agent.agent import Agent
 from src.agent.swarm import SwarmGenerationError, generate_llm_swarm
 from src.cli import console
@@ -27,6 +27,7 @@ from src.cli.rendering import (
 from src.llm.client import OllamaClient
 from src.report.compiler import ExecutiveCompiler, compute_resilience_metrics
 from src.report.metrics import compute_quantitative_metrics
+from src.report.sensitivity import compute_sensitivity_analysis
 from src.schema.architect import SchemaDesignError, design_schema
 from src.schema.simulation_schema import SimulationSchema
 
@@ -108,6 +109,25 @@ async def _run_crisis(
         semaphore,
         in_progress_label="Reacting...",
         coroutine_factory=lambda: agent.react_to_crisis(crisis, original_stimulus, depth=depth),
+    )
+
+
+async def _run_reconciliation(
+    idx: int,
+    agent: Agent,
+    stimulus: str,
+    full_transcript: str,
+    statuses: list[dict],
+    semaphore: asyncio.Semaphore,
+    depth: str = "standard",
+) -> None:
+    await asyncio.sleep(2 + idx * 2)
+    await _execute_round(
+        idx,
+        statuses,
+        semaphore,
+        in_progress_label="Reconciling...",
+        coroutine_factory=lambda: agent.reconcile(stimulus, full_transcript, depth=depth),
     )
 
 
@@ -255,6 +275,39 @@ def _detect_language(text: str) -> str | None:
     return None
 
 
+def _apply_schema_overrides(schema, overrides: dict):
+    """Apply user overrides to the generated schema, returning a new schema.
+
+    Supported overrides:
+        actions: list of {name, description, is_terminal} — replaces action list
+        evaluation_dimensions: list of dimension names
+        state_vocabulary: list of state names
+    """
+    from src.schema.simulation_schema import SimulationSchema, ActionDefinition
+
+    data = schema.to_dict()
+
+    if "actions" in overrides:
+        data["actions"] = [
+            {
+                "name": str(a.get("name", "")).upper().strip(),
+                "description": str(a.get("description", "")),
+                "is_terminal": bool(a.get("is_terminal", False)),
+                "affects_resource": a.get("affects_resource"),
+            }
+            for a in overrides["actions"]
+            if a.get("name")
+        ]
+
+    if "evaluation_dimensions" in overrides:
+        data["evaluation_dimensions"] = [str(d) for d in overrides["evaluation_dimensions"] if d]
+
+    if "state_vocabulary" in overrides:
+        data["state_vocabulary"] = [str(s) for s in overrides["state_vocabulary"] if s]
+
+    return SimulationSchema.from_dict(data)
+
+
 async def run_simulation_pipeline(
     client: OllamaClient,
     stimulus: str,
@@ -266,6 +319,7 @@ async def run_simulation_pipeline(
     progress_callback: Optional[Any] = None,
     event_callback: Optional[Any] = None,
     depth: str = "standard",
+    schema_approval_callback: Optional[Any] = None,
 ) -> dict[str, Any]:
     concurrency = max(1, min(concurrency, MAX_CONCURRENCY))
 
@@ -280,7 +334,7 @@ async def run_simulation_pipeline(
     # --- RAG Setup ---
     from src.rag.client import WebSearchClient
     from src.rag.query_gen import generate_perspective_queries, generate_crisis_query
-    from src.rag.processor import process_search_results
+    from src.rag.processor import process_search_results, extract_facts_with_llm
     from src.rag.models import RAGMetadata
 
     rag_client = None
@@ -313,7 +367,11 @@ async def run_simulation_pipeline(
         for cluster_id, query in perspective_queries.items():
             results = await rag_client.search(query)
             if results:
-                processed = process_search_results(results, max_facts=3)
+                processed = await extract_facts_with_llm(
+                    client, results, query,
+                    context=f"Scenario: {schema.scenario_name}. Role: {cluster_id}",
+                    max_facts=4,
+                )
                 if processed.facts:
                     all_perspectives[cluster_id] = processed.facts
         if all_perspectives:
@@ -322,6 +380,12 @@ async def run_simulation_pipeline(
 
     if headless:
         _emit({"type": "schema_ready", "data": {"scenario_name": schema.scenario_name, "evaluation_dimensions": schema.evaluation_dimensions, "actions": [{"name": a.name, "is_terminal": a.is_terminal} for a in schema.actions]}})
+
+    # --- Schema Approval Gate ---
+    if schema_approval_callback:
+        schema_overrides = await schema_approval_callback(schema)
+        if schema_overrides:
+            schema = _apply_schema_overrides(schema, schema_overrides)
 
     if not headless:
         render_schema_panel(schema)
@@ -341,7 +405,7 @@ async def run_simulation_pipeline(
 
     agents = [Agent(profile, client, schema) for profile in profiles]
     if headless:
-        _emit({"type": "swarm_ready", "agents": [{"id": p.agent_id, "archetype": p.archetype, "cluster_id": p.linguistic_cluster_id} for p in profiles]})
+        _emit({"type": "swarm_ready", "agents": [{"id": p.agent_id, "archetype": p.archetype, "cluster_id": p.linguistic_cluster_id, "influence_weight": p.influence_weight, "backstory": p.backstory} for p in profiles]})
     if not headless:
         render_agent_table(profiles, schema)
 
@@ -446,6 +510,9 @@ async def run_simulation_pipeline(
             for d in decisions_r2
         ]
         full_round2_transcript = "\n\n".join(transcript_parts_r2)
+
+        # Evolve adversary map based on Round 2 shifts
+        adversary_map = evolve_adversary_map(adversary_map, decisions_r1, decisions_r2, agents)
     else:
         # Quick mode: use R1 decisions as R2 stand-in for resilience comparison
         decisions_r2 = decisions_r1
@@ -458,7 +525,11 @@ async def run_simulation_pipeline(
         for q in queries:
             all_results.extend(await rag_client.search(q))
         if all_results:
-            processed = process_search_results(all_results, max_facts=3)
+            processed = await extract_facts_with_llm(
+                client, all_results, " | ".join(queries),
+                context=f"Crisis scenario for: {schema.scenario_name}. Looking for real-world precedents and risk data.",
+                max_facts=4,
+            )
             crisis_rag_facts = processed.facts if processed.facts else None
             rag_metadata.record("pre_crisis", queries, processed)
 
@@ -549,6 +620,51 @@ async def run_simulation_pipeline(
     if headless:
         _emit({"type": "round_summary", "round": 3, "data": {"decisions": decisions_r3, "vote_tally": dict(Counter(d["action"] for d in decisions_r3 if "error" not in d))}})
 
+    # --- Round 4: Reconciliation (deep mode only) ---
+    decisions_r4: list[dict] = []
+    dur_r4 = 0.0
+    if depth == "deep":
+        _progress("Round 4: reconciliation — seeking common ground...")
+        if headless:
+            _emit({"type": "stage", "stage": "round4", "progress": 75})
+        if not headless:
+            console.print()
+            console.print(Rule("[bold green]ROUND 4 — RECONCILIATION[/bold green]"))
+
+        # Build full transcript for reconciliation context
+        all_transcript_parts = []
+        for d in decisions_r1:
+            all_transcript_parts.append(f"{d.get('archetype', '?')}: [{d.get('action')}] \"{d.get('statement', '')}\"")
+        for d in decisions_r2:
+            all_transcript_parts.append(f"{d.get('archetype', '?')}: [{d.get('action')}] \"{d.get('statement', '')}\"")
+        for d in decisions_r3:
+            all_transcript_parts.append(f"{d.get('archetype', '?')}: [{d.get('action')}] \"{d.get('statement', '')}\"")
+        reconciliation_transcript = "\n".join(all_transcript_parts)
+
+        statuses_r4 = _make_statuses(agents)
+        t0 = time.time()
+        tasks_r4 = [
+            asyncio.create_task(_run_reconciliation(
+                i, a, stimulus, reconciliation_transcript, statuses_r4, semaphore, depth=depth,
+            ))
+            for i, a in enumerate(agents)
+        ]
+        if not headless:
+            await _drive_live_table(statuses_r4, "Round 4 Reconciliation Monitor", {"Reconciling..."})
+        await asyncio.gather(*tasks_r4)
+        dur_r4 = time.time() - t0
+
+        for i, a in enumerate(agents):
+            d = _extract_decision(a, statuses_r4[i], schema)
+            decisions_r4.append(d)
+            if headless:
+                _emit({"type": "agent_done", "round": 4, "data": d})
+            if not headless:
+                render_round_panel("Round 4 — Reconciliation", d, schema, statuses_r4[i]["duration"])
+
+        if headless:
+            _emit({"type": "round_summary", "round": 4, "data": {"decisions": decisions_r4, "vote_tally": dict(Counter(d["action"] for d in decisions_r4 if "error" not in d))}})
+
     # --- Report compilation ---
     _progress("Compiling executive diagnostic report...")
     if headless:
@@ -576,6 +692,8 @@ async def run_simulation_pipeline(
                 resilience_metrics=resilience_metrics,
                 language=stimulus_language,
                 depth=depth,
+                profiles=profiles,
+                round4_results=decisions_r4 or None,
             )
             live.update("[bold green]✔ Report compiled[/bold green]")
     else:
@@ -585,6 +703,8 @@ async def run_simulation_pipeline(
             resilience_metrics=resilience_metrics,
             language=stimulus_language,
             depth=depth,
+            profiles=profiles,
+            round4_results=decisions_r4 or None,
         )
 
     if not headless:
@@ -606,18 +726,23 @@ async def run_simulation_pipeline(
         "decisions_r1": decisions_r1,
         "decisions_r2": decisions_r2,
         "decisions_r3": decisions_r3,
+        "decisions_r4": decisions_r4,
         "adversary_map": adversary_map,
         "crisis_event": {"stress": stress_event, "validation": validation_event},
         "resilience_metrics": resilience_metrics,
         "quantitative_metrics": compute_quantitative_metrics(
-            decisions_r1, decisions_r2, decisions_r3, schema
+            decisions_r1, decisions_r2, decisions_r3, schema, profiles=profiles
+        ),
+        "sensitivity_analysis": compute_sensitivity_analysis(
+            decisions_r1, decisions_r2, decisions_r3, profiles=profiles
         ),
         "report_md": report_md,
         "timings": {
             "r1": dur_r1,
             "r2": dur_r2,
             "r3": dur_r3,
-            "total": dur_r1 + dur_r2 + dur_r3,
+            "r4": dur_r4,
+            "total": dur_r1 + dur_r2 + dur_r3 + dur_r4,
         },
         "rag_metadata": rag_metadata.to_dict() if rag_metadata.injections else None,
     }

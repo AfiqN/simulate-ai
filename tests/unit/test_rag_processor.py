@@ -3,7 +3,7 @@
 import pytest
 
 from src.rag.models import SearchResult, ProcessedFacts, Citation
-from src.rag.processor import process_search_results, _jaccard_similarity, _extract_best_sentence
+from src.rag.processor import process_search_results, _jaccard_similarity, _extract_best_sentences as _extract_best_sentence
 
 
 # --- _jaccard_similarity ---
@@ -97,7 +97,7 @@ def _make_result(title="T", url="http://x.com", content="Some content here.", sc
 
 def test_process_filters_low_score_results():
     results = [
-        _make_result(score=0.3, content="Low score content that is filtered out by minimum threshold."),
+        _make_result(score=0.29, content="Low score content that is filtered out by minimum threshold."),
         _make_result(score=0.9, content="Local vendors say they struggle with the new payment system and often refuse to use it with customers."),
     ]
     processed = process_search_results(results, max_facts=4)

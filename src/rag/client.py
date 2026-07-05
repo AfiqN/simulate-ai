@@ -1,9 +1,10 @@
-"""RAG search client using DuckDuckGo + lightweight scraping."""
+"""RAG search client using local SearXNG instance + lightweight scraping."""
 
 import asyncio
 import logging
 import re
 from typing import Optional
+from urllib.parse import urlparse
 
 import httpx
 
@@ -11,15 +12,85 @@ from src.rag.models import SearchResult
 
 logger = logging.getLogger(__name__)
 
-try:
-    from ddgs import DDGS
-    DDGS_AVAILABLE = True
-except ImportError:
+# Local SearXNG instance (started via scripts/start-searxng.sh)
+SEARXNG_URL = "http://127.0.0.1:8888"
+
+# --- Source quality filtering ---
+
+# Domains that almost never provide useful factual content for simulations
+_BLOCKED_DOMAINS = frozenset({
+    "instagram.com", "www.instagram.com",
+    "tiktok.com", "www.tiktok.com",
+    "facebook.com", "www.facebook.com", "m.facebook.com",
+    "twitter.com", "x.com",
+    "pinterest.com", "www.pinterest.com",
+    "youtube.com", "www.youtube.com",  # transcripts too noisy
+    "reddit.com", "www.reddit.com",  # opinions but too unstructured
+    "quora.com", "www.quora.com",
+})
+
+# Domains that get a quality boost (authoritative sources)
+_BOOSTED_DOMAINS = frozenset({
+    "reuters.com", "bloomberg.com", "ft.com",
+    "mckinsey.com", "bain.com", "bcg.com",
+    "hbr.org", "economist.com",
+    "worldbank.org", "imf.org", "adb.org",
+    "bps.go.id", "ojk.go.id", "bi.go.id",  # Indonesian gov data
+    "kompas.com", "tempo.co", "katadata.co.id",  # Indonesian news
+    "techcrunch.com", "techasia.com", "e27.co",
+    "thejakartapost.com", "jakartaglobe.id",
+    "cnbcindonesia.com", "bisnis.com",
+})
+
+# File extensions that are not scrapeable
+_SKIP_EXTENSIONS = frozenset({
+    ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
+    ".zip", ".rar", ".tar", ".gz",
+    ".jpg", ".jpeg", ".png", ".gif", ".svg", ".webp",
+    ".mp3", ".mp4", ".wav", ".avi",
+})
+
+
+def _is_blocked_url(url: str) -> bool:
+    """Check if URL should be skipped."""
     try:
-        from duckduckgo_search import DDGS
-        DDGS_AVAILABLE = True
-    except ImportError:
-        DDGS_AVAILABLE = False
+        parsed = urlparse(url)
+        domain = parsed.netloc.lower()
+        # Check blocked domains
+        if domain in _BLOCKED_DOMAINS:
+            return True
+        # Check file extensions
+        path = parsed.path.lower()
+        for ext in _SKIP_EXTENSIONS:
+            if path.endswith(ext):
+                return True
+    except Exception:
+        pass
+    return False
+
+
+def _get_domain_boost(url: str) -> float:
+    """Return a score boost for authoritative domains."""
+    try:
+        domain = urlparse(url).netloc.lower()
+        # Direct match
+        if domain in _BOOSTED_DOMAINS:
+            return 0.15
+        # Subdomain match (e.g. www.reuters.com)
+        parts = domain.split(".")
+        if len(parts) >= 2:
+            base = ".".join(parts[-2:])
+            if base in _BOOSTED_DOMAINS:
+                return 0.15
+        # .gov and .edu domains get a small boost
+        if domain.endswith(".go.id") or domain.endswith(".gov") or domain.endswith(".edu"):
+            return 0.10
+        # .ac.id (Indonesian academic)
+        if domain.endswith(".ac.id"):
+            return 0.08
+    except Exception:
+        pass
+    return 0.0
 
 
 # --- HTML cleaning helpers ---
@@ -33,16 +104,15 @@ _BOILERPLATE_TAGS = re.compile(
 _HTML_ENTITY_NAMED = re.compile(r"&([a-zA-Z]+);")
 _HTML_ENTITY_NUM = re.compile(r"&#x?([0-9a-fA-F]+);")
 
-# Common navigation/boilerplate phrases to strip from scraped content
 _BOILERPLATE_PHRASES = [
     "Skip to content", "Skip to main content", "Skip to navigation",
     "Sign in", "Log in", "Sign up", "Register", "Subscribe",
     "Close menu", "Open menu", "Open navigation menu",
     "Close suggestions", "Search Search", "REGISTER FREE",
-    "Cookie", "Accept all", "Reject all",
+    "Cookie", "Accept all", "Reject all", "I agree",
+    "Terms of Service", "Privacy Policy", "All Rights Reserved",
 ]
 
-# Stopwords for relevance scoring — removed from query before computing overlap
 _SCORE_STOPWORDS = frozenset({
     "the", "a", "an", "is", "are", "was", "were", "be", "been", "being",
     "have", "has", "had", "do", "does", "did", "will", "would", "could",
@@ -57,20 +127,17 @@ _SCORE_STOPWORDS = frozenset({
 
 
 def _decode_entity(match: re.Match) -> str:
-    """Decode a named HTML entity to its character."""
     name = match.group(1)
     entities = {
         "amp": "&", "lt": "<", "gt": ">", "quot": '"', "apos": "'",
         "nbsp": " ", "ndash": "-", "mdash": "-", "laquo": '"',
         "raquo": '"', "ldquo": "“", "rdquo": "”",
         "lsquo": "‘", "rsquo": "’", "hellip": "...",
-        "uarr": "", "darr": "", "larr": "", "rarr": "",
     }
     return entities.get(name.lower(), "")
 
 
 def _decode_numeric_entity(match: re.Match) -> str:
-    """Decode a numeric HTML entity."""
     val = match.group(1)
     try:
         if match.group(0).startswith("&#x"):
@@ -82,128 +149,145 @@ def _decode_numeric_entity(match: re.Match) -> str:
 
 def _clean_html(html: str) -> str:
     """Strip HTML to plain text, removing boilerplate sections."""
-    # Remove script, style, nav, footer, etc.
     text = _BOILERPLATE_TAGS.sub("", html)
-    # Remove remaining tags
     text = _TAG_RE.sub(" ", text)
-    # Decode HTML entities
     text = _HTML_ENTITY_NAMED.sub(_decode_entity, text)
     text = _HTML_ENTITY_NUM.sub(_decode_numeric_entity, text)
-    # Legacy entity decoding (catch any stragglers)
     text = text.replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">")
     text = text.replace("&quot;", '"').replace("&#39;", "'").replace("&nbsp;", " ")
-    # Strip boilerplate phrases
     for phrase in _BOILERPLATE_PHRASES:
         text = text.replace(phrase, " ")
-    # Collapse whitespace
     text = _MULTI_SPACE_RE.sub(" ", text).strip()
     return text
 
 
-def _compute_relevance(query: str, title: str, content: str) -> float:
-    """Compute a 0-1 relevance score based on keyword overlap with the query.
-
-    Strips stopwords from the query so that long natural-language queries
-    (common from LLM-generated search strings) aren't penalized for having
-    many non-content words that won't appear verbatim in results.
-    """
-    # Strip stopwords from query to keep only content words
+def _compute_relevance(query: str, title: str, content: str, url: str) -> float:
+    """Compute a 0-1 relevance score with domain-awareness."""
     query_words = {w for w in query.lower().split() if w not in _SCORE_STOPWORDS and len(w) > 2}
     if not query_words:
-        # Fallback: use all words if stopword removal was too aggressive
         query_words = set(query.lower().split())
     if not query_words:
         return 0.5
 
-    # Combine title (weighted higher) and content
     title_words = set(title.lower().split())
-    content_words = set(content.lower().split()[:300])  # first 300 words
+    content_words = set(content.lower().split()[:300])
 
-    # Title overlap (0-1, weighted 0.4)
     title_overlap = len(query_words & title_words) / len(query_words)
-    # Content overlap (0-1, weighted 0.6)
     content_overlap = len(query_words & content_words) / len(query_words)
 
     score = (title_overlap * 0.4) + (content_overlap * 0.6)
 
-    # Boost if content has substantial length (real content, not stub)
-    if len(content) > 200:
-        score = min(1.0, score + 0.1)
-    # Boost if title has high overlap (strong signal even with low content match)
+    # Content length bonus (real articles have substance)
+    if len(content) > 500:
+        score = min(1.0, score + 0.12)
+    elif len(content) > 200:
+        score = min(1.0, score + 0.06)
+
+    # Title match bonus
     if title_overlap >= 0.5:
         score = min(1.0, score + 0.05)
+
+    # Domain authority bonus
+    score = min(1.0, score + _get_domain_boost(url))
 
     return round(min(1.0, max(0.0, score)), 3)
 
 
 class WebSearchClient:
-    """Search client using DuckDuckGo + httpx scraping. No API key needed."""
+    """Search client using local SearXNG instance + httpx scraping. No API key needed."""
 
-    def __init__(self):
+    def __init__(self, searxng_url: str | None = None):
         self._cache: dict[str, list[SearchResult]] = {}
+        self._searxng_url = searxng_url or SEARXNG_URL
         self._http = httpx.AsyncClient(
-            timeout=10.0,
+            timeout=12.0,
             follow_redirects=True,
-            headers={"User-Agent": "Mozilla/5.0 (compatible; SimulateAI/1.0)"},
+            headers={
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Accept-Language": "en-US,en;q=0.9,id;q=0.8",
+            },
         )
 
+    async def _searxng_search(self, query: str, max_results: int = 8) -> list[dict]:
+        """Query local SearXNG instance. Fetches more than needed to allow filtering."""
+        try:
+            resp = await self._http.get(
+                f"{self._searxng_url}/search",
+                params={
+                    "q": query,
+                    "format": "json",
+                    "categories": "general",
+                    "language": "auto",
+                    "safesearch": "0",
+                },
+                timeout=10.0,
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                results = data.get("results", [])
+                # Filter blocked URLs before returning
+                filtered = [r for r in results if not _is_blocked_url(r.get("url", ""))]
+                logger.info(
+                    f"SearXNG: {len(results)} raw → {len(filtered)} after filtering "
+                    f"for: {query[:50]}"
+                )
+                return filtered[:max_results]
+            else:
+                logger.warning(f"SearXNG returned status {resp.status_code}")
+        except Exception as e:
+            logger.warning(f"SearXNG search failed: {e}")
+
+        return []
+
     async def search(self, query: str, max_results: int = 5) -> list[SearchResult]:
-        """Search DuckDuckGo, scrape top results, return scored SearchResults."""
+        """Search via SearXNG, scrape top results, return scored SearchResults."""
         if query in self._cache:
             return self._cache[query]
 
-        try:
-            # DuckDuckGo search (synchronous library — run in executor)
-            loop = asyncio.get_running_loop()
-            raw_results = await loop.run_in_executor(
-                None,
-                lambda: list(DDGS().text(query, max_results=max_results, region="wt-wt")),
-            )
-        except Exception as e:
-            logger.warning(f"DuckDuckGo search failed for '{query}': {e}")
+        raw_results = await self._searxng_search(query, max_results=max_results + 3)
+        if not raw_results:
             return []
 
-        # Scrape and score each result
-        results: list[SearchResult] = []
+        # Scrape and score each result concurrently
         scrape_tasks = [
             self._scrape_and_score(item, query)
-            for item in raw_results[:max_results]
+            for item in raw_results
         ]
         scraped = await asyncio.gather(*scrape_tasks, return_exceptions=True)
 
+        results: list[SearchResult] = []
         for item in scraped:
-            if isinstance(item, SearchResult):
+            if isinstance(item, SearchResult) and item.content and len(item.content) > 50:
                 results.append(item)
 
-        # Sort by score descending
+        # Sort by score descending, take top max_results
         results.sort(key=lambda r: r.score, reverse=True)
+        results = results[:max_results]
         self._cache[query] = results
         return results
 
     async def _scrape_and_score(self, item: dict, query: str) -> SearchResult:
         """Fetch a URL, clean HTML, and compute relevance score."""
         title = item.get("title", "")
-        url = item.get("href", item.get("link", ""))
-        snippet = item.get("body", item.get("snippet", ""))
+        url = item.get("url", item.get("href", ""))
+        snippet = item.get("content", item.get("body", ""))
 
         # Try to scrape the full page for richer content
         content = snippet
         try:
-            resp = await self._http.get(url)
+            resp = await self._http.get(url, timeout=8.0)
             if resp.status_code == 200 and "text/html" in resp.headers.get("content-type", ""):
                 full_text = _clean_html(resp.text)
-                # Skip the first ~200 chars (usually nav/breadcrumb) and take a meaningful chunk
                 if len(full_text) > 300:
-                    # Find a good starting point after initial boilerplate
+                    # Skip early boilerplate, take meaningful chunk
                     start = min(200, len(full_text) // 5)
-                    content = full_text[start:start + 1500]
+                    content = full_text[start:start + 2000]
                 elif len(full_text) > len(snippet) + 50:
-                    content = full_text[:1500]
+                    content = full_text[:2000]
         except Exception:
-            # Scraping failed — fall back to snippet from search results
             pass
 
-        score = _compute_relevance(query, title, content)
+        score = _compute_relevance(query, title, content, url)
         return SearchResult(title=title, url=url, content=content, score=score)
 
     async def close(self):
@@ -211,9 +295,7 @@ class WebSearchClient:
 
     @classmethod
     def create_if_available(cls) -> Optional["WebSearchClient"]:
-        """Factory: returns client if duckduckgo-search is installed and RAG is enabled."""
-        if not DDGS_AVAILABLE:
-            return None
+        """Factory: returns client if RAG is enabled in config."""
         try:
             from config import RAG_ENABLED
             if not RAG_ENABLED:
