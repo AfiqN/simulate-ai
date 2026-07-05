@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useSimulation, useSimulationEvents } from "./hooks/useSimulation";
 import { useWebSocket } from "./hooks/useWebSocket";
-import { startSimulation } from "./lib/api";
+import { startSimulation, approveSchema } from "./lib/api";
 import { Header } from "./components/layout/Header";
 import { HistoryList } from "./components/layout/HistoryList";
 import { SimForm } from "./components/simulation/SimForm";
 import { PipelineProgress } from "./components/simulation/PipelineProgress";
+import { SchemaApproval } from "./components/simulation/SchemaApproval";
 import { AgentCard } from "./components/simulation/AgentCard";
 import { RoundTimeline } from "./components/simulation/RoundTimeline";
 import { ReportSection } from "./components/simulation/ReportSection";
@@ -35,6 +36,16 @@ export default function App() {
       dispatch({ type: "START", runId: id });
     } catch (err) {
       console.error("Failed to start simulation:", err);
+    }
+  };
+
+  const handleApproveSchema = async () => {
+    if (!state.runId) return;
+    try {
+      await approveSchema(state.runId);
+      dispatch({ type: "SCHEMA_APPROVED" });
+    } catch (err) {
+      console.error("Failed to approve schema:", err);
     }
   };
 
@@ -75,7 +86,7 @@ export default function App() {
             {state.status !== "complete" && (
               <SimForm
                 onSubmit={handleSubmit}
-                disabled={state.status === "running"}
+                disabled={state.status === "running" || state.status === "schema_pending"}
               />
             )}
 
@@ -92,6 +103,13 @@ export default function App() {
               <PipelineProgress
                 currentStage={state.currentStage}
                 progress={state.progress}
+              />
+            )}
+
+            {state.status === "schema_pending" && state.schema && (
+              <SchemaApproval
+                schema={state.schema}
+                onApprove={handleApproveSchema}
               />
             )}
 

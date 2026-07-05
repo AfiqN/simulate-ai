@@ -17,6 +17,15 @@ export async function startSimulation(config: SimulationConfig): Promise<{ id: s
   return res.json();
 }
 
+export async function approveSchema(runId: string, approved: boolean = true): Promise<void> {
+  const res = await fetch(`/api/simulate/${runId}/schema`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ approved }),
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+}
+
 export async function getHistory(): Promise<{ runs: RunSummaryItem[]; total: number }> {
   const res = await fetch("/api/runs");
   if (!res.ok) throw new Error(`API error: ${res.status}`);

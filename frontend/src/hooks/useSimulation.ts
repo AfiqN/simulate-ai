@@ -15,6 +15,7 @@ export interface SimState {
   currentStage: PipelineStage | null;
   progress: number;
   schema: SchemaData | null;
+  schemaPending: boolean;
   agents: { id: string; archetype: string; cluster_id: string }[];
   rounds: RoundSummary[];
   agentsByRound: Record<number, AgentDecision[]>;
@@ -27,6 +28,7 @@ export interface SimState {
 export type SimAction =
   | { type: "START"; runId: string }
   | { type: "WS_EVENT"; event: WSEvent }
+  | { type: "SCHEMA_APPROVED" }
   | { type: "LOAD_RESULT"; result: SimulationResult }
   | { type: "RESET" };
 
@@ -36,6 +38,7 @@ const initialState: SimState = {
   currentStage: null,
   progress: 0,
   schema: null,
+  schemaPending: false,
   agents: [],
   rounds: [],
   agentsByRound: {},
@@ -57,6 +60,10 @@ function reducer(state: SimState, action: SimAction): SimState {
           return { ...state, currentStage: ev.stage, progress: ev.progress ?? state.progress };
         case "schema_ready":
           return { ...state, schema: ev.data };
+        case "schema_pending":
+          return { ...state, status: "schema_pending", schema: ev.schema, schemaPending: true };
+        case "schema_approved":
+          return { ...state, status: "running", schemaPending: false };
         case "swarm_ready":
           return { ...state, agents: ev.agents };
         case "agent_done": {
@@ -81,6 +88,9 @@ function reducer(state: SimState, action: SimAction): SimState {
           return state;
       }
     }
+
+    case "SCHEMA_APPROVED":
+      return { ...state, schemaPending: false, status: "running" };
 
     case "LOAD_RESULT":
       return { ...initialState, status: "complete", result: action.result };

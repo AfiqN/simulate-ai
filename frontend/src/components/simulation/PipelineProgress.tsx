@@ -6,6 +6,7 @@ const STAGES: { key: PipelineStage; label: string }[] = [
   { key: "round1", label: "R1" },
   { key: "round2", label: "R2" },
   { key: "round3", label: "R3" },
+  { key: "round4", label: "R4" },
   { key: "report", label: "Report" },
 ];
 

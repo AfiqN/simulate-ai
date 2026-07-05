@@ -41,7 +41,8 @@ export interface SwingEntry {
 export interface SchemaData {
   scenario_name: string;
   evaluation_dimensions: string[];
-  actions: { name: string; is_terminal: boolean }[];
+  actions: { name: string; description?: string; is_terminal: boolean }[];
+  state_vocabulary?: string[];
 }
 
 export interface SimulationResult {
@@ -65,9 +66,9 @@ export interface SimulationResult {
   };
 }
 
-export type PipelineStage = "schema" | "swarm" | "round1" | "round2" | "round3" | "report";
+export type PipelineStage = "schema" | "swarm" | "round1" | "round2" | "round3" | "round4" | "report";
 
-export type SimStatus = "idle" | "running" | "complete" | "error";
+export type SimStatus = "idle" | "running" | "schema_pending" | "complete" | "error";
 
 export interface WSEvent {
   type: string;
