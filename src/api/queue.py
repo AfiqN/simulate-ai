@@ -42,6 +42,10 @@ class SimulationJob:
         self.result: dict[str, Any] | None = None
         self.run_dir: Path | None = None
         self.progress: str | None = None
+        # Schema approval gate
+        self.schema_pending: bool = False
+        self.schema_approval_event: asyncio.Event = asyncio.Event()
+        self.schema_overrides: dict[str, Any] | None = None
 
 
 # Global job registry (in-memory — lost on restart)
@@ -77,6 +81,27 @@ async def _execute_simulation(job: SimulationJob, db) -> None:
         def _event_cb(event: dict):
             event_bus.emit(job.run_id, event)
 
+        async def _schema_approval_cb(schema):
+            """Pause pipeline, emit schema_pending, wait for approval or 120s timeout."""
+            job.schema_pending = True
+            job.schema_approval_event.clear()
+            schema_data = {
+                "scenario_name": schema.scenario_name,
+                "actions": [{"name": a.name, "description": a.description, "is_terminal": a.is_terminal} for a in schema.actions],
+                "evaluation_dimensions": schema.evaluation_dimensions,
+                "state_vocabulary": schema.state_vocabulary,
+            }
+            event_bus.emit(job.run_id, {"type": "schema_pending", "schema": schema_data})
+
+            try:
+                await asyncio.wait_for(job.schema_approval_event.wait(), timeout=120.0)
+            except asyncio.TimeoutError:
+                pass  # Auto-approve after 120s
+
+            job.schema_pending = False
+            event_bus.emit(job.run_id, {"type": "schema_approved"})
+            return job.schema_overrides  # None means no changes
+
         result = await run_simulation_pipeline(
             client,
             job.stimulus,
@@ -88,6 +113,7 @@ async def _execute_simulation(job: SimulationJob, db) -> None:
             progress_callback=lambda msg: setattr(job, 'progress', msg),
             event_callback=_event_cb,
             depth=job.depth,
+            schema_approval_callback=_schema_approval_cb,
         )
 
         job.elapsed_s = time.time() - start

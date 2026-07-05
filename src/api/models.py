@@ -43,3 +43,12 @@ class RunListResponse(BaseModel):
     """Response for GET /api/runs."""
     runs: list[RunSummary]
     total: int
+
+
+class SchemaApprovalRequest(BaseModel):
+    """Request body for POST /api/simulate/{run_id}/schema — approve or edit the generated schema."""
+    approved: bool = Field(default=True, description="Whether to approve the schema as-is or with overrides.")
+    overrides: Optional[dict[str, Any]] = Field(
+        default=None,
+        description="Optional partial schema overrides: actions, evaluation_dimensions, state_vocabulary."
+    )

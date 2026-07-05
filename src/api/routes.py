@@ -7,7 +7,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request, WebSocket, WebSocketDisconnect
 
-from src.api.models import RunListResponse, RunSummary, SimulationRequest, SimulationStatus
+from src.api.models import RunListResponse, RunSummary, SimulationRequest, SimulationStatus, SchemaApprovalRequest
 from src.api.queue import SimulationJob, enqueue_simulation, get_job
 from src.api.websocket import event_bus
 from src.persistence.db import get_run, insert_run, list_runs
@@ -137,6 +137,28 @@ async def get_run_detail(run_id: str, request: Request):
         raise HTTPException(status_code=404, detail="Metrics file not found on disk.")
 
     return json.loads(metrics_path.read_text(encoding="utf-8"))
+
+
+@router.post("/simulate/{run_id}/schema")
+async def approve_schema(run_id: str, req: SchemaApprovalRequest):
+    """Approve or override the generated schema for a paused simulation.
+
+    The pipeline pauses after schema generation and emits a 'schema_pending' WS event.
+    POST to this endpoint to resume. Auto-proceeds after 120s if not called.
+    """
+    job = get_job(run_id)
+    if not job:
+        raise HTTPException(status_code=404, detail=f"Run '{run_id}' not found or already finished.")
+    if not job.schema_pending:
+        raise HTTPException(status_code=409, detail="Schema is not pending approval for this run.")
+
+    if req.approved and req.overrides:
+        job.schema_overrides = req.overrides
+    else:
+        job.schema_overrides = None
+
+    job.schema_approval_event.set()
+    return {"status": "approved", "run_id": run_id}
 
 
 @router.websocket("/ws/simulate/{run_id}")

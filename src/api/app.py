@@ -39,7 +39,7 @@ def create_app() -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
-        allow_credentials=True,
+        allow_credentials=False,
         allow_methods=["*"],
         allow_headers=["*"],
     )
@@ -54,6 +54,10 @@ def create_app() -> FastAPI:
             app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="static-assets")
 
         # SPA fallback: serve index.html for non-API routes
+        @app.get("/")
+        async def serve_root():
+            return FileResponse(str(STATIC_DIR / "index.html"))
+
         @app.get("/{full_path:path}")
         async def spa_fallback(full_path: str):
             # If the file exists in static dir, serve it
