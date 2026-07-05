@@ -60,6 +60,11 @@ def write_bundle(result: dict[str, Any], out_dir: Path) -> Path:
                     "aggressiveness": p.attributes.aggressiveness,
                     "risk_tolerance": p.attributes.risk_tolerance,
                 },
+                "decision_framework": p.decision_framework,
+                "knowledge_base": p.knowledge_base,
+                "constraints": p.constraints,
+                "influence_weight": p.influence_weight,
+                "backstory": p.backstory,
                 "final_state": p.current_internal_state,
             }
             for p in result["profiles"]

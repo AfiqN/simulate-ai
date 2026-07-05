@@ -28,6 +28,11 @@ def _make_profile(agent_id, archetype, cluster_id, state="Neutral"):
         linguistic_cluster_id=cluster_id,
         attributes=_make_attrs(),
         current_internal_state=state,
+        decision_framework="",
+        knowledge_base="",
+        constraints=[],
+        influence_weight=1.0,
+        backstory="",
     )
 
 
