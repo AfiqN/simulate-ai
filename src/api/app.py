@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from src.api.routes import router
 from src.persistence.db import init_db
 
-STATIC_DIR = Path(__file__).resolve().parent.parent.parent / "static"
+STATIC_DIR = Path(__file__).resolve().parent.parent.parent / "static" / "dist"
 
 
 @asynccontextmanager
@@ -46,12 +46,21 @@ def create_app() -> FastAPI:
 
     app.include_router(router)
 
-    # Serve static assets
-    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+    # Serve frontend static build if it exists
+    if STATIC_DIR.exists():
+        # Serve static assets (JS/CSS bundles)
+        assets_dir = STATIC_DIR / "assets"
+        if assets_dir.exists():
+            app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="static-assets")
 
-    # Root → index.html
-    @app.get("/")
-    async def root():
-        return FileResponse(STATIC_DIR / "index.html")
+        # SPA fallback: serve index.html for non-API routes
+        @app.get("/{full_path:path}")
+        async def spa_fallback(full_path: str):
+            # If the file exists in static dir, serve it
+            file_path = STATIC_DIR / full_path
+            if file_path.is_file() and STATIC_DIR in file_path.resolve().parents:
+                return FileResponse(str(file_path))
+            # Otherwise serve index.html for SPA routing
+            return FileResponse(str(STATIC_DIR / "index.html"))
 
     return app
