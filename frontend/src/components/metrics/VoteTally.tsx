@@ -1,4 +1,4 @@
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LabelList } from "recharts";
 import type { RoundSummary } from "../../types";
 
 interface Props {
@@ -21,17 +21,19 @@ export function VoteTally({ rounds }: Props) {
   // Build chart data
   const data = rounds.map((r) => {
     const entry: Record<string, any> = { name: `R${r.round}` };
+    const total = Object.values(r.vote_tally).reduce((s, v) => s + v, 0);
     actions.forEach((a) => {
       entry[a] = r.vote_tally[a] || 0;
     });
+    entry._total = total;
     return entry;
   });
 
   return (
     <div className="border border-[#E5E5E5] rounded-[6px] bg-white p-4">
       <h3 className="text-[11px] text-[#9B9B9B] uppercase tracking-wider mb-3">Vote Distribution</h3>
-      <ResponsiveContainer width="100%" height={rounds.length * 40 + 20}>
-        <BarChart data={data} layout="vertical" margin={{ left: 0, right: 0, top: 0, bottom: 0 }}>
+      <ResponsiveContainer width="100%" height={rounds.length * 52 + 20}>
+        <BarChart data={data} layout="vertical" margin={{ left: 0, right: 40, top: 0, bottom: 0 }}>
           <XAxis type="number" hide />
           <YAxis
             type="category"
@@ -46,7 +48,7 @@ export function VoteTally({ rounds }: Props) {
               fontSize: 12,
               border: "1px solid #E5E5E5",
               borderRadius: 6,
-              boxShadow: "none",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
             }}
           />
           {actions.map((action, i) => (
@@ -56,12 +58,23 @@ export function VoteTally({ rounds }: Props) {
               stackId="votes"
               fill={ACTION_COLORS[i % ACTION_COLORS.length]}
               radius={i === actions.length - 1 ? [0, 4, 4, 0] : undefined}
-            />
+              barSize={24}
+            >
+              {/* Show value label on each segment if > 0 */}
+              <LabelList
+                dataKey={action}
+                position="center"
+                fill="#FFFFFF"
+                fontSize={11}
+                fontFamily="JetBrains Mono"
+                formatter={(value: number) => value > 0 ? value : ""}
+              />
+            </Bar>
           ))}
         </BarChart>
       </ResponsiveContainer>
       {/* Legend */}
-      <div className="flex flex-wrap gap-3 mt-3">
+      <div className="flex flex-wrap gap-3 mt-3 pt-3 border-t border-[#E5E5E5]">
         {actions.map((action, i) => (
           <div key={action} className="flex items-center gap-1.5">
             <div

@@ -7,6 +7,7 @@ interface Props {
   decision: AgentDecision;
   isNew?: boolean;
   actionMeta?: { is_terminal: boolean };
+  index?: number; // for stagger animation
 }
 
 function getActionVariant(action: string, isTerminal?: boolean): "positive" | "negative" | "neutral" {
@@ -18,16 +19,18 @@ function getActionVariant(action: string, isTerminal?: boolean): "positive" | "n
   return "neutral";
 }
 
-export function AgentCard({ decision, isNew, actionMeta }: Props) {
+export function AgentCard({ decision, isNew, actionMeta, index = 0 }: Props) {
   const [expanded, setExpanded] = useState(false);
 
   const variant = getActionVariant(decision.action, actionMeta?.is_terminal);
+  const staggerDelay = isNew ? `${index * 60}ms` : "0ms";
 
   return (
     <div
       className={`border border-[#E5E5E5] rounded-[6px] bg-white transition-all duration-200 ${
-        isNew ? "animate-fade-in" : ""
-      } ${expanded ? "border-l-2 border-l-[#1A1A1A]" : ""}`}
+        isNew ? "animate-scale-in" : ""
+      } ${expanded ? "border-l-2 border-l-[#2563EB]" : ""}`}
+      style={{ animationDelay: staggerDelay }}
     >
       {/* Compact view */}
       <button
@@ -48,6 +51,11 @@ export function AgentCard({ decision, isNew, actionMeta }: Props) {
             <span className="text-[13px] font-['JetBrains_Mono'] text-[#6B6B6B] tabular-nums">
               {decision.utility >= 0 ? "+" : ""}{decision.utility.toFixed(2)}
             </span>
+            {decision.confidence !== undefined && (
+              <span className="text-[11px] text-[#9B9B9B] font-['JetBrains_Mono'] tabular-nums">
+                {(decision.confidence * 100).toFixed(0)}% conf
+              </span>
+            )}
           </div>
         </div>
         <ChevronDown
@@ -60,7 +68,21 @@ export function AgentCard({ decision, isNew, actionMeta }: Props) {
 
       {/* Expanded view */}
       {expanded && (
-        <div className="px-3 pb-3 border-t border-[#E5E5E5] pt-3 space-y-3">
+        <div className="px-3 pb-3 border-t border-[#E5E5E5] pt-3 space-y-3 animate-fade-in">
+          {/* Monologue / Statement */}
+          {decision.monologue && (
+            <div className="space-y-1">
+              <span className="text-[11px] text-[#9B9B9B] uppercase tracking-wider">Monologue</span>
+              <p className="text-[12px] text-[#6B6B6B] leading-relaxed italic">"{decision.monologue}"</p>
+            </div>
+          )}
+          {decision.statement && (
+            <div className="space-y-1">
+              <span className="text-[11px] text-[#9B9B9B] uppercase tracking-wider">Statement</span>
+              <p className="text-[12px] text-[#0F0F0F] leading-relaxed">"{decision.statement}"</p>
+            </div>
+          )}
+
           {/* Utility dimensions */}
           {Object.keys(decision.utility_dimensions).length > 0 && (
             <div className="space-y-1.5">
@@ -105,6 +127,14 @@ export function AgentCard({ decision, isNew, actionMeta }: Props) {
             <div className="flex items-center gap-2">
               <span className="text-[11px] text-[#9B9B9B] uppercase tracking-wider">State</span>
               <span className="text-[12px] text-[#6B6B6B]">{decision.new_state}</span>
+            </div>
+          )}
+
+          {/* Duration */}
+          {decision.duration && (
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-[#9B9B9B] uppercase tracking-wider">Time</span>
+              <span className="text-[12px] font-['JetBrains_Mono'] text-[#6B6B6B]">{decision.duration.toFixed(1)}s</span>
             </div>
           )}
         </div>

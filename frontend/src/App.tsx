@@ -9,23 +9,13 @@ import { PipelineProgress } from "./components/simulation/PipelineProgress";
 import { SchemaApproval } from "./components/simulation/SchemaApproval";
 import { AgentCard } from "./components/simulation/AgentCard";
 import { RoundTimeline } from "./components/simulation/RoundTimeline";
-import { ReportSection } from "./components/simulation/ReportSection";
-import { VoteTally } from "./components/metrics/VoteTally";
-import { ConsensusGauge } from "./components/metrics/ConsensusGauge";
-import { DimensionChart } from "./components/metrics/DimensionChart";
-import { SwingTable } from "./components/metrics/SwingTable";
+import { ResultsView } from "./components/simulation/ResultsView";
 import type { SimulationConfig, SimulationResult } from "./types";
-
-function computeHHI(voteTally: Record<string, number>, totalAgents: number): number {
-  if (totalAgents === 0) return 0;
-  const shares = Object.values(voteTally).map((count) => count / totalAgents);
-  return shares.reduce((sum, s) => sum + s * s, 0);
-}
 
 export default function App() {
   const [showHistory, setShowHistory] = useState(false);
   const { state, dispatch } = useSimulation();
-  const { events } = useWebSocket(state.runId);
+  const { events, status: wsStatus } = useWebSocket(state.runId);
 
   useSimulationEvents(dispatch, events);
 
@@ -90,19 +80,13 @@ export default function App() {
               />
             )}
 
-            {state.status === "complete" && (
-              <button
-                onClick={handleReset}
-                className="px-4 py-2 text-[13px] border border-[#E5E5E5] rounded-[6px] text-[#6B6B6B] hover:border-[#D0D0D0] hover:text-[#0F0F0F] transition-colors"
-              >
-                ← New Simulation
-              </button>
-            )}
-
             {state.status === "running" && (
               <PipelineProgress
                 currentStage={state.currentStage}
                 progress={state.progress}
+                agentCount={state.agents.length || undefined}
+                agentsCompleted={latestAgents.length || undefined}
+                wsConnected={wsStatus === "connected"}
               />
             )}
 
@@ -119,8 +103,8 @@ export default function App() {
               </div>
             )}
 
-            {/* Schema info */}
-            {state.schema && (
+            {/* Schema info (during running only) */}
+            {state.schema && state.status !== "complete" && (
               <div className="border border-[#E5E5E5] rounded-[6px] bg-white p-4">
                 <h2 className="text-[15px] font-medium tracking-[-0.02em] mb-2">{state.schema.scenario_name}</h2>
                 <div className="flex flex-wrap gap-2">
@@ -163,14 +147,15 @@ export default function App() {
                       decision={d}
                       isNew={i === latestAgents.length - 1}
                       actionMeta={actionMeta[d.action]}
+                      index={i}
                     />
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Round timeline */}
-            {Object.keys(state.agentsByRound).length > 0 && (
+            {/* Round timeline (during running) */}
+            {Object.keys(state.agentsByRound).length > 0 && state.status === "running" && (
               <div>
                 <h2 className="text-[15px] font-medium tracking-[-0.02em] mb-3">Rounds</h2>
                 <RoundTimeline
@@ -180,34 +165,15 @@ export default function App() {
               </div>
             )}
 
-            {/* Metrics Dashboard */}
+            {/* Complete: Full results view */}
             {state.status === "complete" && state.result && (
-              <div>
-                <h2 className="text-[15px] font-medium tracking-[-0.02em] mb-3">Metrics</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <VoteTally rounds={state.rounds} />
-                  <ConsensusGauge
-                    rounds={state.rounds.map((r) => ({
-                      round: r.round,
-                      hhi: r.consensus_index ?? computeHHI(r.vote_tally, r.decisions?.length || 0),
-                    }))}
-                  />
-                  {state.result.quantitative_metrics?.dimension_stats && (
-                    <DimensionChart stats={state.result.quantitative_metrics.dimension_stats} />
-                  )}
-                  {state.result.quantitative_metrics?.swing_analysis && (
-                    <SwingTable swings={state.result.quantitative_metrics.swing_analysis} />
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Report */}
-            {state.status === "complete" && state.result && (
-              <div>
-                <h2 className="text-[15px] font-medium tracking-[-0.02em] mb-3">Report</h2>
-                <ReportSection result={state.result} />
-              </div>
+              <ResultsView
+                result={state.result}
+                rounds={state.rounds}
+                agentsByRound={state.agentsByRound}
+                schema={state.schema}
+                onReset={handleReset}
+              />
             )}
           </>
         )}
