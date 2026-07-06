@@ -39,8 +39,11 @@ def _extract_keywords(text: str, max_words: int = 6) -> str:
     return " ".join(unique[:max_words])
 
 
-def _fallback_perspective_queries(schema) -> dict[str, str]:
-    """Generate perspective queries from schema clusters without LLM."""
+def _fallback_perspective_queries(schema) -> dict[str, list[str]]:
+    """Generate dual perspective queries from schema clusters without LLM.
+
+    Returns dict[cluster_id, [sentiment_query, context_query]].
+    """
     name = getattr(schema, "scenario_name", "")
     clusters = getattr(schema, "linguistic_clusters", [])
     result = {}
@@ -48,9 +51,13 @@ def _fallback_perspective_queries(schema) -> dict[str, str]:
         desc = getattr(cluster, "description", "")
         cid = getattr(cluster, "cluster_id", "")
         if desc:
-            kw = _extract_keywords(desc, 3)
-            topic_kw = _extract_keywords(name, 3)
-            result[cid] = f"{kw} perspective opinion {topic_kw}"
+            role_kw = _extract_keywords(desc, 3)
+            topic_kw = _extract_keywords(name, 4)
+            # Sentiment query: short, opinion-seeking
+            sentiment_q = f"{role_kw} opinions frustrations {topic_kw}"
+            # Context query: factual grounding
+            context_q = f"{topic_kw} market challenges regulation 2024"
+            result[cid] = [sentiment_q, context_q]
     return result
 
 
@@ -135,11 +142,11 @@ async def generate_perspective_queries(client, schema, model: Optional[str] = No
     except Exception as e:
         logger.warning(f"generate_perspective_queries LLM failed: {e}")
 
-    # Fallback: keyword extraction per cluster (single query)
+    # Fallback: keyword extraction per cluster (dual queries)
     fallback = _fallback_perspective_queries(schema)
     if fallback:
         logger.info(f"Using keyword-fallback perspective queries: {list(fallback.keys())}")
-    return {k: [v] for k, v in fallback.items()}
+    return fallback
 
 
 async def generate_crisis_query(client, r2_transcript: str, schema, model: Optional[str] = None) -> list[str]:

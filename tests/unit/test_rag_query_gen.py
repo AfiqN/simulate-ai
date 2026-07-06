@@ -67,8 +67,11 @@ def test_fallback_perspective_queries_returns_per_cluster(mock_schema):
     assert "traditional_merchant" in result
     assert "tech_savvy_youth" in result
     assert "rural_farmer" in result
-    # Each query should contain keywords from the cluster description
-    assert "perspective" in result["traditional_merchant"].lower() or "opinion" in result["traditional_merchant"].lower()
+    # Each cluster should have a list of 2 queries (sentiment + context)
+    assert isinstance(result["traditional_merchant"], list)
+    assert len(result["traditional_merchant"]) == 2
+    # Sentiment query should contain opinion-seeking keywords
+    assert "opinions" in result["traditional_merchant"][0].lower() or "frustrations" in result["traditional_merchant"][0].lower()
 
 
 def test_fallback_perspective_queries_empty_clusters():
