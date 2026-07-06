@@ -226,33 +226,52 @@ class WebSearchClient:
         )
 
     async def _searxng_search(self, query: str, max_results: int = 8, allow_social: bool = False) -> list[dict]:
-        """Query local SearXNG instance. Fetches more than needed to allow filtering."""
-        try:
-            resp = await self._http.get(
-                f"{self._searxng_url}/search",
-                params={
-                    "q": query,
-                    "format": "json",
-                    "categories": "general",
-                    "language": "auto",
-                    "safesearch": "0",
-                },
-                timeout=10.0,
-            )
-            if resp.status_code == 200:
-                data = resp.json()
-                results = data.get("results", [])
-                # Filter blocked URLs before returning
-                filtered = [r for r in results if not _is_blocked_url(r.get("url", ""), allow_social=allow_social)]
-                logger.info(
-                    f"SearXNG: {len(results)} raw → {len(filtered)} after filtering "
-                    f"for: {query[:50]}"
+        """Query local SearXNG instance with retry on empty results."""
+        max_retries = 2
+        for attempt in range(max_retries + 1):
+            try:
+                resp = await self._http.get(
+                    f"{self._searxng_url}/search",
+                    params={
+                        "q": query,
+                        "format": "json",
+                        "categories": "general",
+                        "language": "auto",
+                        "safesearch": "0",
+                    },
+                    timeout=10.0,
                 )
-                return filtered[:max_results]
-            else:
-                logger.warning(f"SearXNG returned status {resp.status_code}")
-        except Exception as e:
-            logger.warning(f"SearXNG search failed: {e}")
+                if resp.status_code == 200:
+                    data = resp.json()
+                    results = data.get("results", [])
+                    # Filter blocked URLs before returning
+                    filtered = [r for r in results if not _is_blocked_url(r.get("url", ""), allow_social=allow_social)]
+                    logger.info(
+                        f"SearXNG: {len(results)} raw → {len(filtered)} after filtering "
+                        f"for: {query[:50]}"
+                    )
+                    if filtered:
+                        return filtered[:max_results]
+                    # Empty results — retry with backoff if attempts remain
+                    if attempt < max_retries:
+                        logger.info(f"SearXNG returned 0 results, retrying ({attempt + 1}/{max_retries})...")
+                        await asyncio.sleep(1.0 * (attempt + 1))
+                        continue
+                    return []
+                elif resp.status_code == 429:
+                    # Rate limited — wait and retry
+                    if attempt < max_retries:
+                        logger.info(f"SearXNG rate limited (429), retrying...")
+                        await asyncio.sleep(2.0 * (attempt + 1))
+                        continue
+                    logger.warning(f"SearXNG rate limited after {max_retries} retries")
+                else:
+                    logger.warning(f"SearXNG returned status {resp.status_code}")
+            except Exception as e:
+                logger.warning(f"SearXNG search failed: {e}")
+                if attempt < max_retries:
+                    await asyncio.sleep(1.0)
+                    continue
 
         return []
 
