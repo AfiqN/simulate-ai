@@ -1,4 +1,4 @@
-"""RAG search client using local SearXNG instance + lightweight scraping."""
+"""RAG search client using Brave Search API (primary) + SearXNG fallback."""
 
 import asyncio
 import logging
@@ -12,7 +12,10 @@ from src.rag.models import SearchResult
 
 logger = logging.getLogger(__name__)
 
-# Local SearXNG instance (started via scripts/start-searxng.sh)
+# Brave Search API (primary — reliable, 1000 free queries/month)
+BRAVE_API_URL = "https://api.search.brave.com/res/v1/web/search"
+
+# Local SearXNG instance (fallback — started via scripts/start-searxng.sh)
 SEARXNG_URL = "http://127.0.0.1:8888"
 
 # --- Source quality filtering ---
@@ -211,11 +214,21 @@ def _compute_relevance(query: str, title: str, content: str, url: str) -> float:
 
 
 class WebSearchClient:
-    """Search client using local SearXNG instance + httpx scraping. No API key needed."""
+    """Search client using Brave Search API (primary) + SearXNG fallback."""
 
-    def __init__(self, searxng_url: str | None = None):
+    def __init__(self, searxng_url: str | None = None, brave_api_key: str | None = None):
         self._cache: dict[str, list[SearchResult]] = {}
         self._searxng_url = searxng_url or SEARXNG_URL
+
+        # Load Brave API key from config
+        if brave_api_key is None:
+            try:
+                from config import BRAVE_API_KEY
+                brave_api_key = BRAVE_API_KEY
+            except (ImportError, AttributeError):
+                brave_api_key = None
+        self._brave_api_key = brave_api_key
+
         self._http = httpx.AsyncClient(
             timeout=12.0,
             follow_redirects=True,
@@ -224,6 +237,65 @@ class WebSearchClient:
                 "Accept-Language": "en-US,en;q=0.9,id;q=0.8",
             },
         )
+
+    # ------------------------------------------------------------------
+    # Brave Search API (primary)
+    # ------------------------------------------------------------------
+
+    async def _brave_search(self, query: str, max_results: int = 8, allow_social: bool = False) -> list[dict]:
+        """Query Brave Search API. Returns list of {title, url, content} dicts."""
+        if not self._brave_api_key:
+            return []
+
+        try:
+            resp = await self._http.get(
+                BRAVE_API_URL,
+                params={
+                    "q": query,
+                    "count": min(max_results + 3, 20),  # Brave max is 20
+                    "text_decorations": "false",
+                    "search_lang": "en",
+                },
+                headers={
+                    "Accept": "application/json",
+                    "Accept-Encoding": "gzip",
+                    "X-Subscription-Token": self._brave_api_key,
+                },
+                timeout=10.0,
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                web_results = data.get("web", {}).get("results", [])
+                # Convert to common format
+                results = []
+                for r in web_results:
+                    url = r.get("url", "")
+                    if _is_blocked_url(url, allow_social=allow_social):
+                        continue
+                    results.append({
+                        "title": r.get("title", ""),
+                        "url": url,
+                        "content": r.get("description", ""),
+                    })
+                logger.info(
+                    f"Brave API: {len(web_results)} raw → {len(results)} after filtering "
+                    f"for: {query[:50]}"
+                )
+                return results[:max_results]
+            elif resp.status_code == 429:
+                logger.warning("Brave API rate limited (429)")
+            elif resp.status_code == 401:
+                logger.warning("Brave API key invalid (401)")
+            else:
+                logger.warning(f"Brave API returned status {resp.status_code}")
+        except Exception as e:
+            logger.warning(f"Brave API search failed: {e}")
+
+        return []
+
+    # ------------------------------------------------------------------
+    # SearXNG (fallback)
+    # ------------------------------------------------------------------
 
     async def _searxng_search(self, query: str, max_results: int = 8, allow_social: bool = False) -> list[dict]:
         """Query local SearXNG instance with retry on empty results."""
@@ -279,7 +351,7 @@ class WebSearchClient:
     SOCIAL_SITE_FILTER = "site:x.com OR site:reddit.com OR site:kaskus.co.id OR site:medium.com"
 
     async def search(self, query: str, max_results: int = 5, allow_social: bool = False) -> list[SearchResult]:
-        """Search via SearXNG, scrape top results, return scored SearchResults.
+        """Search via Brave API (primary) or SearXNG (fallback), scrape top results.
 
         Args:
             allow_social: If True, allow social platform results (X, Reddit,
@@ -290,13 +362,22 @@ class WebSearchClient:
         if cache_key in self._cache:
             return self._cache[cache_key]
 
-        raw_results = await self._searxng_search(query, max_results=max_results + 3, allow_social=allow_social)
+        # Try Brave API first (reliable, proper rate limits)
+        raw_results = await self._brave_search(query, max_results=max_results + 3, allow_social=allow_social)
+        source = "brave"
 
-        # When social mode is on, also run a site-targeted query to maximize
-        # chances of getting social platform content
+        # Fallback to SearXNG if Brave returns nothing
+        if not raw_results:
+            raw_results = await self._searxng_search(query, max_results=max_results + 3, allow_social=allow_social)
+            source = "searxng"
+
+        # When social mode is on, also run a social-targeted query
         if allow_social:
             social_query = f"{query} {self.SOCIAL_SITE_FILTER}"
-            social_results = await self._searxng_search(social_query, max_results=max_results, allow_social=True)
+            if source == "brave" and self._brave_api_key:
+                social_results = await self._brave_search(social_query, max_results=max_results, allow_social=True)
+            else:
+                social_results = await self._searxng_search(social_query, max_results=max_results, allow_social=True)
             # Merge, avoiding duplicate URLs
             seen_urls = {r.get("url", "") for r in raw_results}
             for r in social_results:
