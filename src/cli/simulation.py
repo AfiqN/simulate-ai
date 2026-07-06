@@ -364,19 +364,25 @@ async def run_simulation_pipeline(
         _progress("RAG: searching perspectives per role...")
         perspective_queries = await generate_perspective_queries(client, schema)
         all_perspectives: dict[str, list[str]] = {}
-        for cluster_id, query in perspective_queries.items():
-            results = await rag_client.search(query)
-            if results:
-                processed = await extract_facts_with_llm(
-                    client, results, query,
-                    context=f"Scenario: {schema.scenario_name}. Role: {cluster_id}",
-                    max_facts=4,
-                )
-                if processed.facts:
-                    all_perspectives[cluster_id] = processed.facts
+        all_query_strings: list[str] = []
+        for cluster_id, queries in perspective_queries.items():
+            cluster_facts: list[str] = []
+            for query in queries:
+                all_query_strings.append(query)
+                results = await rag_client.search(query)
+                if results:
+                    processed = await extract_facts_with_llm(
+                        client, results, query,
+                        context=f"Scenario: {schema.scenario_name}. Role: {cluster_id}",
+                        max_facts=4,
+                    )
+                    if processed.facts:
+                        cluster_facts.extend(processed.facts)
+            if cluster_facts:
+                all_perspectives[cluster_id] = cluster_facts
         if all_perspectives:
             swarm_rag_perspectives = all_perspectives
-            rag_metadata.record("post_architect_perspectives", list(perspective_queries.values()), processed)
+            rag_metadata.record("post_architect_perspectives", all_query_strings, processed)
 
     if headless:
         _emit({"type": "schema_ready", "data": {"scenario_name": schema.scenario_name, "evaluation_dimensions": schema.evaluation_dimensions, "actions": [{"name": a.name, "is_terminal": a.is_terminal} for a in schema.actions]}})

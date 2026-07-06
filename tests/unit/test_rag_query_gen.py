@@ -85,25 +85,27 @@ def test_fallback_perspective_queries_empty_clusters():
 async def test_perspective_queries_returns_dict(mock_client, mock_schema):
     mock_client.chat.return_value = json.dumps({
         "queries": {
-            "traditional_merchant": "small merchants complaints about digital payments Indonesia",
-            "tech_savvy_youth": "young Indonesians enthusiasm e-wallet cashback",
-            "rural_farmer": "rural farmers struggle with mobile banking access",
+            "traditional_merchant": ["small merchants complaints about digital payments Indonesia", "QRIS adoption rate SME Indonesia 2024"],
+            "tech_savvy_youth": ["young Indonesians enthusiasm e-wallet cashback", "e-wallet market share Indonesia Gen Z"],
+            "rural_farmer": ["rural farmers struggle with mobile banking access", "financial inclusion rural Indonesia stats"],
         }
     })
     result = await generate_perspective_queries(mock_client, mock_schema)
     assert isinstance(result, dict)
     assert len(result) == 3
     assert "traditional_merchant" in result
-    assert "complaints" in result["traditional_merchant"]
+    assert isinstance(result["traditional_merchant"], list)
+    assert len(result["traditional_merchant"]) == 2
+    assert "complaints" in result["traditional_merchant"][0]
 
 
 @pytest.mark.asyncio
 async def test_perspective_queries_filters_invalid_cluster_ids(mock_client, mock_schema):
     mock_client.chat.return_value = json.dumps({
         "queries": {
-            "traditional_merchant": "merchants complaints cash",
-            "nonexistent_cluster": "should be filtered out",
-            "tech_savvy_youth": "youth digital payment enthusiasm",
+            "traditional_merchant": ["merchants complaints cash", "merchant market data"],
+            "nonexistent_cluster": ["should be filtered out", "also filtered"],
+            "tech_savvy_youth": ["youth digital payment enthusiasm", "youth fintech stats"],
         }
     })
     result = await generate_perspective_queries(mock_client, mock_schema)
@@ -116,9 +118,10 @@ async def test_perspective_queries_filters_invalid_cluster_ids(mock_client, mock
 async def test_perspective_queries_falls_back_on_invalid_json(mock_client, mock_schema):
     mock_client.chat.return_value = "not json at all"
     result = await generate_perspective_queries(mock_client, mock_schema)
-    # Should return keyword-based fallback per cluster
+    # Should return keyword-based fallback per cluster (wrapped in lists)
     assert isinstance(result, dict)
     assert len(result) == 3
+    assert all(isinstance(v, list) for v in result.values())
 
 
 @pytest.mark.asyncio
@@ -141,7 +144,7 @@ async def test_perspective_queries_falls_back_on_missing_key(mock_client, mock_s
 @pytest.mark.asyncio
 async def test_perspective_queries_passes_clusters_to_prompt(mock_client, mock_schema):
     mock_client.chat.return_value = json.dumps({
-        "queries": {"traditional_merchant": "q1", "tech_savvy_youth": "q2", "rural_farmer": "q3"}
+        "queries": {"traditional_merchant": ["q1", "q1b"], "tech_savvy_youth": ["q2", "q2b"], "rural_farmer": ["q3", "q3b"]}
     })
     await generate_perspective_queries(mock_client, mock_schema)
 
@@ -164,7 +167,7 @@ async def test_perspective_queries_empty_clusters(mock_client):
 
 @pytest.mark.asyncio
 async def test_perspective_queries_handles_markdown_wrapped_json(mock_client, mock_schema):
-    mock_client.chat.return_value = '```json\n{"queries": {"traditional_merchant": "q1", "tech_savvy_youth": "q2", "rural_farmer": "q3"}}\n```'
+    mock_client.chat.return_value = '```json\n{"queries": {"traditional_merchant": ["q1", "q1b"], "tech_savvy_youth": ["q2", "q2b"], "rural_farmer": ["q3", "q3b"]}}\n```'
     result = await generate_perspective_queries(mock_client, mock_schema)
     assert "traditional_merchant" in result
 

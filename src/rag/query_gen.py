@@ -65,12 +65,15 @@ def _fallback_crisis_queries(r2_transcript: str, schema) -> list[str]:
     return []
 
 
-async def generate_perspective_queries(client, schema, model: Optional[str] = None) -> dict[str, str]:
-    """Generate 1 perspective-seeking web search query per linguistic cluster.
+async def generate_perspective_queries(client, schema, model: Optional[str] = None) -> dict[str, list[str]]:
+    """Generate 2 perspective-seeking web search queries per linguistic cluster.
 
-    Returns a dict mapping cluster_id → search query. Queries target
-    sentiments, opinions, complaints, and cultural attitudes of people
-    in each stakeholder role — NOT regulations or statistics.
+    Returns a dict mapping cluster_id → [sentiment_query, data_query].
+    - Query 1: targets human sentiments, frustrations, opinions, behavior
+    - Query 2: targets market data, regulations, competitive landscape
+
+    This dual-query approach ensures agents get BOTH the emotional grounding
+    (for realistic persona) AND the factual context (for informed reasoning).
     """
     clusters = getattr(schema, "linguistic_clusters", [])
     if not clusters:
@@ -82,23 +85,26 @@ async def generate_perspective_queries(client, schema, model: Optional[str] = No
 
     system = (
         "You are a research assistant helping build realistic simulation personas. "
-        "Given stakeholder roles in a scenario, produce ONE web search query per role "
-        "that would find how people in that role ACTUALLY FEEL about the topic.\n\n"
-        "Focus on finding:\n"
-        "- Complaints, frustrations, or enthusiasm from that stakeholder group\n"
+        "Given stakeholder roles in a scenario, produce TWO web search queries per role:\n\n"
+        "Query 1 (SENTIMENT): Find how people in this role ACTUALLY FEEL.\n"
+        "- Complaints, frustrations, enthusiasm, fears\n"
         "- Cultural attitudes, local stereotypes, social dynamics\n"
-        "- Real opinions from forums, news, social media, interviews\n"
-        "- Behavioral patterns and habits of that group\n\n"
-        "DO NOT search for regulations, statistics, or encyclopedia info.\n"
-        "Search for HUMAN PERSPECTIVES, ATTITUDES, and REAL SENTIMENTS.\n\n"
+        "- Real opinions from forums, news, interviews\n"
+        "- Behavioral patterns and habits\n\n"
+        "Query 2 (CONTEXT): Find factual grounding for this role's decisions.\n"
+        "- Market data, industry stats, competitive landscape\n"
+        "- Regulations, compliance requirements\n"
+        "- Recent events, policy changes, tech developments\n"
+        "- Domain-specific knowledge this stakeholder would have\n\n"
         "Respond with ONLY valid JSON in this exact format:\n"
-        '{"queries": {"cluster_id_1": "search query 1", "cluster_id_2": "search query 2"}}'
+        '{"queries": {"cluster_id_1": ["sentiment query", "context query"], '
+        '"cluster_id_2": ["sentiment query", "context query"]}}'
     )
     user_content = (
         f"Scenario: {schema.scenario_name}\n"
         f"Description: {schema.scenario_description}\n\n"
         f"Stakeholder roles:\n{cluster_list}\n\n"
-        "Generate one perspective-seeking search query per role. Respond with JSON only."
+        "Generate two search queries per role (sentiment + context). Respond with JSON only."
     )
     messages = [
         {"role": "system", "content": system},
@@ -108,25 +114,32 @@ async def generate_perspective_queries(client, schema, model: Optional[str] = No
         raw = await client.chat(messages, model=model)
         raw = raw.strip()
         # Extract JSON — model might wrap in markdown
-        json_match = re.search(r'\{[^{}]*"queries"\s*:\s*\{[^}]*\}[^}]*\}', raw, re.DOTALL)
+        json_match = re.search(r'\{[^{}]*"queries"\s*:\s*\{.*\}\s*\}', raw, re.DOTALL)
         if json_match:
             raw = json_match.group(0)
         data = json.loads(raw)
         queries = data.get("queries", {})
         if isinstance(queries, dict) and queries:
-            # Validate: only keep entries matching actual cluster IDs
             valid_ids = {c.cluster_id for c in clusters}
-            result = {k: str(v) for k, v in queries.items() if k in valid_ids}
+            result = {}
+            for k, v in queries.items():
+                if k not in valid_ids:
+                    continue
+                if isinstance(v, list):
+                    result[k] = [str(q) for q in v[:2]]
+                elif isinstance(v, str):
+                    # Backward compat: single string → wrap in list
+                    result[k] = [v]
             if result:
                 return result
     except Exception as e:
         logger.warning(f"generate_perspective_queries LLM failed: {e}")
 
-    # Fallback: keyword extraction per cluster
+    # Fallback: keyword extraction per cluster (single query)
     fallback = _fallback_perspective_queries(schema)
     if fallback:
         logger.info(f"Using keyword-fallback perspective queries: {list(fallback.keys())}")
-    return fallback
+    return {k: [v] for k, v in fallback.items()}
 
 
 async def generate_crisis_query(client, r2_transcript: str, schema, model: Optional[str] = None) -> list[str]:
