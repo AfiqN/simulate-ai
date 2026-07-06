@@ -380,6 +380,8 @@ async def run_simulation_pipeline(
                     )
                     if processed.facts:
                         cluster_facts.extend(processed.facts)
+                # Small delay between queries to avoid SearXNG engine rate limits
+                await asyncio.sleep(1.5)
             if cluster_facts:
                 all_perspectives[cluster_id] = cluster_facts
         if all_perspectives:
