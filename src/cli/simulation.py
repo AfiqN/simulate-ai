@@ -367,9 +367,11 @@ async def run_simulation_pipeline(
         all_query_strings: list[str] = []
         for cluster_id, queries in perspective_queries.items():
             cluster_facts: list[str] = []
-            for query in queries:
+            for qi, query in enumerate(queries):
                 all_query_strings.append(query)
-                results = await rag_client.search(query)
+                # First query (index 0) is sentiment — allow social platforms
+                is_sentiment = (qi == 0)
+                results = await rag_client.search(query, allow_social=is_sentiment)
                 if results:
                     processed = await extract_facts_with_llm(
                         client, results, query,

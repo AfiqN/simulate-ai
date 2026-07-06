@@ -29,6 +29,15 @@ _BLOCKED_DOMAINS = frozenset({
     "quora.com", "www.quora.com",
 })
 
+# Social platforms allowed in sentiment mode (opinions, rants, reviews)
+_SOCIAL_DOMAINS = frozenset({
+    "twitter.com", "x.com",
+    "reddit.com", "www.reddit.com", "old.reddit.com",
+    "kaskus.co.id", "www.kaskus.co.id",
+    "medium.com",
+    "quora.com", "www.quora.com",
+})
+
 # Domains that get a quality boost (authoritative sources)
 _BOOSTED_DOMAINS = frozenset({
     "reuters.com", "bloomberg.com", "ft.com",
@@ -51,11 +60,19 @@ _SKIP_EXTENSIONS = frozenset({
 })
 
 
-def _is_blocked_url(url: str) -> bool:
-    """Check if URL should be skipped."""
+def _is_blocked_url(url: str, allow_social: bool = False) -> bool:
+    """Check if URL should be skipped.
+
+    Args:
+        allow_social: If True, social platforms (X, Reddit, Kaskus, Medium)
+                      are allowed through for sentiment-seeking queries.
+    """
     try:
         parsed = urlparse(url)
         domain = parsed.netloc.lower()
+        # If social mode, allow social domains through
+        if allow_social and domain in _SOCIAL_DOMAINS:
+            return False
         # Check blocked domains
         if domain in _BLOCKED_DOMAINS:
             return True
@@ -208,7 +225,7 @@ class WebSearchClient:
             },
         )
 
-    async def _searxng_search(self, query: str, max_results: int = 8) -> list[dict]:
+    async def _searxng_search(self, query: str, max_results: int = 8, allow_social: bool = False) -> list[dict]:
         """Query local SearXNG instance. Fetches more than needed to allow filtering."""
         try:
             resp = await self._http.get(
@@ -226,7 +243,7 @@ class WebSearchClient:
                 data = resp.json()
                 results = data.get("results", [])
                 # Filter blocked URLs before returning
-                filtered = [r for r in results if not _is_blocked_url(r.get("url", ""))]
+                filtered = [r for r in results if not _is_blocked_url(r.get("url", ""), allow_social=allow_social)]
                 logger.info(
                     f"SearXNG: {len(results)} raw → {len(filtered)} after filtering "
                     f"for: {query[:50]}"
@@ -239,12 +256,35 @@ class WebSearchClient:
 
         return []
 
-    async def search(self, query: str, max_results: int = 5) -> list[SearchResult]:
-        """Search via SearXNG, scrape top results, return scored SearchResults."""
-        if query in self._cache:
-            return self._cache[query]
+    # Site filter appended to sentiment queries for social targeting
+    SOCIAL_SITE_FILTER = "site:x.com OR site:reddit.com OR site:kaskus.co.id OR site:medium.com"
 
-        raw_results = await self._searxng_search(query, max_results=max_results + 3)
+    async def search(self, query: str, max_results: int = 5, allow_social: bool = False) -> list[SearchResult]:
+        """Search via SearXNG, scrape top results, return scored SearchResults.
+
+        Args:
+            allow_social: If True, allow social platform results (X, Reddit,
+                          Kaskus, Medium) AND run a secondary social-targeted
+                          search with site: filters to maximize social hits.
+        """
+        cache_key = f"{query}|social={allow_social}"
+        if cache_key in self._cache:
+            return self._cache[cache_key]
+
+        raw_results = await self._searxng_search(query, max_results=max_results + 3, allow_social=allow_social)
+
+        # When social mode is on, also run a site-targeted query to maximize
+        # chances of getting social platform content
+        if allow_social:
+            social_query = f"{query} {self.SOCIAL_SITE_FILTER}"
+            social_results = await self._searxng_search(social_query, max_results=max_results, allow_social=True)
+            # Merge, avoiding duplicate URLs
+            seen_urls = {r.get("url", "") for r in raw_results}
+            for r in social_results:
+                if r.get("url", "") not in seen_urls:
+                    raw_results.append(r)
+                    seen_urls.add(r.get("url", ""))
+
         if not raw_results:
             return []
 
@@ -263,7 +303,7 @@ class WebSearchClient:
         # Sort by score descending, take top max_results
         results.sort(key=lambda r: r.score, reverse=True)
         results = results[:max_results]
-        self._cache[query] = results
+        self._cache[cache_key] = results
         return results
 
     async def _scrape_and_score(self, item: dict, query: str) -> SearchResult:

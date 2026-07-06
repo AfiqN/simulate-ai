@@ -43,6 +43,7 @@ def _fallback_perspective_queries(schema) -> dict[str, list[str]]:
     """Generate dual perspective queries from schema clusters without LLM.
 
     Returns dict[cluster_id, [sentiment_query, context_query]].
+    All queries in English for better search coverage.
     """
     name = getattr(schema, "scenario_name", "")
     clusters = getattr(schema, "linguistic_clusters", [])
@@ -53,10 +54,10 @@ def _fallback_perspective_queries(schema) -> dict[str, list[str]]:
         if desc:
             role_kw = _extract_keywords(desc, 3)
             topic_kw = _extract_keywords(name, 4)
-            # Sentiment query: short, opinion-seeking
-            sentiment_q = f"{role_kw} opinions frustrations {topic_kw}"
+            # Sentiment query: short English, opinion-seeking
+            sentiment_q = f"{role_kw} complaints frustrations {topic_kw}"
             # Context query: factual grounding
-            context_q = f"{topic_kw} market challenges regulation 2024"
+            context_q = f"{topic_kw} market challenges 2024"
             result[cid] = [sentiment_q, context_q]
     return result
 
@@ -103,6 +104,9 @@ async def generate_perspective_queries(client, schema, model: Optional[str] = No
         "- Regulations, compliance requirements\n"
         "- Recent events, policy changes, tech developments\n"
         "- Domain-specific knowledge this stakeholder would have\n\n"
+        "IMPORTANT: All queries MUST be in English for better search coverage.\n"
+        "Even for local/regional scenarios, phrase queries in English.\n"
+        "Keep queries SHORT (4-7 words max) for better search results.\n\n"
         "Respond with ONLY valid JSON in this exact format:\n"
         '{"queries": {"cluster_id_1": ["sentiment query", "context query"], '
         '"cluster_id_2": ["sentiment query", "context query"]}}'
