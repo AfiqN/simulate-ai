@@ -1,6 +1,5 @@
 import { useState, useRef, useCallback } from "react";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
+import { generateReport } from "../../lib/pdfReport";
 import { ExecutiveSummary } from "./ExecutiveSummary";
 import { CrisisCallout } from "./CrisisCallout";
 import { ReportSection } from "./ReportSection";
@@ -30,81 +29,15 @@ export function ResultsView({ result, rounds, agentsByRound, schema, onReset }: 
   const reportRef = useRef<HTMLDivElement>(null);
 
   const handleExportPdf = useCallback(async () => {
-    if (!reportRef.current) return;
     setExporting(true);
-
     try {
-      const element = reportRef.current;
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: "#FFFFFF",
-      });
-
-      const pdf = new jsPDF("p", "mm", "a4");
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      const margin = 10;
-      const contentWidth = pdfWidth - margin * 2;
-      const imgWidth = canvas.width;
-      const imgHeight = canvas.height;
-      const ratio = contentWidth / imgWidth;
-      const scaledHeight = imgHeight * ratio;
-      const pageContentHeight = pdfHeight - margin * 2 - 10; // leave room for footer
-
-      let yOffset = 0;
-      let page = 1;
-
-      while (yOffset < scaledHeight) {
-        if (page > 1) pdf.addPage();
-
-        // Header
-        pdf.setFontSize(8);
-        pdf.setTextColor(155, 155, 155);
-        pdf.text(
-          schema?.scenario_name || result.scenario_name || "SimulateAI Report",
-          margin,
-          margin
-        );
-        pdf.text(
-          new Date().toLocaleDateString(),
-          pdfWidth - margin - 20,
-          margin
-        );
-
-        // Content slice
-        const sourceY = yOffset / ratio;
-        const sourceH = Math.min(pageContentHeight / ratio, imgHeight - sourceY);
-        const destH = sourceH * ratio;
-
-        const pageCanvas = document.createElement("canvas");
-        pageCanvas.width = imgWidth;
-        pageCanvas.height = sourceH;
-        const ctx = pageCanvas.getContext("2d");
-        if (ctx) {
-          ctx.drawImage(canvas, 0, sourceY, imgWidth, sourceH, 0, 0, imgWidth, sourceH);
-          const pageImgData = pageCanvas.toDataURL("image/png");
-          pdf.addImage(pageImgData, "PNG", margin, margin + 5, contentWidth, destH);
-        }
-
-        // Footer
-        pdf.setFontSize(7);
-        pdf.setTextColor(155, 155, 155);
-        pdf.text(`Page ${page}`, pdfWidth / 2 - 5, pdfHeight - 5);
-
-        yOffset += pageContentHeight;
-        page++;
-      }
-
-      const filename = `${(schema?.scenario_name || "simulation").replace(/\s+/g, "_").toLowerCase()}_report.pdf`;
-      pdf.save(filename);
+      generateReport(result, rounds, schema);
     } catch (err) {
       console.error("PDF export failed:", err);
     } finally {
       setExporting(false);
     }
-  }, [result, schema]);
+  }, [result, rounds, schema]);
 
   // Crisis event extraction
   const crisisStress = typeof result.crisis_event === "object"
