@@ -184,6 +184,7 @@ Base your crisis event on a real or plausible variation of these precedents."""
         depth: str = "standard",
         profiles: Optional[list] = None,
         round4_results: Optional[list[dict[str, Any]]] = None,
+        faction_metrics: Optional[dict[str, Any]] = None,
     ) -> str:
         transcript = _build_transcript(round1_results, round2_results, round3_results, profiles=profiles, r4=round4_results)
 
@@ -192,6 +193,8 @@ Base your crisis event on a real or plausible variation of these precedents."""
             round1_results, round2_results, round3_results or [], self.schema,
             profiles=profiles,
         )
+        if faction_metrics:
+            quant_metrics["faction_metrics"] = faction_metrics
         quant_block = format_metrics_block(quant_metrics)
 
         crisis_section = ""

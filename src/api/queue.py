@@ -124,6 +124,8 @@ async def _execute_simulation(job: SimulationJob, db) -> None:
         # Write outputs to disk
         timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
         scenario_slug = result["schema"].scenario_name.lower().replace(" ", "_")[:40]
+        # Remove characters invalid in Windows paths
+        scenario_slug = "".join(c for c in scenario_slug if c not in r'<>:"/\|?*')
         out_dir = RUNS_DIR / f"{timestamp}__{scenario_slug}"
         out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -146,6 +148,8 @@ async def _execute_simulation(job: SimulationJob, db) -> None:
             "crisis_event": result["crisis_event"],
             "timings": result["timings"],
             "report_md": result["report_md"],
+            "quantitative_metrics": result.get("quantitative_metrics"),
+            "faction_metrics": result.get("faction_metrics"),
         }
 
         await update_run(

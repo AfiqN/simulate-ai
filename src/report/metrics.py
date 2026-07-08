@@ -133,6 +133,32 @@ def format_metrics_block(metrics: dict[str, Any]) -> str:
             lines.append(f"- {label}: {val:.3f}")
     lines.append("")
 
+    # Faction dynamics (if available)
+    fm = metrics.get("faction_metrics")
+    if fm:
+        lines.append("### Faction Dynamics")
+        fh = fm.get("faction_history", [])
+        for entry in fh:
+            rnd = entry["round"]
+            factions = entry["factions"]
+            faction_str = ", ".join(f"{a}={n}" for a, n in sorted(factions.items(), key=lambda x: -x[1]))
+            lines.append(f"- Round {rnd}: {faction_str}")
+
+        stability = fm.get("majority_stability")
+        if stability is not None:
+            lines.append(f"- Majority stability: {stability:.0%}")
+
+        swing = fm.get("swing_agents", [])
+        if swing:
+            lines.append(f"- Swing agents: {', '.join(swing[:5])}")
+
+        events = fm.get("alliance_events", [])
+        if events:
+            lines.append(f"- Defections: {len(events)} total")
+            for ev in events[:5]:
+                lines.append(f"    Round {ev['round']}: {ev['agent']} ({ev['from']} → {ev['to']})")
+        lines.append("")
+
     return "\n".join(lines)
 
 

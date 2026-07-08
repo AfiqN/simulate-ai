@@ -8,13 +8,21 @@ import { VoteTally } from "../metrics/VoteTally";
 import { ConsensusGauge } from "../metrics/ConsensusGauge";
 import { DimensionChart } from "../metrics/DimensionChart";
 import { SwingTable } from "../metrics/SwingTable";
-import type { SimulationResult, RoundSummary, AgentDecision, SchemaData } from "../../types";
+import {
+  FactionTimeline,
+  FactionFlow,
+  CohesionMeter,
+  DefectionLog,
+  PanelDebateView,
+} from "../factions";
+import type { SimulationResult, RoundSummary, AgentDecision, SchemaData, FactionUpdate } from "../../types";
 
 interface Props {
   result: SimulationResult;
   rounds: RoundSummary[];
   agentsByRound: Record<number, AgentDecision[]>;
   schema: SchemaData | null;
+  factionUpdates: FactionUpdate[];
   onReset: () => void;
 }
 
@@ -24,7 +32,7 @@ function computeHHI(voteTally: Record<string, number>, totalAgents: number): num
   return shares.reduce((sum, s) => sum + s * s, 0);
 }
 
-export function ResultsView({ result, rounds, agentsByRound, schema, onReset }: Props) {
+export function ResultsView({ result, rounds, agentsByRound, schema, factionUpdates, onReset }: Props) {
   const [exporting, setExporting] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
 
@@ -100,6 +108,28 @@ export function ResultsView({ result, rounds, agentsByRound, schema, onReset }: 
             )}
           </div>
         </div>
+
+        {/* Coalition Dynamics */}
+        {result.faction_metrics && (
+          <div className="space-y-4">
+            <h2 className="text-[15px] font-medium tracking-[-0.02em]">Coalition Dynamics</h2>
+
+            {/* Faction size over rounds - full width */}
+            <FactionTimeline history={result.faction_metrics.faction_history} />
+
+            {/* Alluvial flow - full width */}
+            <FactionFlow agentsByRound={agentsByRound} rounds={rounds} />
+
+            {/* Cohesion + Defections side by side */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <CohesionMeter factionUpdates={factionUpdates} />
+              <DefectionLog events={result.faction_metrics.alliance_events} />
+            </div>
+
+            {/* Panel debate - deep mode only */}
+            <PanelDebateView agentsByRound={agentsByRound} rounds={rounds} />
+          </div>
+        )}
 
         {/* Round Timeline with all agents */}
         {Object.keys(agentsByRound).length > 0 && (

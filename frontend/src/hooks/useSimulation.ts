@@ -1,6 +1,7 @@
 import { useReducer, useEffect } from "react";
 import type {
   AgentDecision,
+  FactionUpdate,
   PipelineStage,
   RoundSummary,
   SchemaData,
@@ -19,6 +20,7 @@ export interface SimState {
   agents: { id: string; archetype: string; cluster_id: string }[];
   rounds: RoundSummary[];
   agentsByRound: Record<number, AgentDecision[]>;
+  factionUpdates: FactionUpdate[];
   stressEvent: string | null;
   validationEvent: string | null;
   result: SimulationResult | null;
@@ -42,6 +44,7 @@ const initialState: SimState = {
   agents: [],
   rounds: [],
   agentsByRound: {},
+  factionUpdates: [],
   stressEvent: null,
   validationEvent: null,
   result: null,
@@ -80,6 +83,10 @@ function reducer(state: SimState, action: SimAction): SimState {
         }
         case "crisis":
           return { ...state, stressEvent: ev.stress_event ?? ev.event ?? null, validationEvent: ev.validation_event ?? null };
+        case "faction_update": {
+          const fu: FactionUpdate = { round: ev.round, factions: ev.data };
+          return { ...state, factionUpdates: [...state.factionUpdates, fu] };
+        }
         case "complete":
           return { ...state, status: "complete", result: ev.result, progress: 100 };
         case "error":

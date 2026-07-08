@@ -172,6 +172,7 @@ export default function App() {
                 rounds={state.rounds}
                 agentsByRound={state.agentsByRound}
                 schema={state.schema}
+                factionUpdates={state.factionUpdates}
                 onReset={handleReset}
               />
             )}

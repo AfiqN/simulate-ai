@@ -11,8 +11,9 @@ from rich.spinner import Spinner
 from rich.table import Table
 
 from config import DEFAULT_MODEL, LLM_PROVIDER, MAX_CONCURRENCY, OLLAMA_HOST
-from src.agent.adversary import compute_adversary_map, evolve_adversary_map
+from src.agent.adversary import compute_adversary_map, evolve_adversary_map, evolve_adversary_map_v2, compute_panel_challenges
 from src.agent.agent import Agent
+from src.agent.factions import FactionTracker
 from src.agent.swarm import SwarmGenerationError, generate_llm_swarm
 from src.cli import console
 from src.cli.rendering import (
@@ -76,10 +77,11 @@ async def _run_debate(
     agent: Agent,
     stimulus: str,
     round1_transcript: str,
-    adversary: Optional[dict],
+    adversary: Optional[dict | list[dict]],
     statuses: list[dict],
     semaphore: asyncio.Semaphore,
     depth: str = "standard",
+    faction_context: Optional[str] = None,
 ) -> None:
     await asyncio.sleep(4 + idx * 3)
     await _execute_round(
@@ -88,7 +90,10 @@ async def _run_debate(
         semaphore,
         in_progress_label="Debating...",
         coroutine_factory=lambda: agent.debate_and_react(
-            stimulus, round1_transcript, adversary=adversary if adversary else None, depth=depth
+            stimulus, round1_transcript,
+            adversary=adversary if adversary else None,
+            depth=depth,
+            faction_context=faction_context,
         ),
     )
 
@@ -458,6 +463,16 @@ async def run_simulation_pipeline(
     if headless:
         _emit({"type": "round_summary", "round": 1, "data": {"decisions": decisions_r1, "vote_tally": dict(Counter(d["action"] for d in decisions_r1 if "error" not in d))}})
 
+    # Initialize faction tracker and record Round 1
+    faction_tracker: Optional[FactionTracker] = None
+    if depth != "quick":
+        faction_tracker = FactionTracker()
+        faction_tracker.record_round(1, decisions_r1)
+        if headless:
+            latest = faction_tracker.get_latest()
+            if latest:
+                _emit({"type": "faction_update", "round": 1, "data": {a: {"size": f.size, "cohesion": f.cohesion} for a, f in latest.factions.items()}})
+
     adversary_map = compute_adversary_map(decisions_r1, agents)
     if not headless:
         console.print()
@@ -487,13 +502,20 @@ async def run_simulation_pipeline(
         if not headless:
             console.print()
             console.print(Rule("[bold magenta]ROUND 2 — DIRECTED DEBATE[/bold magenta]"))
+
+        # Compute panel challenges for deep mode
+        panel_map: Optional[dict] = None
+        if depth == "deep" and faction_tracker:
+            panel_map = compute_panel_challenges(faction_tracker, decisions_r1, agents)
+
         statuses_r2 = _make_statuses(agents)
         t0 = time.time()
         tasks_r2 = [
             asyncio.create_task(_run_debate(
                 i, a, stimulus, full_round1_transcript,
-                adversary_map.get(a.profile.agent_id),
-                statuses_r2, semaphore, depth=depth,
+                adversary=(panel_map.get(a.profile.agent_id) if panel_map else adversary_map.get(a.profile.agent_id)),
+                statuses=statuses_r2, semaphore=semaphore, depth=depth,
+                faction_context=(faction_tracker.build_agent_context(a.profile.agent_id, decisions_r1) if faction_tracker else None),
             ))
             for i, a in enumerate(agents)
         ]
@@ -521,8 +543,16 @@ async def run_simulation_pipeline(
         ]
         full_round2_transcript = "\n\n".join(transcript_parts_r2)
 
-        # Evolve adversary map based on Round 2 shifts
-        adversary_map = evolve_adversary_map(adversary_map, decisions_r1, decisions_r2, agents)
+        # Record Round 2 factions and evolve adversary map with faction intelligence
+        if faction_tracker:
+            faction_tracker.record_round(2, decisions_r2)
+            if headless:
+                latest = faction_tracker.get_latest()
+                if latest:
+                    _emit({"type": "faction_update", "round": 2, "data": {a: {"size": f.size, "cohesion": f.cohesion} for a, f in latest.factions.items()}})
+            adversary_map = evolve_adversary_map_v2(adversary_map, decisions_r1, decisions_r2, agents, faction_tracker)
+        else:
+            adversary_map = evolve_adversary_map(adversary_map, decisions_r1, decisions_r2, agents)
     else:
         # Quick mode: use R1 decisions as R2 stand-in for resilience comparison
         decisions_r2 = decisions_r1
@@ -630,6 +660,14 @@ async def run_simulation_pipeline(
     if headless:
         _emit({"type": "round_summary", "round": 3, "data": {"decisions": decisions_r3, "vote_tally": dict(Counter(d["action"] for d in decisions_r3 if "error" not in d))}})
 
+    # Record Round 3 factions
+    if faction_tracker:
+        faction_tracker.record_round(3, decisions_r3)
+        if headless:
+            latest = faction_tracker.get_latest()
+            if latest:
+                _emit({"type": "faction_update", "round": 3, "data": {a: {"size": f.size, "cohesion": f.cohesion} for a, f in latest.factions.items()}})
+
     # --- Round 4: Reconciliation (deep mode only) ---
     decisions_r4: list[dict] = []
     dur_r4 = 0.0
@@ -675,6 +713,14 @@ async def run_simulation_pipeline(
         if headless:
             _emit({"type": "round_summary", "round": 4, "data": {"decisions": decisions_r4, "vote_tally": dict(Counter(d["action"] for d in decisions_r4 if "error" not in d))}})
 
+        # Record Round 4 factions
+        if faction_tracker:
+            faction_tracker.record_round(4, decisions_r4)
+            if headless:
+                latest = faction_tracker.get_latest()
+                if latest:
+                    _emit({"type": "faction_update", "round": 4, "data": {a: {"size": f.size, "cohesion": f.cohesion} for a, f in latest.factions.items()}})
+
     # --- Report compilation ---
     _progress("Compiling executive diagnostic report...")
     if headless:
@@ -704,6 +750,7 @@ async def run_simulation_pipeline(
                 depth=depth,
                 profiles=profiles,
                 round4_results=decisions_r4 or None,
+                faction_metrics=faction_tracker.compute_metrics() if faction_tracker else None,
             )
             live.update("[bold green]✔ Report compiled[/bold green]")
     else:
@@ -715,6 +762,7 @@ async def run_simulation_pipeline(
             depth=depth,
             profiles=profiles,
             round4_results=decisions_r4 or None,
+            faction_metrics=faction_tracker.compute_metrics() if faction_tracker else None,
         )
 
     if not headless:
@@ -746,6 +794,7 @@ async def run_simulation_pipeline(
         "sensitivity_analysis": compute_sensitivity_analysis(
             decisions_r1, decisions_r2, decisions_r3, profiles=profiles
         ),
+        "faction_metrics": faction_tracker.compute_metrics() if faction_tracker else None,
         "report_md": report_md,
         "timings": {
             "r1": dur_r1,

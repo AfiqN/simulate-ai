@@ -64,6 +64,7 @@ export interface SimulationResult {
     swing_analysis: Record<string, SwingEntry[]>;
     consensus_index: Record<string, number>;
   };
+  faction_metrics?: FactionMetrics;
 }
 
 export type PipelineStage = "schema" | "swarm" | "round1" | "round2" | "round3" | "round4" | "report";
@@ -83,4 +84,32 @@ export interface RunSummaryItem {
   agent_count?: number;
   elapsed_s?: number;
   created_at: string;
+}
+
+// --- Faction Types ---
+
+export interface FactionSnapshot {
+  size: number;
+  cohesion: number;
+}
+
+export interface FactionUpdate {
+  round: number;
+  factions: Record<string, FactionSnapshot>;
+}
+
+export interface DefectionEvent {
+  round: number;
+  type: string;
+  agent: string;
+  from: string;
+  to: string;
+}
+
+export interface FactionMetrics {
+  faction_history: { round: number; factions: Record<string, number> }[];
+  swing_agents: string[];
+  alliance_events: DefectionEvent[];
+  majority_stability: number;
+  faction_count_trajectory: number[];
 }

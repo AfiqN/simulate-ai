@@ -315,9 +315,10 @@ Your reflection should be a detailed paragraph, not a single sentence."""
         self,
         stimulus: str,
         round1_transcript: str,
-        adversary: Optional[dict] = None,
+        adversary: Optional[dict | list[dict]] = None,
         model: Optional[str] = None,
         depth: str = "standard",
+        faction_context: Optional[str] = None,
     ) -> dict[str, Any]:
         context_summary = "You are now in ROUND 2 (Debate & Reflection). You have read your peers' initial reactions and must engage with their positions."
         user_prompt = f"""You are now in ROUND 2 (DEBATE & REFLECTION).
@@ -333,8 +334,26 @@ Your peers in the swarm have voiced their initial reactions to this stimulus:
 3. In your public_statement, address peers directly by archetype where it sharpens the point.
 4. Re-evaluate your utility honestly. Commit to one action from the available actions list.
 """
+        if faction_context:
+            user_prompt += f"\n{faction_context}\n"
+
         if adversary:
-            user_prompt += f"""
+            # Panel mode: multiple challengers
+            if isinstance(adversary, list):
+                user_prompt += "\n--- PANEL CHALLENGE ---\n"
+                user_prompt += "Multiple agents are challenging your position directly:\n\n"
+                for i, adv in enumerate(adversary, 1):
+                    user_prompt += (
+                        f"Challenger {i}: {adv.get('archetype', 'Another agent')} "
+                        f"(action: {adv.get('action', '?')}): \"{adv.get('statement', '...')}\"\n\n"
+                    )
+                user_prompt += (
+                    "You MUST address at least TWO of these challengers in your public_statement. "
+                    "Defend, concede, or reframe — but engage with the substance of their arguments.\n"
+                )
+            else:
+                # Single adversary (backward compatible)
+                user_prompt += f"""
 --- DIRECT CHALLENGE ---
 {adversary.get('archetype', 'Another agent')} challenged you directly. They took action {adversary.get('action', '?')} and stated: "{adversary.get('statement', '...')}".
 You MUST address their stance in your public_statement and internal_reflection. Defend, concede, or reframe — but engage with them by name.
