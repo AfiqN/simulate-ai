@@ -1,4 +1,5 @@
-import { Badge } from "../common/Badge";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import type { SwingEntry } from "../../types";
 
 interface Props {
@@ -6,7 +7,6 @@ interface Props {
 }
 
 export function SwingTable({ swings }: Props) {
-  // Flatten all swings across rounds and sort
   const allSwings: (SwingEntry & { round: string })[] = [];
   Object.entries(swings).forEach(([round, entries]) => {
     entries.forEach((e) => allSwings.push({ ...e, round }));
@@ -14,15 +14,15 @@ export function SwingTable({ swings }: Props) {
 
   if (allSwings.length === 0) {
     return (
-      <div className="border border-[#E5E5E5] rounded-[6px] bg-white p-4">
+      <Card className="p-4">
         <h3 className="text-[11px] text-[#9B9B9B] uppercase tracking-wider mb-3">Action Swings</h3>
         <p className="text-[13px] text-[#9B9B9B]">No action swings detected.</p>
-      </div>
+      </Card>
     );
   }
 
   return (
-    <div className="border border-[#E5E5E5] rounded-[6px] bg-white p-4">
+    <Card className="p-4">
       <h3 className="text-[11px] text-[#9B9B9B] uppercase tracking-wider mb-3">Action Swings</h3>
       <div className="overflow-x-auto">
         <table className="w-full text-[13px]">
@@ -44,7 +44,7 @@ export function SwingTable({ swings }: Props) {
                 <td className="py-2">
                   <span className="text-[#9B9B9B]">{s.from_action}</span>
                   <span className="mx-1.5 text-[#9B9B9B]">→</span>
-                  <Badge label={s.to_action} variant="shift" size="sm" />
+                  <Badge variant="shift" size="sm">{s.to_action}</Badge>
                 </td>
                 <td className="py-2 text-[#6B6B6B]">{s.driver_dimension}</td>
               </tr>
@@ -52,6 +52,6 @@ export function SwingTable({ swings }: Props) {
           </tbody>
         </table>
       </div>
-    </div>
+    </Card>
   );
 }

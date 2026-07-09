@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Card } from "@/components/ui/card";
 import { getHistory, getRunDetail } from "../../lib/api";
 import type { RunSummaryItem, SimulationResult } from "../../types";
 
@@ -48,30 +49,30 @@ export function HistoryList({ onLoadResult }: Props) {
 
   if (loading) {
     return (
-      <div className="border border-[#E5E5E5] rounded-[6px] bg-white p-4">
+      <Card className="p-4">
         <p className="text-[13px] text-[#9B9B9B]">Loading history...</p>
-      </div>
+      </Card>
     );
   }
 
   if (error) {
     return (
-      <div className="border border-[#E5E5E5] rounded-[6px] bg-white p-4">
+      <Card className="p-4">
         <p className="text-[13px] text-[#8B1A1A]">{error}</p>
-      </div>
+      </Card>
     );
   }
 
   if (runs.length === 0) {
     return (
-      <div className="border border-[#E5E5E5] rounded-[6px] bg-white p-4">
+      <Card className="p-4">
         <p className="text-[13px] text-[#9B9B9B]">No simulation runs yet.</p>
-      </div>
+      </Card>
     );
   }
 
   return (
-    <div className="border border-[#E5E5E5] rounded-[6px] bg-white divide-y divide-[#E5E5E5]">
+    <Card className="divide-y divide-[#E5E5E5]">
       {runs.map((run) => (
         <button
           key={run.id}
@@ -107,6 +108,6 @@ export function HistoryList({ onLoadResult }: Props) {
           )}
         </button>
       ))}
-    </div>
+    </Card>
   );
 }

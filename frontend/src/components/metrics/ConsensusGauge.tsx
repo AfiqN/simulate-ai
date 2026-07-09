@@ -1,3 +1,5 @@
+import { Card } from "@/components/ui/card";
+
 interface Props {
   rounds: { round: number; hhi: number }[];
 }
@@ -15,7 +17,7 @@ export function ConsensusGauge({ rounds }: Props) {
   const label = getLabel(latest.hhi);
 
   return (
-    <div className="border border-[#E5E5E5] rounded-[6px] bg-white p-4">
+    <Card className="p-4">
       <h3 className="text-[11px] text-[#9B9B9B] uppercase tracking-wider mb-3">Consensus (HHI)</h3>
       <div className="flex items-baseline gap-2 mb-3">
         <span className="text-[28px] font-['JetBrains_Mono'] font-medium tabular-nums" style={{ color: label.color }}>
@@ -25,7 +27,6 @@ export function ConsensusGauge({ rounds }: Props) {
           {label.text}
         </span>
       </div>
-      {/* Progression */}
       {rounds.length > 1 && (
         <div className="flex items-center gap-2">
           {rounds.map((r, i) => {
@@ -46,6 +47,6 @@ export function ConsensusGauge({ rounds }: Props) {
           })}
         </div>
       )}
-    </div>
+    </Card>
   );
 }

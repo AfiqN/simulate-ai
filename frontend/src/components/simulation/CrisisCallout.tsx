@@ -1,4 +1,5 @@
 import { AlertTriangle, ShieldCheck } from "lucide-react";
+import { Card } from "@/components/ui/card";
 
 interface Props {
   stressEvent: string;
@@ -8,8 +9,7 @@ interface Props {
 export function CrisisCallout({ stressEvent, validationEvent }: Props) {
   return (
     <div className="space-y-3">
-      {/* Stress event */}
-      <div className="relative border border-[#8B1A1A]/30 rounded-[8px] bg-gradient-to-r from-[#FEF2F2] to-white overflow-hidden">
+      <Card className="relative border-[#8B1A1A]/30 bg-gradient-to-r from-[#FEF2F2] to-white overflow-hidden">
         <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#8B1A1A]" />
         <div className="p-5 pl-6">
           <div className="flex items-center gap-2 mb-2">
@@ -20,11 +20,10 @@ export function CrisisCallout({ stressEvent, validationEvent }: Props) {
           </div>
           <p className="text-[14px] text-[#0F0F0F] leading-relaxed">{stressEvent}</p>
         </div>
-      </div>
+      </Card>
 
-      {/* Validation event (if any) */}
       {validationEvent && (
-        <div className="relative border border-[#166534]/30 rounded-[8px] bg-gradient-to-r from-[#F0FDF4] to-white overflow-hidden">
+        <Card className="relative border-[#166534]/30 bg-gradient-to-r from-[#F0FDF4] to-white overflow-hidden">
           <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#166534]" />
           <div className="p-5 pl-6">
             <div className="flex items-center gap-2 mb-2">
@@ -35,7 +34,7 @@ export function CrisisCallout({ stressEvent, validationEvent }: Props) {
             </div>
             <p className="text-[14px] text-[#0F0F0F] leading-relaxed">{validationEvent}</p>
           </div>
-        </div>
+        </Card>
       )}
     </div>
   );

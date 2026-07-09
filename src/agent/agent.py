@@ -12,6 +12,7 @@ class Agent:
         self.client = client
         self.schema = schema
         self.decision_threshold = 0.5
+        self.historical_context: str = ""  # Injected historical precedent block
 
     def _linguistic_style_prompt(self) -> str:
         cluster = self.schema.get_cluster(self.profile.linguistic_cluster_id)
@@ -216,6 +217,10 @@ Think step by step. In your internal_reflection, explain your reasoning thorough
 3. What's your biggest uncertainty?
 4. State your confidence level (low/medium/high) in your final decision.
 Your reflection should be a detailed paragraph, not a single sentence."""
+
+        # Inject historical context if available
+        if self.historical_context:
+            base += f"\n\n{self.historical_context}"
 
         return base
 

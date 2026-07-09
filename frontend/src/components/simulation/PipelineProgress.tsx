@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Wifi, WifiOff, Loader2 } from "lucide-react";
+import { Card } from "@/components/ui/card";
 import type { PipelineStage } from "../../types";
 
 const STAGES: { key: PipelineStage; label: string; description: string }[] = [
@@ -40,7 +41,6 @@ export function PipelineProgress({ currentStage, progress, agentCount, agentsCom
   const [elapsed, setElapsed] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Elapsed timer
   useEffect(() => {
     if (currentStage) {
       intervalRef.current = setInterval(() => {
@@ -52,16 +52,14 @@ export function PipelineProgress({ currentStage, progress, agentCount, agentsCom
     };
   }, [currentStage]);
 
-  // Reset elapsed when stage resets
   useEffect(() => {
     if (!currentStage) setElapsed(0);
   }, [currentStage]);
 
-  // Current stage description
   const activeStage = STAGES.find((s) => s.key === currentStage);
 
   return (
-    <div className="border border-[#E5E5E5] rounded-[8px] bg-white p-5">
+    <Card className="p-5">
       {/* Header: description + elapsed + connection */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
@@ -69,7 +67,6 @@ export function PipelineProgress({ currentStage, progress, agentCount, agentsCom
           <span className="text-[13px] text-[#0F0F0F] font-medium">
             {activeStage?.description || "Initializing…"}
           </span>
-          {/* Agent progress during rounds */}
           {agentCount && agentsCompleted !== undefined && currentStage?.startsWith("round") && (
             <span className="text-[12px] text-[#9B9B9B] font-['JetBrains_Mono'] tabular-nums">
               {agentsCompleted}/{agentCount} agents
@@ -80,7 +77,6 @@ export function PipelineProgress({ currentStage, progress, agentCount, agentsCom
           <span className="text-[12px] text-[#9B9B9B] font-['JetBrains_Mono'] tabular-nums">
             {formatElapsed(elapsed)}
           </span>
-          {/* WS connection indicator */}
           <div className="flex items-center gap-1">
             {wsConnected ? (
               <Wifi size={12} className="text-[#16653A]" />
@@ -138,6 +134,6 @@ export function PipelineProgress({ currentStage, progress, agentCount, agentsCom
           style={{ width: `${progress}%` }}
         />
       </div>
-    </div>
+    </Card>
   );
 }

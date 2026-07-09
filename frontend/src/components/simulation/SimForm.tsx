@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import type { SimulationConfig } from "../../types";
+import { StakeholderPanel } from "./StakeholderPanel";
+import { PrecedentPanel } from "./PrecedentPanel";
+import type { SimulationConfig, CustomStakeholder, HistoricalPrecedent } from "../../types";
 
 interface Props {
   onSubmit: (config: SimulationConfig) => void;
@@ -15,11 +17,27 @@ export function SimForm({ onSubmit, disabled }: Props) {
   const [stimulus, setStimulus] = useState("");
   const [agentCount, setAgentCount] = useState(5);
   const [depth, setDepth] = useState<"quick" | "standard" | "deep">("standard");
+  const [customStakeholders, setCustomStakeholders] = useState<CustomStakeholder[]>([]);
+  const [historicalPrecedents, setHistoricalPrecedents] = useState<HistoricalPrecedent[]>([]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!stimulus.trim()) return;
-    onSubmit({ stimulus: stimulus.trim(), agent_count: agentCount, depth });
+    // Filter out incomplete stakeholders (missing role or description)
+    const validStakeholders = customStakeholders.filter(
+      (s) => s.role.trim() && s.description.trim()
+    );
+    // Filter out incomplete precedents (missing title or summary)
+    const validPrecedents = historicalPrecedents.filter(
+      (p) => p.title.trim() && p.summary.trim()
+    );
+    onSubmit({
+      stimulus: stimulus.trim(),
+      agent_count: agentCount,
+      depth,
+      custom_stakeholders: validStakeholders.length > 0 ? validStakeholders : undefined,
+      historical_precedents: validPrecedents.length > 0 ? validPrecedents : undefined,
+    });
   };
 
   return (
@@ -80,6 +98,18 @@ export function SimForm({ onSubmit, disabled }: Props) {
               Run Simulation
             </Button>
           </div>
+
+          <StakeholderPanel
+            stakeholders={customStakeholders}
+            onChange={setCustomStakeholders}
+            disabled={disabled}
+          />
+
+          <PrecedentPanel
+            precedents={historicalPrecedents}
+            onChange={setHistoricalPrecedents}
+            disabled={disabled}
+          />
         </form>
       </CardContent>
     </Card>

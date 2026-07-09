@@ -1,4 +1,5 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LabelList } from "recharts";
+import { Card } from "@/components/ui/card";
 
 interface DimensionStats {
   [dimension: string]: {
@@ -27,7 +28,6 @@ export function DimensionChart({ stats }: Props) {
   });
   const roundKeys = Array.from(rounds).sort();
 
-  // Build chart data
   const data = dimensions.map((dim) => {
     const entry: Record<string, any> = {
       dimension: dim.length > 16 ? dim.slice(0, 16) + "…" : dim,
@@ -40,7 +40,7 @@ export function DimensionChart({ stats }: Props) {
   });
 
   return (
-    <div className="border border-[#E5E5E5] rounded-[6px] bg-white p-4">
+    <Card className="p-4">
       <h3 className="text-[11px] text-[#9B9B9B] uppercase tracking-wider mb-3">Dimension Means by Round</h3>
       <ResponsiveContainer width="100%" height={Math.max(220, dimensions.length * 28)}>
         <BarChart data={data} margin={{ left: 0, right: 20, top: 10, bottom: 5 }}>
@@ -99,7 +99,6 @@ export function DimensionChart({ stats }: Props) {
           ))}
         </BarChart>
       </ResponsiveContainer>
-      {/* Legend */}
       <div className="flex gap-4 mt-2 pt-2 border-t border-[#E5E5E5]">
         {roundKeys.map((r) => (
           <div key={r} className="flex items-center gap-1.5">
@@ -108,6 +107,6 @@ export function DimensionChart({ stats }: Props) {
           </div>
         ))}
       </div>
-    </div>
+    </Card>
   );
 }

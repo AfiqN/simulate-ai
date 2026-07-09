@@ -1,24 +1,22 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LabelList } from "recharts";
+import { Card } from "@/components/ui/card";
 import type { RoundSummary } from "../../types";
 
 interface Props {
   rounds: RoundSummary[];
 }
 
-// Deterministic color assignment for actions
 const ACTION_COLORS = ["#16653A", "#8B1A1A", "#6B5C1A", "#2563EB", "#6B6B6B", "#9B9B9B"];
 
 export function VoteTally({ rounds }: Props) {
   if (rounds.length === 0) return null;
 
-  // Collect all unique actions across rounds
   const allActions = new Set<string>();
   rounds.forEach((r) => {
     Object.keys(r.vote_tally).forEach((a) => allActions.add(a));
   });
   const actions = Array.from(allActions);
 
-  // Build chart data
   const data = rounds.map((r) => {
     const entry: Record<string, any> = { name: `R${r.round}` };
     const total = Object.values(r.vote_tally).reduce((s, v) => s + v, 0);
@@ -30,7 +28,7 @@ export function VoteTally({ rounds }: Props) {
   });
 
   return (
-    <div className="border border-[#E5E5E5] rounded-[6px] bg-white p-4">
+    <Card className="p-4">
       <h3 className="text-[11px] text-[#9B9B9B] uppercase tracking-wider mb-3">Vote Distribution</h3>
       <ResponsiveContainer width="100%" height={rounds.length * 52 + 20}>
         <BarChart data={data} layout="vertical" margin={{ left: 0, right: 40, top: 0, bottom: 0 }}>
@@ -60,7 +58,6 @@ export function VoteTally({ rounds }: Props) {
               radius={i === actions.length - 1 ? [0, 4, 4, 0] : undefined}
               barSize={24}
             >
-              {/* Show value label on each segment if > 0 */}
               <LabelList
                 dataKey={action}
                 position="center"
@@ -73,7 +70,6 @@ export function VoteTally({ rounds }: Props) {
           ))}
         </BarChart>
       </ResponsiveContainer>
-      {/* Legend */}
       <div className="flex flex-wrap gap-3 mt-3 pt-3 border-t border-[#E5E5E5]">
         {actions.map((action, i) => (
           <div key={action} className="flex items-center gap-1.5">
@@ -85,6 +81,6 @@ export function VoteTally({ rounds }: Props) {
           </div>
         ))}
       </div>
-    </div>
+    </Card>
   );
 }

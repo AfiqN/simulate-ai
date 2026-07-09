@@ -1,4 +1,7 @@
 import { useState } from "react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import type { SchemaData } from "../../types";
 
 interface Props {
@@ -15,19 +18,15 @@ export function SchemaApproval({ schema, onApprove }: Props) {
   };
 
   return (
-    <div className="border border-[#D97706]/30 rounded-[6px] bg-[#FFFBEB] p-5 space-y-4">
+    <Card className="border-[#D97706]/30 bg-[#FFFBEB] p-5 space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="text-[11px] text-[#D97706] uppercase tracking-wider font-medium">Schema Pending Approval</span>
           <span className="text-[11px] text-[#9B9B9B]">Auto-approves in 120s</span>
         </div>
-        <button
-          onClick={handleApprove}
-          disabled={approving}
-          className="px-4 py-1.5 text-[13px] font-medium bg-[#1A1A1A] text-white rounded-[6px] hover:bg-[#333] transition-colors disabled:opacity-50"
-        >
+        <Button onClick={handleApprove} disabled={approving} size="sm">
           {approving ? "Approving..." : "Approve & Continue"}
-        </button>
+        </Button>
       </div>
 
       <div className="space-y-3">
@@ -39,17 +38,13 @@ export function SchemaApproval({ schema, onApprove }: Props) {
           <span className="text-[11px] text-[#6B6B6B] uppercase tracking-wider">Actions</span>
           <div className="flex flex-wrap gap-1.5 mt-1">
             {schema.actions.map((a) => (
-              <span
+              <Badge
                 key={a.name}
-                className={`px-2 py-0.5 text-[11px] rounded-[4px] ${
-                  a.is_terminal
-                    ? "bg-[#8B1A1A]/10 text-[#8B1A1A]"
-                    : "bg-[#F5F5F5] text-[#6B6B6B]"
-                }`}
-                title={a.description || a.name}
+                variant={a.is_terminal ? "destructive" : "secondary"}
+                className={a.is_terminal ? "bg-[#8B1A1A]/10" : ""}
               >
                 {a.name}{a.is_terminal ? " ⊘" : ""}
-              </span>
+              </Badge>
             ))}
           </div>
         </div>
@@ -58,9 +53,7 @@ export function SchemaApproval({ schema, onApprove }: Props) {
           <span className="text-[11px] text-[#6B6B6B] uppercase tracking-wider">Evaluation Dimensions</span>
           <div className="flex flex-wrap gap-1.5 mt-1">
             {schema.evaluation_dimensions.map((dim) => (
-              <span key={dim} className="px-2 py-0.5 text-[11px] bg-[#F5F5F5] text-[#6B6B6B] rounded-[4px]">
-                {dim}
-              </span>
+              <Badge key={dim} variant="secondary">{dim}</Badge>
             ))}
           </div>
         </div>
@@ -70,14 +63,14 @@ export function SchemaApproval({ schema, onApprove }: Props) {
             <span className="text-[11px] text-[#6B6B6B] uppercase tracking-wider">State Vocabulary</span>
             <div className="flex flex-wrap gap-1.5 mt-1">
               {schema.state_vocabulary.map((s) => (
-                <span key={s} className="px-2 py-0.5 text-[11px] bg-[#EEF2FF] text-[#4338CA] rounded-[4px]">
+                <Badge key={s} variant="outline" className="bg-[#EEF2FF] text-[#4338CA] border-transparent">
                   {s}
-                </span>
+                </Badge>
               ))}
             </div>
           </div>
         )}
       </div>
-    </div>
+    </Card>
   );
 }

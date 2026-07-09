@@ -1,22 +1,22 @@
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
-import { Badge } from "../common/Badge";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import type { AgentDecision } from "../../types";
 
 interface Props {
   decision: AgentDecision;
   isNew?: boolean;
   actionMeta?: { is_terminal: boolean };
-  index?: number; // for stagger animation
+  index?: number;
 }
 
-function getActionVariant(action: string, isTerminal?: boolean): "positive" | "negative" | "neutral" {
-  if (isTerminal) return "negative";
-  // Heuristic: common positive/negative keywords
+function getActionVariant(action: string, isTerminal?: boolean): "success" | "destructive" | "warning" {
+  if (isTerminal) return "destructive";
   const lower = action.toLowerCase();
-  if (["invest", "support", "approve", "accept", "adopt"].some(k => lower.includes(k))) return "positive";
-  if (["reject", "pass", "divest", "oppose", "block"].some(k => lower.includes(k))) return "negative";
-  return "neutral";
+  if (["invest", "support", "approve", "accept", "adopt"].some(k => lower.includes(k))) return "success";
+  if (["reject", "pass", "divest", "oppose", "block"].some(k => lower.includes(k))) return "destructive";
+  return "warning";
 }
 
 export function AgentCard({ decision, isNew, actionMeta, index = 0 }: Props) {
@@ -26,8 +26,8 @@ export function AgentCard({ decision, isNew, actionMeta, index = 0 }: Props) {
   const staggerDelay = isNew ? `${index * 60}ms` : "0ms";
 
   return (
-    <div
-      className={`border border-[#E5E5E5] rounded-[6px] bg-white transition-all duration-200 ${
+    <Card
+      className={`transition-all duration-200 ${
         isNew ? "animate-scale-in" : ""
       } ${expanded ? "border-l-2 border-l-[#2563EB]" : ""}`}
       style={{ animationDelay: staggerDelay }}
@@ -43,11 +43,11 @@ export function AgentCard({ decision, isNew, actionMeta, index = 0 }: Props) {
               {decision.archetype}
             </span>
             {decision.cluster_id && (
-              <Badge label={decision.cluster_id} size="sm" />
+              <Badge variant="secondary" size="sm">{decision.cluster_id}</Badge>
             )}
           </div>
           <div className="flex items-center gap-3">
-            <Badge label={decision.action} variant={variant} />
+            <Badge variant={variant}>{decision.action}</Badge>
             <span className="text-[13px] font-['JetBrains_Mono'] text-[#6B6B6B] tabular-nums">
               {decision.utility >= 0 ? "+" : ""}{decision.utility.toFixed(2)}
             </span>
@@ -69,7 +69,6 @@ export function AgentCard({ decision, isNew, actionMeta, index = 0 }: Props) {
       {/* Expanded view */}
       {expanded && (
         <div className="px-3 pb-3 border-t border-[#E5E5E5] pt-3 space-y-3 animate-fade-in">
-          {/* Monologue / Statement */}
           {decision.monologue && (
             <div className="space-y-1">
               <span className="text-[11px] text-[#9B9B9B] uppercase tracking-wider">Monologue</span>
@@ -83,7 +82,6 @@ export function AgentCard({ decision, isNew, actionMeta, index = 0 }: Props) {
             </div>
           )}
 
-          {/* Utility dimensions */}
           {Object.keys(decision.utility_dimensions).length > 0 && (
             <div className="space-y-1.5">
               <span className="text-[11px] text-[#9B9B9B] uppercase tracking-wider">Dimensions</span>
@@ -106,7 +104,6 @@ export function AgentCard({ decision, isNew, actionMeta, index = 0 }: Props) {
             </div>
           )}
 
-          {/* Reasoning chain */}
           {decision.reasoning_chain.length > 0 && (
             <div className="space-y-1">
               <span className="text-[11px] text-[#9B9B9B] uppercase tracking-wider">Reasoning</span>
@@ -122,7 +119,6 @@ export function AgentCard({ decision, isNew, actionMeta, index = 0 }: Props) {
             </div>
           )}
 
-          {/* Emotional state */}
           {decision.new_state && (
             <div className="flex items-center gap-2">
               <span className="text-[11px] text-[#9B9B9B] uppercase tracking-wider">State</span>
@@ -130,7 +126,6 @@ export function AgentCard({ decision, isNew, actionMeta, index = 0 }: Props) {
             </div>
           )}
 
-          {/* Duration */}
           {decision.duration && (
             <div className="flex items-center gap-2">
               <span className="text-[11px] text-[#9B9B9B] uppercase tracking-wider">Time</span>
@@ -139,6 +134,6 @@ export function AgentCard({ decision, isNew, actionMeta, index = 0 }: Props) {
           )}
         </div>
       )}
-    </div>
+    </Card>
   );
 }

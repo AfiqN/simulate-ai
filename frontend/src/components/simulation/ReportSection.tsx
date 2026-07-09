@@ -1,37 +1,35 @@
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { ChevronDown } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import type { SimulationResult } from "../../types";
 
 interface Props {
   result: SimulationResult;
 }
 
-function getVerdictStyle(verdict: string): { bg: string; text: string } {
+function getVerdictVariant(verdict: string): "success" | "destructive" | "warning" {
   const v = verdict.toLowerCase();
-  if (v.includes("resilient")) return { bg: "#ECFDF5", text: "#16653A" };
-  if (v.includes("fragile")) return { bg: "#FEF2F2", text: "#8B1A1A" };
-  return { bg: "#FEFCE8", text: "#6B5C1A" }; // moderate/indeterminate
+  if (v.includes("resilient")) return "success";
+  if (v.includes("fragile")) return "destructive";
+  return "warning";
 }
 
 export function ReportSection({ result }: Props) {
   const [showRaw, setShowRaw] = useState(false);
 
   const verdict = result.resilience_metrics?.verdict || result.verdict || "Unknown";
-  const verdictStyle = getVerdictStyle(verdict);
   const stability = result.resilience_metrics?.decision_stability;
   const drift = result.resilience_metrics?.utility_drift_mean;
 
   return (
-    <div className="border border-[#E5E5E5] rounded-[6px] bg-white p-4 space-y-4">
+    <Card className="p-4 space-y-4">
       {/* Verdict badge */}
       <div className="flex items-center gap-4">
-        <span
-          className="px-3 py-1.5 rounded-[6px] text-[14px] font-medium"
-          style={{ backgroundColor: verdictStyle.bg, color: verdictStyle.text }}
-        >
+        <Badge variant={getVerdictVariant(verdict)} className="px-3 py-1.5 text-[14px]">
           {verdict}
-        </span>
+        </Badge>
         {stability !== undefined && (
           <span className="text-[13px] text-[#6B6B6B]">
             Stability: <span className="font-['JetBrains_Mono'] text-[#0F0F0F]">{(stability * 100).toFixed(0)}%</span>
@@ -106,6 +104,6 @@ export function ReportSection({ result }: Props) {
           <span>R3: <span className="font-['JetBrains_Mono']">{result.timings.r3.toFixed(1)}s</span></span>
         </div>
       )}
-    </div>
+    </Card>
   );
 }

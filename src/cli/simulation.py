@@ -15,6 +15,7 @@ from src.agent.adversary import compute_adversary_map, evolve_adversary_map, evo
 from src.agent.agent import Agent
 from src.agent.factions import FactionTracker
 from src.agent.swarm import SwarmGenerationError, generate_llm_swarm
+from src.dynamics.conditional import ConditionalEngine, default_rules, TriggerResult
 from src.cli import console
 from src.cli.rendering import (
     action_style,
@@ -62,7 +63,7 @@ async def _run_perception(
     semaphore: asyncio.Semaphore,
     depth: str = "standard",
 ) -> None:
-    await asyncio.sleep(idx * 2)
+    await asyncio.sleep(idx * 0.3)  # Minimal stagger to avoid burst
     await _execute_round(
         idx,
         statuses,
@@ -83,7 +84,7 @@ async def _run_debate(
     depth: str = "standard",
     faction_context: Optional[str] = None,
 ) -> None:
-    await asyncio.sleep(4 + idx * 3)
+    await asyncio.sleep(idx * 0.5)  # Minimal stagger to avoid burst
     await _execute_round(
         idx,
         statuses,
@@ -107,7 +108,7 @@ async def _run_crisis(
     semaphore: asyncio.Semaphore,
     depth: str = "standard",
 ) -> None:
-    await asyncio.sleep(4 + idx * 3)
+    await asyncio.sleep(idx * 0.5)  # Minimal stagger to avoid burst
     await _execute_round(
         idx,
         statuses,
@@ -126,7 +127,7 @@ async def _run_reconciliation(
     semaphore: asyncio.Semaphore,
     depth: str = "standard",
 ) -> None:
-    await asyncio.sleep(2 + idx * 2)
+    await asyncio.sleep(idx * 0.3)  # Minimal stagger to avoid burst
     await _execute_round(
         idx,
         statuses,
@@ -313,6 +314,42 @@ def _apply_schema_overrides(schema, overrides: dict):
     return SimulationSchema.from_dict(data)
 
 
+async def _build_all_profiles(
+    client: OllamaClient,
+    schema: SimulationSchema,
+    stimulus: str,
+    agent_count: int,
+    custom_stakeholders: Optional[list[dict]] = None,
+    rag_perspectives: Optional[dict[str, list[str]]] = None,
+) -> list["AgentProfile"]:
+    """Build agent profiles: custom stakeholders first, then fill remaining with LLM swarm."""
+    from src.agent.custom_profile import build_custom_profiles
+
+    custom_profiles = []
+    exclude_roles = []
+
+    if custom_stakeholders:
+        custom_profiles = await build_custom_profiles(
+            custom_stakeholders, schema, stimulus, client, start_index=0
+        )
+        exclude_roles = [s["role"] for s in custom_stakeholders]
+
+    # Fill remaining slots with LLM-generated swarm
+    remaining_count = max(0, agent_count - len(custom_profiles))
+    generated_profiles = []
+    if remaining_count > 0:
+        generated_profiles = await generate_llm_swarm(
+            client, schema, stimulus, remaining_count,
+            rag_perspectives=rag_perspectives,
+            exclude_roles=exclude_roles if exclude_roles else None,
+        )
+        # Re-number generated agents to follow custom ones
+        for i, p in enumerate(generated_profiles):
+            p.agent_id = f"SIM-AGT-{len(custom_profiles) + i + 1:03d}"
+
+    return custom_profiles + generated_profiles
+
+
 async def run_simulation_pipeline(
     client: OllamaClient,
     stimulus: str,
@@ -325,6 +362,8 @@ async def run_simulation_pipeline(
     event_callback: Optional[Any] = None,
     depth: str = "standard",
     schema_approval_callback: Optional[Any] = None,
+    custom_stakeholders: Optional[list[dict]] = None,
+    historical_precedents: Optional[list[dict]] = None,
 ) -> dict[str, Any]:
     concurrency = max(1, min(concurrency, MAX_CONCURRENCY))
 
@@ -402,6 +441,30 @@ async def run_simulation_pipeline(
         if schema_overrides:
             schema = _apply_schema_overrides(schema, schema_overrides)
 
+    # --- Historical Context ---
+    from src.dynamics.historical import build_historical_context, HistoricalContext
+    historical_context: Optional[HistoricalContext] = None
+    if historical_precedents or rag_client:
+        _progress("Building historical context...")
+        historical_context = await build_historical_context(
+            client,
+            scenario_name=schema.scenario_name,
+            stimulus=stimulus,
+            dimensions=schema.evaluation_dimensions,
+            rag_client=rag_client if rag_enabled is not False else None,
+            user_precedents=historical_precedents,
+        )
+        if historical_context.precedents and headless:
+            _emit({"type": "historical_context", "precedents": [
+                {"title": p.title, "year": p.year, "summary": p.summary, "outcome": p.outcome, "relevance": p.relevance, "domain": p.domain, "source": p.source}
+                for p in historical_context.precedents
+            ]})
+
+    # Prepare historical prompt section for agents
+    historical_prompt_section = ""
+    if historical_context and historical_context.precedents:
+        historical_prompt_section = historical_context.to_agent_prompt_section(max_precedents=3)
+
     if not headless:
         render_schema_panel(schema)
 
@@ -411,14 +474,28 @@ async def run_simulation_pipeline(
             refresh_per_second=10,
         ) as live:
             _progress(f"Generating {agent_count} agent personas...")
-            profiles = await generate_llm_swarm(client, schema, stimulus, agent_count, rag_perspectives=swarm_rag_perspectives)
+            profiles = await _build_all_profiles(
+                client, schema, stimulus, agent_count,
+                custom_stakeholders=custom_stakeholders,
+                rag_perspectives=swarm_rag_perspectives,
+            )
             live.update("[bold green]✔ Personas generated.[/bold green]")
     else:
         _progress(f"Generating {agent_count} agent personas...")
         _emit({"type": "stage", "stage": "swarm", "progress": 16})
-        profiles = await generate_llm_swarm(client, schema, stimulus, agent_count, rag_perspectives=swarm_rag_perspectives)
+        profiles = await _build_all_profiles(
+            client, schema, stimulus, agent_count,
+            custom_stakeholders=custom_stakeholders,
+            rag_perspectives=swarm_rag_perspectives,
+        )
 
     agents = [Agent(profile, client, schema) for profile in profiles]
+
+    # Inject historical context into all agents
+    if historical_prompt_section:
+        for agent in agents:
+            agent.historical_context = historical_prompt_section
+
     if headless:
         _emit({"type": "swarm_ready", "agents": [{"id": p.agent_id, "archetype": p.archetype, "cluster_id": p.linguistic_cluster_id, "influence_weight": p.influence_weight, "backstory": p.backstory} for p in profiles]})
     if not headless:
@@ -465,6 +542,7 @@ async def run_simulation_pipeline(
 
     # Initialize faction tracker and record Round 1
     faction_tracker: Optional[FactionTracker] = None
+    conditional_engine = ConditionalEngine(default_rules())
     if depth != "quick":
         faction_tracker = FactionTracker()
         faction_tracker.record_round(1, decisions_r1)
@@ -472,6 +550,16 @@ async def run_simulation_pipeline(
             latest = faction_tracker.get_latest()
             if latest:
                 _emit({"type": "faction_update", "round": 1, "data": {a: {"size": f.size, "cohesion": f.cohesion} for a, f in latest.factions.items()}})
+
+    # Evaluate conditional triggers after Round 1
+    r1_triggers = conditional_engine.evaluate(
+        round_num=1,
+        decisions=decisions_r1,
+        prev_decisions=None,
+        faction_data=(faction_tracker.get_latest().factions if faction_tracker and faction_tracker.get_latest() else None),
+    )
+    if r1_triggers and headless:
+        _emit({"type": "triggers_fired", "round": 1, "triggers": [{"rule": t.rule_name, "effect": t.effect, "context": t.context} for t in r1_triggers]})
 
     adversary_map = compute_adversary_map(decisions_r1, agents)
     if not headless:
@@ -553,6 +641,16 @@ async def run_simulation_pipeline(
             adversary_map = evolve_adversary_map_v2(adversary_map, decisions_r1, decisions_r2, agents, faction_tracker)
         else:
             adversary_map = evolve_adversary_map(adversary_map, decisions_r1, decisions_r2, agents)
+
+        # Evaluate conditional triggers after Round 2
+        r2_triggers = conditional_engine.evaluate(
+            round_num=2,
+            decisions=decisions_r2,
+            prev_decisions=decisions_r1,
+            faction_data=(faction_tracker.get_latest().factions if faction_tracker and faction_tracker.get_latest() else None),
+        )
+        if r2_triggers and headless:
+            _emit({"type": "triggers_fired", "round": 2, "triggers": [{"rule": t.rule_name, "effect": t.effect, "context": t.context} for t in r2_triggers]})
     else:
         # Quick mode: use R1 decisions as R2 stand-in for resilience comparison
         decisions_r2 = decisions_r1
@@ -667,6 +765,16 @@ async def run_simulation_pipeline(
             latest = faction_tracker.get_latest()
             if latest:
                 _emit({"type": "faction_update", "round": 3, "data": {a: {"size": f.size, "cohesion": f.cohesion} for a, f in latest.factions.items()}})
+
+    # Evaluate conditional triggers after Round 3
+    r3_triggers = conditional_engine.evaluate(
+        round_num=3,
+        decisions=decisions_r3,
+        prev_decisions=decisions_r2,
+        faction_data=(faction_tracker.get_latest().factions if faction_tracker and faction_tracker.get_latest() else None),
+    )
+    if r3_triggers and headless:
+        _emit({"type": "triggers_fired", "round": 3, "triggers": [{"rule": t.rule_name, "effect": t.effect, "context": t.context} for t in r3_triggers]})
 
     # --- Round 4: Reconciliation (deep mode only) ---
     decisions_r4: list[dict] = []
@@ -795,6 +903,8 @@ async def run_simulation_pipeline(
             decisions_r1, decisions_r2, decisions_r3, profiles=profiles
         ),
         "faction_metrics": faction_tracker.compute_metrics() if faction_tracker else None,
+        "conditional_dynamics": conditional_engine.get_history() if conditional_engine.history else None,
+        "historical_context": historical_context.to_dict() if historical_context and historical_context.precedents else None,
         "report_md": report_md,
         "timings": {
             "r1": dur_r1,

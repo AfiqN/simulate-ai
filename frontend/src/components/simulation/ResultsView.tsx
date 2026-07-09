@@ -8,6 +8,7 @@ import { VoteTally } from "../metrics/VoteTally";
 import { ConsensusGauge } from "../metrics/ConsensusGauge";
 import { DimensionChart } from "../metrics/DimensionChart";
 import { SwingTable } from "../metrics/SwingTable";
+import { ExportButton } from "../metrics/ExportButton";
 import {
   FactionTimeline,
   FactionFlow,
@@ -15,7 +16,9 @@ import {
   DefectionLog,
   PanelDebateView,
 } from "../factions";
-import type { SimulationResult, RoundSummary, AgentDecision, SchemaData, FactionUpdate } from "../../types";
+import { ConditionalTriggersPanel } from "../dynamics/ConditionalTriggersPanel";
+import { HistoricalContextPanel } from "../dynamics/HistoricalContextPanel";
+import type { SimulationResult, RoundSummary, AgentDecision, SchemaData, FactionUpdate, TriggersEvent, HistoricalPrecedent } from "../../types";
 
 interface Props {
   result: SimulationResult;
@@ -23,6 +26,9 @@ interface Props {
   agentsByRound: Record<number, AgentDecision[]>;
   schema: SchemaData | null;
   factionUpdates: FactionUpdate[];
+  triggersEvents?: TriggersEvent[];
+  historicalPrecedents?: HistoricalPrecedent[];
+  runId?: string;
   onReset: () => void;
 }
 
@@ -32,7 +38,7 @@ function computeHHI(voteTally: Record<string, number>, totalAgents: number): num
   return shares.reduce((sum, s) => sum + s * s, 0);
 }
 
-export function ResultsView({ result, rounds, agentsByRound, schema, factionUpdates, onReset }: Props) {
+export function ResultsView({ result, rounds, agentsByRound, schema, factionUpdates, triggersEvents, historicalPrecedents, runId, onReset }: Props) {
   const [exporting, setExporting] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
 
@@ -59,13 +65,16 @@ export function ResultsView({ result, rounds, agentsByRound, schema, factionUpda
 
   return (
     <div className="space-y-6">
-      {/* New Simulation button */}
-      <button
-        onClick={onReset}
-        className="px-4 py-2 text-[13px] border border-[#E5E5E5] rounded-[6px] text-[#6B6B6B] hover:border-[#D0D0D0] hover:text-[#0F0F0F] transition-colors"
-      >
-        ← New Simulation
-      </button>
+      {/* Actions bar */}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={onReset}
+          className="px-4 py-2 text-[13px] border border-[#E5E5E5] rounded-[6px] text-[#6B6B6B] hover:border-[#D0D0D0] hover:text-[#0F0F0F] transition-colors"
+        >
+          ← New Simulation
+        </button>
+        {runId && <ExportButton runId={runId} />}
+      </div>
 
       {/* PDF-capturable area */}
       <div ref={reportRef} className="space-y-6">
@@ -136,6 +145,19 @@ export function ResultsView({ result, rounds, agentsByRound, schema, factionUpda
           <div>
             <h2 className="text-[15px] font-medium tracking-[-0.02em] mb-3">Agent Decisions</h2>
             <RoundTimeline rounds={rounds} agentsByRound={agentsByRound} />
+          </div>
+        )}
+
+        {/* Dynamics: Triggers + Historical Context */}
+        {((triggersEvents && triggersEvents.length > 0) || (historicalPrecedents && historicalPrecedents.length > 0)) && (
+          <div className="space-y-4">
+            <h2 className="text-[15px] font-medium tracking-[-0.02em]">Dynamics</h2>
+            {triggersEvents && triggersEvents.length > 0 && (
+              <ConditionalTriggersPanel triggers={triggersEvents} />
+            )}
+            {historicalPrecedents && historicalPrecedents.length > 0 && (
+              <HistoricalContextPanel precedents={historicalPrecedents} />
+            )}
           </div>
         )}
 

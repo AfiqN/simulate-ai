@@ -24,7 +24,8 @@ class SimulationJob:
     def __init__(self, run_id: str, stimulus: str, agent_count: int, concurrency: int,
                  model: str | None = None, provider: str | None = None,
                  crisis_override: str | None = None, rag_enabled: bool | None = None,
-                 depth: str = "standard"):
+                 depth: str = "standard", custom_stakeholders: list[dict] | None = None,
+                 historical_precedents: list[dict] | None = None):
         self.run_id = run_id
         self.stimulus = stimulus
         self.agent_count = agent_count
@@ -34,6 +35,8 @@ class SimulationJob:
         self.crisis_override = crisis_override
         self.rag_enabled = rag_enabled
         self.depth = depth
+        self.custom_stakeholders = custom_stakeholders
+        self.historical_precedents = historical_precedents
         self.status: str = "queued"
         self.scenario_name: str | None = None
         self.verdict: str | None = None
@@ -46,6 +49,9 @@ class SimulationJob:
         self.schema_pending: bool = False
         self.schema_approval_event: asyncio.Event = asyncio.Event()
         self.schema_overrides: dict[str, Any] | None = None
+        # Cancellation
+        self.cancelled: bool = False
+        self._task: asyncio.Task | None = None
 
 
 # Global job registry (in-memory — lost on restart)
@@ -63,7 +69,22 @@ def list_jobs() -> list[SimulationJob]:
 async def enqueue_simulation(job: SimulationJob, db) -> None:
     """Register the job and spawn a background task to execute it."""
     _jobs[job.run_id] = job
-    asyncio.create_task(_execute_simulation(job, db))
+    job._task = asyncio.create_task(_execute_simulation(job, db))
+
+
+async def cancel_job(run_id: str, db) -> bool:
+    """Cancel a running simulation. Returns True if cancelled."""
+    job = _jobs.get(run_id)
+    if not job or job.status not in ("queued", "running"):
+        return False
+    job.cancelled = True
+    if job._task and not job._task.done():
+        job._task.cancel()
+    job.status = "cancelled"
+    from src.api.websocket import event_bus
+    event_bus.emit(run_id, {"type": "error", "message": "Simulation cancelled by user"})
+    await update_run(db, run_id, status="cancelled")
+    return True
 
 
 async def _execute_simulation(job: SimulationJob, db) -> None:
@@ -71,6 +92,13 @@ async def _execute_simulation(job: SimulationJob, db) -> None:
     job.status = "running"
     job.progress = "Connecting to LLM provider..."
     await update_run(db, job.run_id, status="running")
+
+    from src.api.webhooks import dispatch_webhook_event
+    await dispatch_webhook_event("simulation.started", {
+        "stimulus": job.stimulus,
+        "agent_count": job.agent_count,
+        "depth": job.depth,
+    }, run_id=job.run_id)
 
     client = OllamaClient(host=OLLAMA_HOST, model=job.model, provider=job.provider)
     start = time.time()
@@ -114,6 +142,8 @@ async def _execute_simulation(job: SimulationJob, db) -> None:
             event_callback=_event_cb,
             depth=job.depth,
             schema_approval_callback=_schema_approval_cb,
+            custom_stakeholders=job.custom_stakeholders,
+            historical_precedents=job.historical_precedents,
         )
 
         job.elapsed_s = time.time() - start
@@ -162,6 +192,13 @@ async def _execute_simulation(job: SimulationJob, db) -> None:
 
         event_bus.emit(job.run_id, {"type": "complete", "result": job.result})
 
+        await dispatch_webhook_event("simulation.completed", {
+            "scenario_name": job.scenario_name,
+            "verdict": job.verdict,
+            "elapsed_s": job.elapsed_s,
+            "agent_count": job.agent_count,
+        }, run_id=job.run_id)
+
     except Exception as e:
         job.elapsed_s = time.time() - start
         job.status = "failed"
@@ -173,5 +210,9 @@ async def _execute_simulation(job: SimulationJob, db) -> None:
             elapsed_s=job.elapsed_s,
             error_message=job.error,
         )
+        await dispatch_webhook_event("simulation.failed", {
+            "error": job.error,
+            "elapsed_s": job.elapsed_s,
+        }, run_id=job.run_id)
     finally:
         await client.aclose()

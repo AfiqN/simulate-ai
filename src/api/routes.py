@@ -8,7 +8,7 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, Request, WebSocket, WebSocketDisconnect
 
 from src.api.models import RunListResponse, RunSummary, SimulationRequest, SimulationStatus, SchemaApprovalRequest
-from src.api.queue import SimulationJob, enqueue_simulation, get_job
+from src.api.queue import SimulationJob, enqueue_simulation, get_job, cancel_job
 from src.api.websocket import event_bus
 from src.persistence.db import get_run, insert_run, list_runs
 
@@ -35,6 +35,8 @@ async def start_simulation(req: SimulationRequest, request: Request):
         crisis_override=req.crisis_override,
         rag_enabled=req.rag_enabled,
         depth=req.depth,
+        custom_stakeholders=[s.model_dump() for s in req.custom_stakeholders] if req.custom_stakeholders else None,
+        historical_precedents=req.historical_precedents,
     )
 
     await insert_run(
@@ -159,6 +161,16 @@ async def approve_schema(run_id: str, req: SchemaApprovalRequest):
 
     job.schema_approval_event.set()
     return {"status": "approved", "run_id": run_id}
+
+
+@router.post("/simulate/{run_id}/cancel")
+async def cancel_simulation(run_id: str, request: Request):
+    """Cancel a running or queued simulation."""
+    db = request.app.state.db
+    success = await cancel_job(run_id, db)
+    if not success:
+        raise HTTPException(status_code=404, detail=f"Run '{run_id}' not found or not cancellable.")
+    return {"status": "cancelled", "run_id": run_id}
 
 
 @router.websocket("/ws/simulate/{run_id}")

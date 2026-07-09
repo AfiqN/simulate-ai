@@ -5,6 +5,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from src.export.chart_data import generate_chart_data
+
 
 def write_bundle(result: dict[str, Any], out_dir: Path) -> Path:
     """Write a shareable bundle (manifest + full data + report) to out_dir/bundle/.
@@ -88,6 +90,16 @@ def write_bundle(result: dict[str, Any], out_dir: Path) -> Path:
 
     # --- report.md: standalone readable report ---
     (bundle_dir / "report.md").write_text(result["report_md"], encoding="utf-8")
+
+    # --- chart_data.json: pre-computed chart-ready structures ---
+    try:
+        chart_data = generate_chart_data(result)
+        (bundle_dir / "chart_data.json").write_text(
+            json.dumps(chart_data, indent=2, default=str, ensure_ascii=False),
+            encoding="utf-8",
+        )
+    except (KeyError, TypeError):
+        pass  # Non-fatal: chart data is optional
 
     return bundle_dir
 

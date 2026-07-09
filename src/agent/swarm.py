@@ -64,7 +64,7 @@ def _action_coverage_block(schema: SimulationSchema, count: int) -> str:
     return "\n".join(lines)
 
 
-def _build_prompt(schema: SimulationSchema, stimulus: str, count: int, rag_perspectives: dict[str, list[str]] | None = None) -> str:
+def _build_prompt(schema: SimulationSchema, stimulus: str, count: int, rag_perspectives: dict[str, list[str]] | None = None, exclude_roles: list[str] | None = None) -> str:
     rag_block = ""
     if rag_perspectives:
         lines = []
@@ -84,6 +84,18 @@ STAKEHOLDER PERSPECTIVES (real-world attitudes — use to shape each agent's wor
 Use these real-world perspectives to shape each agent's memory_vectors and attitudes.
 Agents should reflect the genuine sentiments and worldview of their stakeholder group.
 Do NOT copy verbatim — synthesize into character-defining beliefs.
+"""
+
+    exclude_block = ""
+    if exclude_roles:
+        roles_str = ", ".join(exclude_roles)
+        exclude_block = f"""
+
+ALREADY FILLED ROLES (do NOT duplicate these — design complementary personas instead):
+{roles_str}
+
+The personas you generate must represent DIFFERENT stakeholder perspectives from the roles above.
+Design personas that will create productive tension and debate with those existing stakeholders.
 """
 
     return f"""You are the SimulateAI Swarm Generator. Design exactly {count} distinct agent personas for the scenario "{schema.scenario_name}".
@@ -115,7 +127,7 @@ Constraints:
 {_cluster_block(schema)}
 
 {_resource_block(schema)}
-{rag_block}
+{rag_block}{exclude_block}
 Return ONLY a JSON object of this exact shape (no markdown, no <thought> tags, no preamble):
 
 {{
@@ -191,8 +203,9 @@ async def generate_llm_swarm(
     count: int,
     model: Optional[str] = None,
     rag_perspectives: Optional[dict[str, list[str]]] = None,
+    exclude_roles: Optional[list[str]] = None,
 ) -> list[AgentProfile]:
-    prompt = _build_prompt(schema, stimulus, count, rag_perspectives=rag_perspectives)
+    prompt = _build_prompt(schema, stimulus, count, rag_perspectives=rag_perspectives, exclude_roles=exclude_roles)
     messages = [
         {
             "role": "system",

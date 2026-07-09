@@ -9,6 +9,8 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from src.api.routes import router
+from src.api.export import router as export_router
+from src.api.webhook_routes import router as webhook_router
 from src.persistence.db import init_db
 
 STATIC_DIR = Path(__file__).resolve().parent.parent.parent / "static" / "dist"
@@ -45,6 +47,8 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(router)
+    app.include_router(export_router)
+    app.include_router(webhook_router)
 
     # Serve frontend static build if it exists
     if STATIC_DIR.exists():

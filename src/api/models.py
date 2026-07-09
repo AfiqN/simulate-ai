@@ -4,6 +4,14 @@ from typing import Any, Literal, Optional
 from pydantic import BaseModel, Field
 
 
+class CustomStakeholder(BaseModel):
+    """A user-defined stakeholder persona to inject into the simulation."""
+    role: str = Field(..., min_length=1, max_length=100, description="Role title, e.g. 'CFO', 'Head of Engineering'.")
+    description: str = Field(..., min_length=1, max_length=500, description="Character description, e.g. 'conservative, focused on cash flow'.")
+    focus_areas: Optional[list[str]] = Field(default=None, max_length=5, description="Key areas this stakeholder focuses on.")
+    constraints: Optional[list[str]] = Field(default=None, max_length=5, description="Hard red lines this stakeholder will not cross.")
+
+
 class SimulationRequest(BaseModel):
     """Request body for POST /api/simulate."""
     stimulus: str = Field(..., min_length=1, description="The scenario stimulus text.")
@@ -14,6 +22,8 @@ class SimulationRequest(BaseModel):
     crisis_override: Optional[str] = Field(default=None, description="Custom crisis event for Round 3.")
     rag_enabled: Optional[bool] = Field(default=None, description="Override RAG. None=use config default, True=force on, False=force off.")
     depth: Literal["quick", "standard", "deep"] = Field(default="standard", description="Analysis depth: quick (2 rounds, concise), standard (full), deep (verbose + minority report).")
+    custom_stakeholders: Optional[list[CustomStakeholder]] = Field(default=None, max_length=10, description="User-defined stakeholder personas to inject (max 10).")
+    historical_precedents: Optional[list[dict[str, Any]]] = Field(default=None, max_length=5, description="User-supplied historical precedents (title, year, summary, outcome, relevance, domain).")
 
 
 class SimulationStatus(BaseModel):
@@ -52,3 +62,24 @@ class SchemaApprovalRequest(BaseModel):
         default=None,
         description="Optional partial schema overrides: actions, evaluation_dimensions, state_vocabulary."
     )
+
+
+class WebhookRegisterRequest(BaseModel):
+    """Request body for POST /api/webhooks."""
+    url: str = Field(..., description="HTTPS endpoint to receive webhook payloads.")
+    events: list[str] = Field(
+        default=["*"],
+        description="Event types to subscribe to. Use '*' for all. Options: simulation.started, simulation.schema_ready, simulation.round_complete, simulation.completed, simulation.failed, simulation.cancelled."
+    )
+    secret: Optional[str] = Field(default=None, description="Shared secret for HMAC-SHA256 payload signing.")
+
+
+class WebhookResponse(BaseModel):
+    """Response for webhook endpoints."""
+    id: str
+    url: str
+    events: list[str]
+    active: bool
+    created_at: float
+    failure_count: int
+

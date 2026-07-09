@@ -1,9 +1,18 @@
+export interface CustomStakeholder {
+  role: string;
+  description: string;
+  focus_areas?: string[];
+  constraints?: string[];
+}
+
 export interface SimulationConfig {
   stimulus: string;
   agent_count: number;
   depth: "quick" | "standard" | "deep";
   provider?: string;
   crisis_override?: string;
+  custom_stakeholders?: CustomStakeholder[];
+  historical_precedents?: HistoricalPrecedent[];
 }
 
 export interface AgentDecision {
@@ -86,7 +95,33 @@ export interface RunSummaryItem {
   created_at: string;
 }
 
-// --- Faction Types ---
+// --- Structured Output / Chart Data Types ---
+
+export interface UtilityTrajectory {
+  agent_id: string;
+  archetype: string;
+  is_custom: boolean;
+  values: { round: number; utility: number; action: string }[];
+}
+
+export interface ChartData {
+  utility_trajectories: UtilityTrajectory[];
+  faction_pie: Record<string, Record<string, number>>;
+  state_sankey: { from_round: string; to_round: string; from_state: string; to_state: string; count: number }[];
+  dimension_heatmap: Record<string, { agent_id: string; archetype: string; dimensions: Record<string, number> }[]>;
+}
+
+export interface ComparisonResult {
+  verdict: { run_a: string; run_b: string; changed: boolean };
+  stability: {
+    decision_stability: { run_a: number; run_b: number; delta: number };
+    utility_drift_mean: { run_a: number; run_b: number; delta: number };
+  };
+  vote_tally: Record<string, Record<string, { run_a: number; run_b: number; delta: number }>>;
+  dimension_stats: Record<string, Record<string, { run_a_mean: number; run_b_mean: number; delta: number }>>;
+  timings: { run_a_total: number; run_b_total: number; delta: number };
+  meta: { run_a_scenario: string; run_b_scenario: string; run_a_agents: number; run_b_agents: number };
+}
 
 export interface FactionSnapshot {
   size: number;
@@ -112,4 +147,41 @@ export interface FactionMetrics {
   alliance_events: DefectionEvent[];
   majority_stability: number;
   faction_count_trajectory: number[];
+}
+
+// --- Phase 3: Conditional Dynamics ---
+
+export interface TriggerFired {
+  rule: string;
+  effect: string;
+  context: Record<string, any>;
+}
+
+export interface TriggersEvent {
+  round: number;
+  triggers: TriggerFired[];
+}
+
+// --- Phase 3: Historical Context ---
+
+export interface HistoricalPrecedent {
+  title: string;
+  year?: number | null;
+  summary: string;
+  outcome?: string;
+  relevance?: string;
+  domain?: string;
+  source?: string;
+}
+
+// --- Phase 3: Webhooks ---
+
+export interface Webhook {
+  id: string;
+  url: string;
+  events: string[];
+  secret?: string;
+  active: boolean;
+  created_at: string;
+  failure_count: number;
 }

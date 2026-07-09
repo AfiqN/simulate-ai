@@ -31,6 +31,7 @@ class AgentProfile:
     constraints: list[str] = field(default_factory=list)  # red lines this agent cannot cross
     influence_weight: float = 1.0       # 0.1–3.0, relative voice weight (CEO > intern)
     backstory: str = ""                 # 2-3 sentences grounding the persona
+    is_custom: bool = False              # True if user-defined stakeholder (not LLM-generated)
 
     def primary_resource(self) -> Optional[ResourceBalance]:
         return self.resources[0] if self.resources else None
@@ -73,4 +74,5 @@ class AgentProfile:
             constraints=list(data.get("constraints", [])),
             influence_weight=float(data.get("influence_weight", 1.0)),
             backstory=str(data.get("backstory", "")),
+            is_custom=bool(data.get("is_custom", False)),
         )

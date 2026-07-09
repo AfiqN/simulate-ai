@@ -1,10 +1,8 @@
 import type { SimulationConfig, RunSummaryItem } from "../types";
 
-// When accessed via IP (WSL2 from Windows), call backend directly on port 8000.
-// When accessed via localhost (same machine or proxy), use relative path.
-const API_BASE = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-  ? ""
-  : `http://${window.location.hostname}:8000`;
+// Always use relative paths — Vite dev server proxies /api to the backend.
+// In production, backend serves the static dist so relative paths work too.
+const API_BASE = "";
 
 export async function startSimulation(config: SimulationConfig): Promise<{ id: string; status: string }> {
   const res = await fetch(`${API_BASE}/api/simulate`, {
@@ -16,6 +14,8 @@ export async function startSimulation(config: SimulationConfig): Promise<{ id: s
       depth: config.depth,
       provider: config.provider || undefined,
       crisis_override: config.crisis_override || undefined,
+      custom_stakeholders: config.custom_stakeholders?.length ? config.custom_stakeholders : undefined,
+      historical_precedents: config.historical_precedents?.length ? config.historical_precedents : undefined,
       concurrency: 2,
     }),
   });
@@ -40,6 +40,23 @@ export async function getHistory(): Promise<{ runs: RunSummaryItem[]; total: num
 
 export async function getRunDetail(id: string): Promise<any> {
   const res = await fetch(`${API_BASE}/api/simulate/${id}`);
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
+
+export async function cancelSimulation(id: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/simulate/${id}/cancel`, { method: "POST" });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+}
+
+export async function exportRun(id: string): Promise<any> {
+  const res = await fetch(`${API_BASE}/api/runs/${id}/export`);
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
+
+export async function compareRuns(runA: string, runB: string): Promise<any> {
+  const res = await fetch(`${API_BASE}/api/compare?run_a=${encodeURIComponent(runA)}&run_b=${encodeURIComponent(runB)}`);
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }

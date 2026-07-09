@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useSimulation, useSimulationEvents } from "./hooks/useSimulation";
 import { useWebSocket } from "./hooks/useWebSocket";
-import { startSimulation, approveSchema } from "./lib/api";
+import { startSimulation, approveSchema, cancelSimulation, getHistory } from "./lib/api";
 import { Header } from "./components/layout/Header";
 import { HistoryList } from "./components/layout/HistoryList";
 import { SimForm } from "./components/simulation/SimForm";
@@ -10,14 +10,37 @@ import { SchemaApproval } from "./components/simulation/SchemaApproval";
 import { AgentCard } from "./components/simulation/AgentCard";
 import { RoundTimeline } from "./components/simulation/RoundTimeline";
 import { ResultsView } from "./components/simulation/ResultsView";
-import type { SimulationConfig, SimulationResult } from "./types";
+import { ComparisonView } from "./components/metrics/ComparisonView";
+import { ConditionalTriggersPanel } from "./components/dynamics/ConditionalTriggersPanel";
+import { HistoricalContextPanel } from "./components/dynamics/HistoricalContextPanel";
+import { WebhookManager } from "./components/dynamics/WebhookManager";
+import type { SimulationConfig, SimulationResult, RunSummaryItem } from "./types";
 
 export default function App() {
   const [showHistory, setShowHistory] = useState(false);
+  const [showWebhooks, setShowWebhooks] = useState(false);
+  const [historyRuns, setHistoryRuns] = useState<RunSummaryItem[]>([]);
   const { state, dispatch } = useSimulation();
   const { events, status: wsStatus } = useWebSocket(state.runId);
 
   useSimulationEvents(dispatch, events);
+
+  const handleToggleHistory = () => {
+    const next = !showHistory;
+    setShowHistory(next);
+    if (next) setShowWebhooks(false);
+    if (next) {
+      getHistory()
+        .then((data) => setHistoryRuns(data.runs))
+        .catch(() => {});
+    }
+  };
+
+  const handleToggleWebhooks = () => {
+    const next = !showWebhooks;
+    setShowWebhooks(next);
+    if (next) setShowHistory(false);
+  };
 
   const handleSubmit = async (config: SimulationConfig) => {
     setShowHistory(false);
@@ -36,6 +59,16 @@ export default function App() {
       dispatch({ type: "SCHEMA_APPROVED" });
     } catch (err) {
       console.error("Failed to approve schema:", err);
+    }
+  };
+
+  const handleCancel = async () => {
+    if (!state.runId) return;
+    try {
+      await cancelSimulation(state.runId);
+      dispatch({ type: "RESET" });
+    } catch (err) {
+      console.error("Failed to cancel simulation:", err);
     }
   };
 
@@ -62,16 +95,31 @@ export default function App() {
 
   return (
     <div className="min-h-screen">
-      <Header showHistory={showHistory} onToggleHistory={() => setShowHistory(!showHistory)} />
+      <Header
+        showHistory={showHistory}
+        showWebhooks={showWebhooks}
+        onToggleHistory={handleToggleHistory}
+        onToggleWebhooks={handleToggleWebhooks}
+      />
 
       <main className="mx-auto max-w-[960px] px-6 py-6 space-y-6">
         {/* History view */}
         {showHistory && (
-          <HistoryList onLoadResult={handleLoadResult} />
+          <div className="space-y-6">
+            <HistoryList onLoadResult={handleLoadResult} />
+            {historyRuns.length >= 2 && (
+              <ComparisonView runs={historyRuns} />
+            )}
+          </div>
+        )}
+
+        {/* Webhooks view */}
+        {showWebhooks && (
+          <WebhookManager />
         )}
 
         {/* Simulation view */}
-        {!showHistory && (
+        {!showHistory && !showWebhooks && (
           <>
             {state.status !== "complete" && (
               <SimForm
@@ -81,13 +129,23 @@ export default function App() {
             )}
 
             {state.status === "running" && (
-              <PipelineProgress
-                currentStage={state.currentStage}
-                progress={state.progress}
-                agentCount={state.agents.length || undefined}
-                agentsCompleted={latestAgents.length || undefined}
-                wsConnected={wsStatus === "connected"}
-              />
+              <div className="space-y-3">
+                <PipelineProgress
+                  currentStage={state.currentStage}
+                  progress={state.progress}
+                  agentCount={state.agents.length || undefined}
+                  agentsCompleted={latestAgents.length || undefined}
+                  wsConnected={wsStatus === "connected"}
+                />
+                <div className="flex justify-end">
+                  <button
+                    onClick={handleCancel}
+                    className="px-4 py-1.5 text-[13px] font-medium text-[#8B1A1A] border border-[#8B1A1A]/30 rounded-[6px] hover:bg-[#FEF2F2] transition-colors"
+                  >
+                    Cancel Simulation
+                  </button>
+                </div>
+              </div>
             )}
 
             {state.status === "schema_pending" && state.schema && (
@@ -133,6 +191,16 @@ export default function App() {
               </div>
             )}
 
+            {/* Historical precedents (during running) */}
+            {state.historicalPrecedents.length > 0 && state.status === "running" && (
+              <HistoricalContextPanel precedents={state.historicalPrecedents} />
+            )}
+
+            {/* Conditional triggers (during running) */}
+            {state.triggersEvents.length > 0 && state.status === "running" && (
+              <ConditionalTriggersPanel triggers={state.triggersEvents} />
+            )}
+
             {/* Agent cards grid */}
             {latestAgents.length > 0 && state.status === "running" && (
               <div>
@@ -173,6 +241,9 @@ export default function App() {
                 agentsByRound={state.agentsByRound}
                 schema={state.schema}
                 factionUpdates={state.factionUpdates}
+                triggersEvents={state.triggersEvents}
+                historicalPrecedents={state.historicalPrecedents}
+                runId={state.runId || undefined}
                 onReset={handleReset}
               />
             )}

@@ -1,4 +1,6 @@
 import { Download, Clock, Users, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import type { SimulationResult, RoundSummary } from "../../types";
 
 interface Props {
@@ -28,23 +30,21 @@ export function ExecutiveSummary({ result, rounds, scenarioName, onExportPdf, ex
   const stability = result.resilience_metrics?.decision_stability;
   const drift = result.resilience_metrics?.utility_drift_mean;
 
-  // Compute latest HHI
   const latestRound = rounds[rounds.length - 1];
   const latestHHI = latestRound?.consensus_index ??
     (result.quantitative_metrics?.consensus_index
       ? Object.values(result.quantitative_metrics.consensus_index).pop()
       : undefined);
 
-  // Total agents from latest round
   const totalAgents = latestRound?.decisions?.length || 0;
 
   return (
-    <div className="border border-[#E5E5E5] rounded-[8px] bg-white overflow-hidden">
+    <Card className="overflow-hidden">
       {/* Top color accent bar */}
       <div className="h-1" style={{ backgroundColor: verdictStyle.border }} />
 
       <div className="p-6">
-        {/* Header row: title + export button */}
+        {/* Header row */}
         <div className="flex items-start justify-between mb-5">
           <div>
             <h1 className="text-[18px] font-semibold tracking-[-0.02em] text-[#0F0F0F] mb-1">
@@ -54,19 +54,14 @@ export function ExecutiveSummary({ result, rounds, scenarioName, onExportPdf, ex
               {new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
             </p>
           </div>
-          <button
-            onClick={onExportPdf}
-            disabled={exporting}
-            className="flex items-center gap-2 px-4 py-2 bg-[#0F0F0F] text-white text-[13px] font-medium rounded-[6px] hover:bg-[#2A2A2A] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
+          <Button onClick={onExportPdf} disabled={exporting} size="sm">
             <Download size={14} />
             {exporting ? "Exporting…" : "Export PDF"}
-          </button>
+          </Button>
         </div>
 
         {/* Verdict + Metrics row */}
         <div className="flex flex-wrap items-center gap-6">
-          {/* Verdict badge - large */}
           <div
             className="px-4 py-2 rounded-[8px] border"
             style={{ backgroundColor: verdictStyle.bg, borderColor: verdictStyle.border + "40", color: verdictStyle.text }}
@@ -75,7 +70,6 @@ export function ExecutiveSummary({ result, rounds, scenarioName, onExportPdf, ex
             <span className="text-[20px] font-semibold">{verdict}</span>
           </div>
 
-          {/* Metric pills */}
           <div className="flex flex-wrap gap-4">
             {stability !== undefined && (
               <MetricPill
@@ -114,7 +108,7 @@ export function ExecutiveSummary({ result, rounds, scenarioName, onExportPdf, ex
           </div>
         </div>
       </div>
-    </div>
+    </Card>
   );
 }
 

@@ -2,11 +2,13 @@ import { useReducer, useEffect } from "react";
 import type {
   AgentDecision,
   FactionUpdate,
+  HistoricalPrecedent,
   PipelineStage,
   RoundSummary,
   SchemaData,
   SimStatus,
   SimulationResult,
+  TriggersEvent,
   WSEvent,
 } from "../types";
 
@@ -21,6 +23,8 @@ export interface SimState {
   rounds: RoundSummary[];
   agentsByRound: Record<number, AgentDecision[]>;
   factionUpdates: FactionUpdate[];
+  triggersEvents: TriggersEvent[];
+  historicalPrecedents: HistoricalPrecedent[];
   stressEvent: string | null;
   validationEvent: string | null;
   result: SimulationResult | null;
@@ -45,6 +49,8 @@ const initialState: SimState = {
   rounds: [],
   agentsByRound: {},
   factionUpdates: [],
+  triggersEvents: [],
+  historicalPrecedents: [],
   stressEvent: null,
   validationEvent: null,
   result: null,
@@ -87,6 +93,12 @@ function reducer(state: SimState, action: SimAction): SimState {
           const fu: FactionUpdate = { round: ev.round, factions: ev.data };
           return { ...state, factionUpdates: [...state.factionUpdates, fu] };
         }
+        case "triggers_fired": {
+          const te: TriggersEvent = { round: ev.round, triggers: ev.triggers };
+          return { ...state, triggersEvents: [...state.triggersEvents, te] };
+        }
+        case "historical_context":
+          return { ...state, historicalPrecedents: ev.precedents || [] };
         case "complete":
           return { ...state, status: "complete", result: ev.result, progress: 100 };
         case "error":
