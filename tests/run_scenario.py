@@ -97,6 +97,8 @@ def serialize_result(result: dict) -> dict:
             for agent_id, target in result["adversary_map"].items()
         },
         "timings": result["timings"],
+        "conditional_dynamics": result.get("conditional_dynamics"),
+        "historical_context": result.get("historical_context"),
     }
 
 

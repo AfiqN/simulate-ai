@@ -180,6 +180,8 @@ async def _execute_simulation(job: SimulationJob, db) -> None:
             "report_md": result["report_md"],
             "quantitative_metrics": result.get("quantitative_metrics"),
             "faction_metrics": result.get("faction_metrics"),
+            "conditional_dynamics": result.get("conditional_dynamics"),
+            "historical_context": result.get("historical_context"),
         }
 
         await update_run(

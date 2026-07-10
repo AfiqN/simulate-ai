@@ -40,6 +40,7 @@ class TriggerResult:
     effect: str
     effect_params: dict[str, Any]
     context: dict[str, Any] = field(default_factory=dict)
+    round_num: int = 0
 
 
 class ConditionalEngine:
@@ -90,6 +91,7 @@ class ConditionalEngine:
                     effect=rule.effect,
                     effect_params=rule.effect_params,
                     context=context,
+                    round_num=round_num,
                 )
                 results.append(tr)
                 self.history.append(tr)
@@ -116,6 +118,7 @@ class ConditionalEngine:
             {
                 "rule_id": tr.rule_id,
                 "rule_name": tr.rule_name,
+                "round": tr.round_num,
                 "effect": tr.effect,
                 "effect_params": tr.effect_params,
                 "context": tr.context,

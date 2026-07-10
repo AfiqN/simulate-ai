@@ -111,8 +111,24 @@ function reducer(state: SimState, action: SimAction): SimState {
     case "SCHEMA_APPROVED":
       return { ...state, schemaPending: false, status: "running" };
 
-    case "LOAD_RESULT":
-      return { ...initialState, status: "complete", result: action.result };
+    case "LOAD_RESULT": {
+      // Hydrate dynamics data from persisted result
+      const triggersEvents: TriggersEvent[] = [];
+      if (action.result.conditional_dynamics) {
+        const byRound: Record<number, TriggersEvent["triggers"]> = {};
+        for (const d of action.result.conditional_dynamics) {
+          const r = d.round ?? 0;
+          if (!byRound[r]) byRound[r] = [];
+          byRound[r].push({ rule: d.rule_name, effect: d.effect, context: d.context });
+        }
+        for (const [round, triggers] of Object.entries(byRound)) {
+          triggersEvents.push({ round: Number(round), triggers });
+        }
+      }
+      const historicalPrecedents: HistoricalPrecedent[] =
+        action.result.historical_context?.precedents ?? [];
+      return { ...initialState, status: "complete", result: action.result, triggersEvents, historicalPrecedents };
+    }
 
     case "RESET":
       return initialState;
