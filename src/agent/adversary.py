@@ -1,11 +1,84 @@
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from typing import Any, Optional, TYPE_CHECKING
 
 from src.agent.agent import Agent
 
 if TYPE_CHECKING:
     from src.agent.factions import FactionTracker
+
+
+# --- Adversarial mode data models ---
+
+@dataclass
+class ArgumentClaim:
+    """A single falsifiable claim extracted from an agent's Round 1 position."""
+    agent_id: str
+    archetype: str
+    claim_text: str
+    evidence: str
+    status: str = "standing"  # "standing" | "defeated" | "amended"
+    attack_text: str = ""
+    attack_severity: str = ""  # "fatal" | "serious" | "minor"
+    defense_response: str = ""  # "rebut" | "concede" | "amend"
+    defense_text: str = ""
+    amended_claim: str = ""
+
+    @property
+    def survived(self) -> bool:
+        return self.status in ("standing", "amended")
+
+
+@dataclass
+class AdversarialRoundResult:
+    """Aggregate result of the adversarial debate (R2a + R2b + R2c)."""
+    claims: list[ArgumentClaim] = field(default_factory=list)
+
+    @property
+    def survival_rate(self) -> float:
+        if not self.claims:
+            return 0.0
+        return sum(1 for c in self.claims if c.survived) / len(self.claims)
+
+    @property
+    def surviving_claims(self) -> list[ArgumentClaim]:
+        return [c for c in self.claims if c.survived]
+
+    @property
+    def defeated_claims(self) -> list[ArgumentClaim]:
+        return [c for c in self.claims if not c.survived]
+
+    @property
+    def key_defeats(self) -> list[str]:
+        """Summary strings of what got killed."""
+        return [
+            f"{c.archetype}: \"{c.claim_text}\" — defeated by: {c.attack_text[:100]}"
+            for c in self.defeated_claims
+        ]
+
+    def to_transcript(self) -> str:
+        """Build a readable transcript of the adversarial debate for report compilation."""
+        lines = []
+        lines.append(f"ADVERSARIAL DEBATE RESULTS (Survival rate: {self.survival_rate:.0%})")
+        lines.append("")
+        lines.append("--- SURVIVING CLAIMS ---")
+        for c in self.surviving_claims:
+            label = f"[AMENDED]" if c.status == "amended" else "[STANDING]"
+            text = c.amended_claim if c.amended_claim else c.claim_text
+            lines.append(f"  {label} {c.archetype}: \"{text}\"")
+            if c.attack_text:
+                lines.append(f"    Attack: {c.attack_text[:150]}")
+                lines.append(f"    Defense: {c.defense_text[:150]}")
+            lines.append("")
+
+        lines.append("--- DEFEATED CLAIMS ---")
+        for c in self.defeated_claims:
+            lines.append(f"  [DEFEATED] {c.archetype}: \"{c.claim_text}\"")
+            lines.append(f"    Fatal flaw: {c.attack_text[:200]}")
+            lines.append("")
+
+        return "\n".join(lines)
 
 
 def compute_adversary_map(decisions: list[dict[str, Any]], agents: list[Agent]) -> dict[str, Optional[dict[str, Any]]]:

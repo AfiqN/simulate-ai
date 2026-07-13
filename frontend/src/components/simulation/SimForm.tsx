@@ -17,6 +17,7 @@ export function SimForm({ onSubmit, disabled }: Props) {
   const [stimulus, setStimulus] = useState("");
   const [agentCount, setAgentCount] = useState(5);
   const [depth, setDepth] = useState<"quick" | "standard" | "deep">("standard");
+  const [mode, setMode] = useState<"collaborative" | "adversarial">("collaborative");
   const [customStakeholders, setCustomStakeholders] = useState<CustomStakeholder[]>([]);
   const [historicalPrecedents, setHistoricalPrecedents] = useState<HistoricalPrecedent[]>([]);
 
@@ -35,6 +36,7 @@ export function SimForm({ onSubmit, disabled }: Props) {
       stimulus: stimulus.trim(),
       agent_count: agentCount,
       depth,
+      mode,
       custom_stakeholders: validStakeholders.length > 0 ? validStakeholders : undefined,
       historical_precedents: validPrecedents.length > 0 ? validPrecedents : undefined,
     });
@@ -86,6 +88,21 @@ export function SimForm({ onSubmit, disabled }: Props) {
                 <option value="quick">Quick</option>
                 <option value="standard">Standard</option>
                 <option value="deep">Deep</option>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-[11px] text-[#9B9B9B] uppercase tracking-wider font-medium">
+                Mode
+              </label>
+              <Select
+                value={mode}
+                onChange={(e) => setMode(e.target.value as "collaborative" | "adversarial")}
+                disabled={disabled}
+                className="w-[140px]"
+              >
+                <option value="collaborative">Collaborative</option>
+                <option value="adversarial">Adversarial</option>
               </Select>
             </div>
 

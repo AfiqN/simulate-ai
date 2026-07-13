@@ -24,7 +24,8 @@ class SimulationJob:
     def __init__(self, run_id: str, stimulus: str, agent_count: int, concurrency: int,
                  model: str | None = None, provider: str | None = None,
                  crisis_override: str | None = None, rag_enabled: bool | None = None,
-                 depth: str = "standard", custom_stakeholders: list[dict] | None = None,
+                 depth: str = "standard", mode: str = "collaborative",
+                 custom_stakeholders: list[dict] | None = None,
                  historical_precedents: list[dict] | None = None):
         self.run_id = run_id
         self.stimulus = stimulus
@@ -35,6 +36,7 @@ class SimulationJob:
         self.crisis_override = crisis_override
         self.rag_enabled = rag_enabled
         self.depth = depth
+        self.mode = mode
         self.custom_stakeholders = custom_stakeholders
         self.historical_precedents = historical_precedents
         self.status: str = "queued"
@@ -141,6 +143,7 @@ async def _execute_simulation(job: SimulationJob, db) -> None:
             progress_callback=lambda msg: setattr(job, 'progress', msg),
             event_callback=_event_cb,
             depth=job.depth,
+            mode=job.mode,
             schema_approval_callback=_schema_approval_cb,
             custom_stakeholders=job.custom_stakeholders,
             historical_precedents=job.historical_precedents,

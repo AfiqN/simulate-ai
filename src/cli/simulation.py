@@ -11,7 +11,7 @@ from rich.spinner import Spinner
 from rich.table import Table
 
 from config import DEFAULT_MODEL, LLM_PROVIDER, MAX_CONCURRENCY, OLLAMA_HOST
-from src.agent.adversary import compute_adversary_map, evolve_adversary_map, evolve_adversary_map_v2, compute_panel_challenges
+from src.agent.adversary import compute_adversary_map, evolve_adversary_map, evolve_adversary_map_v2, compute_panel_challenges, ArgumentClaim, AdversarialRoundResult
 from src.agent.agent import Agent
 from src.agent.factions import FactionTracker
 from src.agent.swarm import SwarmGenerationError, generate_llm_swarm
@@ -135,6 +135,208 @@ async def _run_reconciliation(
         in_progress_label="Reconciling...",
         coroutine_factory=lambda: agent.reconcile(stimulus, full_transcript, depth=depth),
     )
+
+
+async def _run_adversarial_debate(
+    agents: list[Agent],
+    decisions_r1: list[dict],
+    stimulus: str,
+    adversary_map: dict[str, Any],
+    semaphore: asyncio.Semaphore,
+    depth: str = "standard",
+    headless: bool = False,
+    progress_callback: Optional[Any] = None,
+    event_callback: Optional[Any] = None,
+) -> tuple[list[dict], AdversarialRoundResult]:
+    """Orchestrate the 3-phase adversarial debate (R2a → R2b → R2c).
+
+    Returns:
+        (decisions_r2, adversarial_result) — decisions_r2 in same format as
+        collaborative mode for downstream compatibility.
+    """
+    def _progress(msg: str):
+        if progress_callback:
+            progress_callback(msg)
+
+    def _emit(event: dict):
+        if event_callback:
+            event_callback(event)
+
+    schema = agents[0].schema
+    all_claims: list[ArgumentClaim] = []
+
+    # --- R2a: Claim Extraction (parallel) ---
+    _progress("R2a: Extracting claims...")
+    if headless:
+        _emit({"type": "stage", "stage": "adversarial_r2a", "progress": 40})
+
+    extract_tasks = []
+    for i, agent in enumerate(agents):
+        extract_tasks.append(
+            asyncio.create_task(
+                _throttled_extract(agent, stimulus, decisions_r1[i], semaphore, i)
+            )
+        )
+    extracted_claims_per_agent = await asyncio.gather(*extract_tasks)
+
+    # Build claim objects and index by agent_id
+    claims_by_agent: dict[str, list[ArgumentClaim]] = {}
+    for i, agent in enumerate(agents):
+        agent_claims = []
+        for c in extracted_claims_per_agent[i]:
+            claim_obj = ArgumentClaim(
+                agent_id=agent.profile.agent_id,
+                archetype=agent.profile.archetype.replace("_", " "),
+                claim_text=c.get("claim", ""),
+                evidence=c.get("evidence", ""),
+            )
+            agent_claims.append(claim_obj)
+            all_claims.append(claim_obj)
+        claims_by_agent[agent.profile.agent_id] = agent_claims
+
+    if headless:
+        _emit({"type": "adversarial_claims", "total": len(all_claims), "per_agent": {a.profile.agent_id: len(claims_by_agent.get(a.profile.agent_id, [])) for a in agents}})
+
+    # --- R2b: Attack (parallel — each agent attacks their adversary's claims) ---
+    _progress("R2b: Adversarial attacks...")
+    if headless:
+        _emit({"type": "stage", "stage": "adversarial_r2b", "progress": 55})
+
+    attack_tasks = []
+    attack_assignments: list[tuple[int, str]] = []  # (attacker_idx, target_agent_id)
+
+    for i, agent in enumerate(agents):
+        target_decision = adversary_map.get(agent.profile.agent_id)
+        if target_decision is None:
+            continue
+        target_id = target_decision["id"]
+        target_claims_raw = claims_by_agent.get(target_id, [])
+        if not target_claims_raw:
+            continue
+        target_archetype = target_decision.get("archetype", "opponent")
+        claims_for_attack = [{"claim": c.claim_text, "evidence": c.evidence} for c in target_claims_raw]
+
+        attack_tasks.append(
+            asyncio.create_task(
+                _throttled_attack(agent, claims_for_attack, target_archetype, stimulus, semaphore, i)
+            )
+        )
+        attack_assignments.append((i, target_id))
+
+    attack_results = await asyncio.gather(*attack_tasks)
+
+    # Map attacks back to claims
+    for task_idx, (attacker_idx, target_id) in enumerate(attack_assignments):
+        attacks = attack_results[task_idx]
+        target_claims = claims_by_agent.get(target_id, [])
+        for j, claim_obj in enumerate(target_claims):
+            if j < len(attacks):
+                attack = attacks[j]
+                claim_obj.attack_text = attack.get("flaw", "") + " " + attack.get("counter_evidence", "")
+                claim_obj.attack_severity = attack.get("severity", "serious")
+
+    # --- R2c: Defend (parallel — each agent defends their attacked claims) ---
+    _progress("R2c: Defending claims...")
+    if headless:
+        _emit({"type": "stage", "stage": "adversarial_r2c", "progress": 70})
+
+    defend_tasks = []
+    defend_claim_refs: list[ArgumentClaim] = []
+
+    for i, agent in enumerate(agents):
+        for claim_obj in claims_by_agent.get(agent.profile.agent_id, []):
+            if not claim_obj.attack_text:
+                # Not attacked — survives by default
+                continue
+            defend_tasks.append(
+                asyncio.create_task(
+                    _throttled_defend(agent, claim_obj.claim_text, claim_obj.attack_text, claim_obj.attack_severity, semaphore)
+                )
+            )
+            defend_claim_refs.append(claim_obj)
+
+    defend_results = await asyncio.gather(*defend_tasks)
+
+    # Apply defense results to claims
+    for idx, claim_obj in enumerate(defend_claim_refs):
+        defense = defend_results[idx]
+        response_type = defense.get("response", "concede").lower()
+        claim_obj.defense_response = response_type
+        claim_obj.defense_text = defense.get("argument", "")
+        claim_obj.amended_claim = defense.get("amended_claim", "")
+
+        # Determine survival
+        if response_type == "concede":
+            claim_obj.status = "defeated"
+        elif response_type == "amend":
+            claim_obj.status = "amended"
+        else:  # "rebut"
+            claim_obj.status = "standing"
+
+    adversarial_result = AdversarialRoundResult(claims=all_claims)
+
+    if headless:
+        _emit({
+            "type": "adversarial_result",
+            "survival_rate": adversarial_result.survival_rate,
+            "total_claims": len(all_claims),
+            "survived": len(adversarial_result.surviving_claims),
+            "defeated": len(adversarial_result.defeated_claims),
+        })
+
+    # --- Build decisions_r2 in standard format for downstream compatibility ---
+    decisions_r2: list[dict] = []
+    for i, agent in enumerate(agents):
+        agent_claims = claims_by_agent.get(agent.profile.agent_id, [])
+        surviving = [c for c in agent_claims if c.survived]
+        defeated = [c for c in agent_claims if not c.survived]
+
+        # Utility adjusted: penalize agents whose claims got destroyed
+        original_utility = decisions_r1[i].get("utility", 0.0)
+        if agent_claims:
+            survival_factor = len(surviving) / len(agent_claims)
+        else:
+            survival_factor = 0.5
+        adjusted_utility = original_utility * survival_factor
+
+        # Statement synthesized from surviving claims
+        if surviving:
+            statement_parts = [c.amended_claim if c.amended_claim else c.claim_text for c in surviving]
+            statement = "Claims that survived challenge: " + "; ".join(statement_parts)
+        else:
+            statement = "All claims were defeated in adversarial debate."
+
+        decisions_r2.append({
+            "id": agent.profile.agent_id,
+            "archetype": agent.profile.archetype.replace("_", " "),
+            "action": decisions_r1[i].get("action", "ABSTAIN"),
+            "utility": adjusted_utility,
+            "utility_dimensions": decisions_r1[i].get("utility_dimensions", {}),
+            "reasoning_chain": decisions_r1[i].get("reasoning_chain", []),
+            "monologue": f"Adversarial debate: {len(surviving)}/{len(agent_claims)} claims survived.",
+            "statement": statement,
+            "new_state": agent.profile.current_internal_state,
+            "duration": 0.0,
+        })
+
+    return decisions_r2, adversarial_result
+
+
+async def _throttled_extract(agent: Agent, stimulus: str, r1_decision: dict, semaphore: asyncio.Semaphore, idx: int) -> list[dict]:
+    await asyncio.sleep(idx * 0.2)
+    async with semaphore:
+        return await agent.extract_claims(stimulus, r1_decision)
+
+
+async def _throttled_attack(agent: Agent, target_claims: list[dict], target_archetype: str, stimulus: str, semaphore: asyncio.Semaphore, idx: int) -> list[dict]:
+    await asyncio.sleep(idx * 0.3)
+    async with semaphore:
+        return await agent.attack_claims(target_claims, target_archetype, stimulus)
+
+
+async def _throttled_defend(agent: Agent, claim: str, attack_text: str, severity: str, semaphore: asyncio.Semaphore) -> dict:
+    async with semaphore:
+        return await agent.defend_claim(claim, attack_text, severity)
 
 
 async def _execute_round(
@@ -361,6 +563,7 @@ async def run_simulation_pipeline(
     progress_callback: Optional[Any] = None,
     event_callback: Optional[Any] = None,
     depth: str = "standard",
+    mode: str = "collaborative",
     schema_approval_callback: Optional[Any] = None,
     custom_stakeholders: Optional[list[dict]] = None,
     historical_precedents: Optional[list[dict]] = None,
@@ -582,75 +785,142 @@ async def run_simulation_pipeline(
     dur_r2 = 0.0
     decisions_r2: list[dict] = []
     full_round2_transcript = full_round1_transcript  # fallback for quick mode
+    adversarial_result: Optional[AdversarialRoundResult] = None
 
     if depth != "quick":
-        _progress("Round 2: directed debate...")
-        if headless:
-            _emit({"type": "stage", "stage": "round2", "progress": 50})
-        if not headless:
-            console.print()
-            console.print(Rule("[bold magenta]ROUND 2 — DIRECTED DEBATE[/bold magenta]"))
-
-        # Compute panel challenges for deep mode
-        panel_map: Optional[dict] = None
-        if depth == "deep" and faction_tracker:
-            panel_map = compute_panel_challenges(faction_tracker, decisions_r1, agents)
-
-        statuses_r2 = _make_statuses(agents)
-        t0 = time.time()
-        tasks_r2 = [
-            asyncio.create_task(_run_debate(
-                i, a, stimulus, full_round1_transcript,
-                adversary=(panel_map.get(a.profile.agent_id) if panel_map else adversary_map.get(a.profile.agent_id)),
-                statuses=statuses_r2, semaphore=semaphore, depth=depth,
-                faction_context=(faction_tracker.build_agent_context(a.profile.agent_id, decisions_r1) if faction_tracker else None),
-            ))
-            for i, a in enumerate(agents)
-        ]
-        if not headless:
-            await _drive_live_table(statuses_r2, "Round 2 Debate Monitor", {"Thinking...", "Debating..."})
-        await asyncio.gather(*tasks_r2)
-        dur_r2 = time.time() - t0
-
-        for i, a in enumerate(agents):
-            d = _extract_decision(a, statuses_r2[i], schema)
-            decisions_r2.append(d)
-            if headless:
-                _emit({"type": "agent_done", "round": 2, "data": d})
+        if mode == "adversarial":
+            # --- Adversarial Mode: Attack/Defend Debate ---
             if not headless:
-                render_round_panel("Round 2 — Directed Debate", d, schema, statuses_r2[i]["duration"])
-
-        if headless:
-            _emit({"type": "round_summary", "round": 2, "data": {"decisions": decisions_r2, "vote_tally": dict(Counter(d["action"] for d in decisions_r2 if "error" not in d))}})
-
-        transcript_parts_r2 = [
-            f"Agent: {d['archetype']} (ID: {d['id']})\n"
-            f"- Public Statement: \"{d['statement']}\"\n"
-            f"- Action: {d['action']}"
-            for d in decisions_r2
-        ]
-        full_round2_transcript = "\n\n".join(transcript_parts_r2)
-
-        # Record Round 2 factions and evolve adversary map with faction intelligence
-        if faction_tracker:
-            faction_tracker.record_round(2, decisions_r2)
+                console.print()
+                console.print(Rule("[bold red]ROUND 2 — ADVERSARIAL DEBATE[/bold red]"))
+            _progress("Round 2: adversarial debate (extract → attack → defend)...")
             if headless:
-                latest = faction_tracker.get_latest()
-                if latest:
-                    _emit({"type": "faction_update", "round": 2, "data": {a: {"size": f.size, "cohesion": f.cohesion} for a, f in latest.factions.items()}})
-            adversary_map = evolve_adversary_map_v2(adversary_map, decisions_r1, decisions_r2, agents, faction_tracker)
-        else:
+                _emit({"type": "stage", "stage": "round2_adversarial", "progress": 50})
+
+            t0 = time.time()
+            decisions_r2, adversarial_result = await _run_adversarial_debate(
+                agents=agents,
+                decisions_r1=decisions_r1,
+                stimulus=stimulus,
+                adversary_map=adversary_map,
+                semaphore=semaphore,
+                depth=depth,
+                headless=headless,
+                progress_callback=progress_callback,
+                event_callback=event_callback,
+            )
+            dur_r2 = time.time() - t0
+
+            if not headless:
+                # Render adversarial summary panel
+                survived = len(adversarial_result.surviving_claims)
+                total = len(adversarial_result.claims)
+                console.print()
+                console.print(
+                    Panel(
+                        f"[bold green]{survived}[/bold green]/{total} claims survived adversarial challenge "
+                        f"([bold]{adversarial_result.survival_rate:.0%}[/bold] survival rate)\n\n"
+                        + "\n".join(
+                            f"[red]✗[/red] {d}" for d in adversarial_result.key_defeats[:5]
+                        ) if adversarial_result.key_defeats else f"All {total} claims survived.",
+                        title="[bold red]Adversarial Debate Results[/bold red]",
+                        border_style="red",
+                    )
+                )
+
+            if headless:
+                _emit({"type": "round_summary", "round": 2, "data": {"mode": "adversarial", "decisions": decisions_r2, "survival_rate": adversarial_result.survival_rate}})
+
+            transcript_parts_r2 = [
+                f"Agent: {d['archetype']} (ID: {d['id']})\n"
+                f"- Public Statement: \"{d['statement']}\"\n"
+                f"- Action: {d['action']}"
+                for d in decisions_r2
+            ]
+            full_round2_transcript = "\n\n".join(transcript_parts_r2)
+
+            # Evolve adversary map (use basic evolution since faction dynamics differ in adversarial)
             adversary_map = evolve_adversary_map(adversary_map, decisions_r1, decisions_r2, agents)
 
-        # Evaluate conditional triggers after Round 2
-        r2_triggers = conditional_engine.evaluate(
-            round_num=2,
-            decisions=decisions_r2,
-            prev_decisions=decisions_r1,
-            faction_data=(faction_tracker.get_latest().factions if faction_tracker and faction_tracker.get_latest() else None),
-        )
-        if r2_triggers and headless:
-            _emit({"type": "triggers_fired", "round": 2, "triggers": [{"rule": t.rule_name, "effect": t.effect, "context": t.context} for t in r2_triggers]})
+            # Evaluate conditional triggers after Round 2
+            r2_triggers = conditional_engine.evaluate(
+                round_num=2,
+                decisions=decisions_r2,
+                prev_decisions=decisions_r1,
+                faction_data=(faction_tracker.get_latest().factions if faction_tracker and faction_tracker.get_latest() else None),
+            )
+            if r2_triggers and headless:
+                _emit({"type": "triggers_fired", "round": 2, "triggers": [{"rule": t.rule_name, "effect": t.effect, "context": t.context} for t in r2_triggers]})
+
+        else:
+            # --- Collaborative Mode (existing behavior) ---
+            _progress("Round 2: directed debate...")
+            if headless:
+                _emit({"type": "stage", "stage": "round2", "progress": 50})
+            if not headless:
+                console.print()
+                console.print(Rule("[bold magenta]ROUND 2 — DIRECTED DEBATE[/bold magenta]"))
+
+            # Compute panel challenges for deep mode
+            panel_map: Optional[dict] = None
+            if depth == "deep" and faction_tracker:
+                panel_map = compute_panel_challenges(faction_tracker, decisions_r1, agents)
+
+            statuses_r2 = _make_statuses(agents)
+            t0 = time.time()
+            tasks_r2 = [
+                asyncio.create_task(_run_debate(
+                    i, a, stimulus, full_round1_transcript,
+                    adversary=(panel_map.get(a.profile.agent_id) if panel_map else adversary_map.get(a.profile.agent_id)),
+                    statuses=statuses_r2, semaphore=semaphore, depth=depth,
+                    faction_context=(faction_tracker.build_agent_context(a.profile.agent_id, decisions_r1) if faction_tracker else None),
+                ))
+                for i, a in enumerate(agents)
+            ]
+            if not headless:
+                await _drive_live_table(statuses_r2, "Round 2 Debate Monitor", {"Thinking...", "Debating..."})
+            await asyncio.gather(*tasks_r2)
+            dur_r2 = time.time() - t0
+
+            for i, a in enumerate(agents):
+                d = _extract_decision(a, statuses_r2[i], schema)
+                decisions_r2.append(d)
+                if headless:
+                    _emit({"type": "agent_done", "round": 2, "data": d})
+                if not headless:
+                    render_round_panel("Round 2 — Directed Debate", d, schema, statuses_r2[i]["duration"])
+
+            if headless:
+                _emit({"type": "round_summary", "round": 2, "data": {"decisions": decisions_r2, "vote_tally": dict(Counter(d["action"] for d in decisions_r2 if "error" not in d))}})
+
+            transcript_parts_r2 = [
+                f"Agent: {d['archetype']} (ID: {d['id']})\n"
+                f"- Public Statement: \"{d['statement']}\"\n"
+                f"- Action: {d['action']}"
+                for d in decisions_r2
+            ]
+            full_round2_transcript = "\n\n".join(transcript_parts_r2)
+
+            # Record Round 2 factions and evolve adversary map with faction intelligence
+            if faction_tracker:
+                faction_tracker.record_round(2, decisions_r2)
+                if headless:
+                    latest = faction_tracker.get_latest()
+                    if latest:
+                        _emit({"type": "faction_update", "round": 2, "data": {a: {"size": f.size, "cohesion": f.cohesion} for a, f in latest.factions.items()}})
+                adversary_map = evolve_adversary_map_v2(adversary_map, decisions_r1, decisions_r2, agents, faction_tracker)
+            else:
+                adversary_map = evolve_adversary_map(adversary_map, decisions_r1, decisions_r2, agents)
+
+            # Evaluate conditional triggers after Round 2
+            r2_triggers = conditional_engine.evaluate(
+                round_num=2,
+                decisions=decisions_r2,
+                prev_decisions=decisions_r1,
+                faction_data=(faction_tracker.get_latest().factions if faction_tracker and faction_tracker.get_latest() else None),
+            )
+            if r2_triggers and headless:
+                _emit({"type": "triggers_fired", "round": 2, "triggers": [{"rule": t.rule_name, "effect": t.effect, "context": t.context} for t in r2_triggers]})
     else:
         # Quick mode: use R1 decisions as R2 stand-in for resilience comparison
         decisions_r2 = decisions_r1
@@ -776,10 +1046,10 @@ async def run_simulation_pipeline(
     if r3_triggers and headless:
         _emit({"type": "triggers_fired", "round": 3, "triggers": [{"rule": t.rule_name, "effect": t.effect, "context": t.context} for t in r3_triggers]})
 
-    # --- Round 4: Reconciliation (deep mode only) ---
+    # --- Round 4: Reconciliation (deep mode only, skipped in adversarial mode) ---
     decisions_r4: list[dict] = []
     dur_r4 = 0.0
-    if depth == "deep":
+    if depth == "deep" and mode != "adversarial":
         _progress("Round 4: reconciliation — seeking common ground...")
         if headless:
             _emit({"type": "stage", "stage": "round4", "progress": 75})
@@ -859,6 +1129,7 @@ async def run_simulation_pipeline(
                 profiles=profiles,
                 round4_results=decisions_r4 or None,
                 faction_metrics=faction_tracker.compute_metrics() if faction_tracker else None,
+                adversarial_result=adversarial_result,
             )
             live.update("[bold green]✔ Report compiled[/bold green]")
     else:
@@ -871,6 +1142,7 @@ async def run_simulation_pipeline(
             profiles=profiles,
             round4_results=decisions_r4 or None,
             faction_metrics=faction_tracker.compute_metrics() if faction_tracker else None,
+            adversarial_result=adversarial_result,
         )
 
     if not headless:
@@ -894,6 +1166,8 @@ async def run_simulation_pipeline(
         "decisions_r3": decisions_r3,
         "decisions_r4": decisions_r4,
         "adversary_map": adversary_map,
+        "adversarial_result": adversarial_result,
+        "mode": mode,
         "crisis_event": {"stress": stress_event, "validation": validation_event},
         "resilience_metrics": resilience_metrics,
         "quantitative_metrics": compute_quantitative_metrics(

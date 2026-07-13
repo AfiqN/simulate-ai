@@ -12,6 +12,7 @@ export async function startSimulation(config: SimulationConfig): Promise<{ id: s
       stimulus: config.stimulus,
       agent_count: config.agent_count,
       depth: config.depth,
+      mode: config.mode || "collaborative",
       provider: config.provider || undefined,
       crisis_override: config.crisis_override || undefined,
       custom_stakeholders: config.custom_stakeholders?.length ? config.custom_stakeholders : undefined,

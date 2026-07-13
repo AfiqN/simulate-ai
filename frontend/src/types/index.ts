@@ -9,6 +9,7 @@ export interface SimulationConfig {
   stimulus: string;
   agent_count: number;
   depth: "quick" | "standard" | "deep";
+  mode?: "collaborative" | "adversarial";
   provider?: string;
   crisis_override?: string;
   custom_stakeholders?: CustomStakeholder[];

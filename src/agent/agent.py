@@ -428,6 +428,152 @@ Commit to exactly one action from the available actions list.
             model=model,
         )
 
+    # --- Adversarial mode methods (R2a, R2b, R2c) ---
+
+    def _adversarial_system_prompt(self) -> str:
+        """Lightweight system prompt for adversarial rounds — identity + style only."""
+        return (
+            f"You are {self.profile.archetype} in a scenario simulation: \"{self.schema.scenario_name}\".\n"
+            f"Scenario: {self.schema.scenario_description}\n\n"
+            f"Stay in character. Be direct and opinionated.\n\n"
+            f"--- LINGUISTIC STYLE ---\n{self._linguistic_style_prompt()}\n\n"
+            f"--- YOUR IDENTITY ---\n"
+            f"Archetype: {self.profile.archetype}\n"
+            f"Decision Framework: {self.profile.decision_framework}\n"
+            f"Domain Knowledge: {', '.join(self.profile.knowledge_base[:3])}\n"
+            f"Hard Constraints: {', '.join(self.profile.constraints[:3]) if self.profile.constraints else 'None'}\n"
+        )
+
+    async def extract_claims(
+        self,
+        stimulus: str,
+        round1_decision: dict[str, Any],
+        model: Optional[str] = None,
+        depth: str = "standard",
+    ) -> list[dict[str, str]]:
+        """R2a: Extract 2-3 concrete, falsifiable claims from Round 1 position."""
+        action = round1_decision.get("action_decision", round1_decision.get("action", "?"))
+        utility = round1_decision.get("utility", 0.0)
+        statement = round1_decision.get("public_statement", round1_decision.get("statement", ""))
+
+        user_prompt = f"""You are {self.profile.archetype}. In Round 1, you evaluated the stimulus and took action {action} with utility {utility:.2f}.
+
+Your public statement was: "{statement}"
+
+Now distill your position into exactly 2-3 CONCRETE, FALSIFIABLE claims. Each claim must be:
+- Specific enough to be attacked with evidence or logic
+- Central to why you chose your action
+- Not a tautology or unfalsifiable opinion
+
+Examples of GOOD claims (specific, attackable):
+- "The deposit base concentration (93% uninsured) makes a bank run inevitable within 48 hours"
+- "Regulatory intervention will come too late because the speed of social-media coordination exceeds traditional response timelines"
+
+Examples of BAD claims (vague, unfalsifiable):
+- "This is risky" (too vague)
+- "Things could go either way" (unfalsifiable)
+
+Output ONLY valid JSON:
+{{"claims": [{{"claim": "your specific claim", "evidence": "why you believe this based on the stimulus"}}]}}"""
+
+        messages = [
+            {"role": "system", "content": self._adversarial_system_prompt()},
+            {"role": "user", "content": user_prompt},
+        ]
+        try:
+            raw = await self.client.chat(messages, model=model, response_format={"type": "json_object"})
+            parsed = parse_json_robustly(raw)
+            claims = parsed.get("claims", []) if parsed else []
+            # Ensure 2-3 claims max
+            return claims[:3] if claims else [{"claim": statement[:200], "evidence": "Based on my initial analysis"}]
+        except Exception:
+            return [{"claim": statement[:200] if statement else "Position unclear", "evidence": "Based on initial analysis"}]
+
+    async def attack_claims(
+        self,
+        target_claims: list[dict[str, str]],
+        target_archetype: str,
+        stimulus: str,
+        model: Optional[str] = None,
+        depth: str = "standard",
+    ) -> list[dict[str, str]]:
+        """R2b: Attack specific claims made by an adversary. Be ruthless."""
+        claims_text = "\n".join(
+            f"  {i+1}. CLAIM: \"{c['claim']}\"\n     EVIDENCE: \"{c.get('evidence', 'none given')}\""
+            for i, c in enumerate(target_claims)
+        )
+
+        user_prompt = f"""You are {self.profile.archetype}. Your job is to DESTROY the following claims made by {target_archetype}.
+
+SCENARIO CONTEXT: "{stimulus[:300]}"
+
+THEIR CLAIMS:
+{claims_text}
+
+For EACH claim, identify:
+1. The weakest assumption it relies on
+2. A concrete counter-example, contradiction, or logical flaw
+3. Why this claim would FAIL under real-world pressure
+
+Be RUTHLESS. Your goal is to expose flawed reasoning. However, if a claim is genuinely airtight, say severity is "minor" — intellectual honesty strengthens your credibility.
+
+Output ONLY valid JSON:
+{{"attacks": [{{"target_claim": "the claim you're attacking (quote it)", "flaw": "the core logical/evidential flaw", "counter_evidence": "specific counter-example or contradiction", "severity": "fatal|serious|minor"}}]}}"""
+
+        messages = [
+            {"role": "system", "content": self._adversarial_system_prompt()},
+            {"role": "user", "content": user_prompt},
+        ]
+        try:
+            raw = await self.client.chat(messages, model=model, response_format={"type": "json_object"})
+            parsed = parse_json_robustly(raw)
+            attacks = parsed.get("attacks", []) if parsed else []
+            return attacks[:len(target_claims)]  # one attack per claim max
+        except Exception:
+            return [{"target_claim": c["claim"], "flaw": "Unable to generate attack", "counter_evidence": "", "severity": "minor"} for c in target_claims]
+
+    async def defend_claim(
+        self,
+        claim: str,
+        attack_text: str,
+        attack_severity: str,
+        model: Optional[str] = None,
+        depth: str = "standard",
+    ) -> dict[str, str]:
+        """R2c: Defend a claim that has been attacked. One chance."""
+        user_prompt = f"""You are {self.profile.archetype}. Your claim has been attacked:
+
+YOUR CLAIM: "{claim}"
+
+ATTACK: "{attack_text}"
+RATED SEVERITY: {attack_severity}
+
+You have ONE chance to respond. Choose honestly:
+- REBUT: Provide a counter-argument that neutralizes the attack. You must introduce NEW evidence or logic not already in your original claim.
+- CONCEDE: Acknowledge the flaw. Honest concession is not weakness — it strengthens your surviving claims and your credibility.
+- AMEND: Modify your claim to address the flaw while preserving the core insight. The amended claim must be MORE specific than the original.
+
+Guidelines:
+- If the attack identifies a genuine logical flaw you cannot counter, CONCEDE. Do not bullshit.
+- If you can rebut, your rebuttal must be SPECIFIC (not "that's not how it works" but "specifically, X happens because Y").
+- If amending, the new claim must directly address the flaw raised.
+
+Output ONLY valid JSON:
+{{"response": "rebut|concede|amend", "argument": "your defense or concession reasoning", "amended_claim": "new version of claim (only if response is amend, otherwise empty string)"}}"""
+
+        messages = [
+            {"role": "system", "content": self._adversarial_system_prompt()},
+            {"role": "user", "content": user_prompt},
+        ]
+        try:
+            raw = await self.client.chat(messages, model=model, response_format={"type": "json_object"})
+            parsed = parse_json_robustly(raw)
+            if parsed and "response" in parsed:
+                return parsed
+            return {"response": "rebut", "argument": "Unable to parse defense", "amended_claim": ""}
+        except Exception:
+            return {"response": "concede", "argument": "Failed to generate defense", "amended_claim": ""}
+
     async def _llm_round(self, system: str, user: str, model: Optional[str]) -> dict[str, Any]:
         messages = [
             {"role": "system", "content": system},

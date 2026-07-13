@@ -35,6 +35,7 @@ async def start_simulation(req: SimulationRequest, request: Request):
         crisis_override=req.crisis_override,
         rag_enabled=req.rag_enabled,
         depth=req.depth,
+        mode=req.mode,
         custom_stakeholders=[s.model_dump() for s in req.custom_stakeholders] if req.custom_stakeholders else None,
         historical_precedents=req.historical_precedents,
     )
