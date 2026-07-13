@@ -141,7 +141,18 @@ function reducer(state: SimState, action: SimAction): SimState {
       }
       const historicalPrecedents: HistoricalPrecedent[] =
         action.result.historical_context?.precedents ?? [];
-      return { ...initialState, status: "complete", result: action.result, triggersEvents, historicalPrecedents };
+      // Hydrate adversarial result if present
+      const adversarialResult: AdversarialResult | null =
+        action.result.adversarial_result
+          ? {
+              claims: action.result.adversarial_result.claims,
+              survival_rate: action.result.adversarial_result.survival_rate,
+              surviving_count: action.result.adversarial_result.surviving_count,
+              defeated_count: action.result.adversarial_result.defeated_count,
+              key_defeats: action.result.adversarial_result.key_defeats,
+            }
+          : null;
+      return { ...initialState, status: "complete", result: action.result, triggersEvents, historicalPrecedents, adversarialResult };
     }
 
     case "RESET":

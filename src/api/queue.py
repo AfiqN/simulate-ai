@@ -174,6 +174,19 @@ async def _execute_simulation(job: SimulationJob, db) -> None:
         write_bundle(result, out_dir)
 
         job.run_dir = out_dir
+        # Serialize adversarial result if present
+        adversarial_raw = result.get("adversarial_result")
+        adversarial_data = None
+        if adversarial_raw is not None:
+            from dataclasses import asdict
+            adversarial_data = {
+                "claims": [asdict(c) for c in adversarial_raw.claims],
+                "survival_rate": adversarial_raw.survival_rate,
+                "surviving_count": len(adversarial_raw.surviving_claims),
+                "defeated_count": len(adversarial_raw.defeated_claims),
+                "key_defeats": adversarial_raw.key_defeats,
+            }
+
         job.result = {
             "scenario_name": job.scenario_name,
             "verdict": job.verdict,
@@ -185,6 +198,7 @@ async def _execute_simulation(job: SimulationJob, db) -> None:
             "faction_metrics": result.get("faction_metrics"),
             "conditional_dynamics": result.get("conditional_dynamics"),
             "historical_context": result.get("historical_context"),
+            "adversarial_result": adversarial_data,
         }
 
         await update_run(

@@ -77,6 +77,7 @@ export interface SimulationResult {
   faction_metrics?: FactionMetrics;
   conditional_dynamics?: { rule_id: string; rule_name: string; round: number; effect: string; context: Record<string, any> }[];
   historical_context?: { precedents: HistoricalPrecedent[] };
+  adversarial_result?: AdversarialResult | null;
 }
 
 export type PipelineStage = "schema" | "swarm" | "round1" | "round2" | "round3" | "round4" | "report";

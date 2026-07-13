@@ -80,6 +80,7 @@ def write_bundle(result: dict[str, Any], out_dir: Path) -> Path:
             agent_id: (target["id"] if target else None)
             for agent_id, target in result["adversary_map"].items()
         },
+        "adversarial_result": _serialize_adversarial_result(result.get("adversarial_result")),
         "timings": result["timings"],
         "report_md": result["report_md"],
     }
@@ -119,3 +120,17 @@ def _serialize_decisions(decisions: list[dict]) -> list[dict]:
         }
         for d in decisions
     ]
+
+
+def _serialize_adversarial_result(adversarial_raw) -> dict | None:
+    """Serialize AdversarialRoundResult dataclass to a plain dict for export."""
+    if adversarial_raw is None:
+        return None
+    from dataclasses import asdict
+    return {
+        "claims": [asdict(c) for c in adversarial_raw.claims],
+        "survival_rate": adversarial_raw.survival_rate,
+        "surviving_count": len(adversarial_raw.surviving_claims),
+        "defeated_count": len(adversarial_raw.defeated_claims),
+        "key_defeats": adversarial_raw.key_defeats,
+    }

@@ -99,6 +99,21 @@ def serialize_result(result: dict) -> dict:
         "timings": result["timings"],
         "conditional_dynamics": result.get("conditional_dynamics"),
         "historical_context": result.get("historical_context"),
+        "adversarial_result": _serialize_adversarial(result.get("adversarial_result")),
+    }
+
+
+def _serialize_adversarial(adversarial_raw) -> dict | None:
+    """Serialize AdversarialRoundResult dataclass to a plain dict."""
+    if adversarial_raw is None:
+        return None
+    from dataclasses import asdict
+    return {
+        "claims": [asdict(c) for c in adversarial_raw.claims],
+        "survival_rate": adversarial_raw.survival_rate,
+        "surviving_count": len(adversarial_raw.surviving_claims),
+        "defeated_count": len(adversarial_raw.defeated_claims),
+        "key_defeats": adversarial_raw.key_defeats,
     }
 
 
