@@ -243,6 +243,7 @@ export default function App() {
                 factionUpdates={state.factionUpdates}
                 triggersEvents={state.triggersEvents}
                 historicalPrecedents={state.historicalPrecedents}
+                adversarialResult={state.adversarialResult}
                 runId={state.runId || undefined}
                 onReset={handleReset}
               />

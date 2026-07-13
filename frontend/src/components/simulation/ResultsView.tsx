@@ -4,6 +4,7 @@ import { ExecutiveSummary } from "./ExecutiveSummary";
 import { CrisisCallout } from "./CrisisCallout";
 import { ReportSection } from "./ReportSection";
 import { RoundTimeline } from "./RoundTimeline";
+import { AdversarialResultPanel } from "./AdversarialResultPanel";
 import { VoteTally } from "../metrics/VoteTally";
 import { ConsensusGauge } from "../metrics/ConsensusGauge";
 import { DimensionChart } from "../metrics/DimensionChart";
@@ -18,7 +19,7 @@ import {
 } from "../factions";
 import { ConditionalTriggersPanel } from "../dynamics/ConditionalTriggersPanel";
 import { HistoricalContextPanel } from "../dynamics/HistoricalContextPanel";
-import type { SimulationResult, RoundSummary, AgentDecision, SchemaData, FactionUpdate, TriggersEvent, HistoricalPrecedent } from "../../types";
+import type { SimulationResult, RoundSummary, AgentDecision, SchemaData, FactionUpdate, TriggersEvent, HistoricalPrecedent, AdversarialResult } from "../../types";
 
 interface Props {
   result: SimulationResult;
@@ -28,6 +29,7 @@ interface Props {
   factionUpdates: FactionUpdate[];
   triggersEvents?: TriggersEvent[];
   historicalPrecedents?: HistoricalPrecedent[];
+  adversarialResult?: AdversarialResult | null;
   runId?: string;
   onReset: () => void;
 }
@@ -38,7 +40,7 @@ function computeHHI(voteTally: Record<string, number>, totalAgents: number): num
   return shares.reduce((sum, s) => sum + s * s, 0);
 }
 
-export function ResultsView({ result, rounds, agentsByRound, schema, factionUpdates, triggersEvents, historicalPrecedents, runId, onReset }: Props) {
+export function ResultsView({ result, rounds, agentsByRound, schema, factionUpdates, triggersEvents, historicalPrecedents, adversarialResult, runId, onReset }: Props) {
   const [exporting, setExporting] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
 
@@ -118,8 +120,16 @@ export function ResultsView({ result, rounds, agentsByRound, schema, factionUpda
           </div>
         </div>
 
-        {/* Coalition Dynamics */}
-        {result.faction_metrics && (
+        {/* Adversarial Debate Results (replaces Coalition Dynamics in adversarial mode) */}
+        {adversarialResult && adversarialResult.claims.length > 0 && (
+          <div className="space-y-4">
+            <h2 className="text-[15px] font-medium tracking-[-0.02em]">Adversarial Debate</h2>
+            <AdversarialResultPanel result={adversarialResult} />
+          </div>
+        )}
+
+        {/* Coalition Dynamics (collaborative mode only) */}
+        {!adversarialResult && result.faction_metrics && (
           <div className="space-y-4">
             <h2 className="text-[15px] font-medium tracking-[-0.02em]">Coalition Dynamics</h2>
 

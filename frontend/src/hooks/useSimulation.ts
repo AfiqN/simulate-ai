@@ -1,5 +1,6 @@
 import { useReducer, useEffect } from "react";
 import type {
+  AdversarialResult,
   AgentDecision,
   FactionUpdate,
   HistoricalPrecedent,
@@ -25,6 +26,7 @@ export interface SimState {
   factionUpdates: FactionUpdate[];
   triggersEvents: TriggersEvent[];
   historicalPrecedents: HistoricalPrecedent[];
+  adversarialResult: AdversarialResult | null;
   stressEvent: string | null;
   validationEvent: string | null;
   result: SimulationResult | null;
@@ -51,6 +53,7 @@ const initialState: SimState = {
   factionUpdates: [],
   triggersEvents: [],
   historicalPrecedents: [],
+  adversarialResult: null,
   stressEvent: null,
   validationEvent: null,
   result: null,
@@ -99,6 +102,17 @@ function reducer(state: SimState, action: SimAction): SimState {
         }
         case "historical_context":
           return { ...state, historicalPrecedents: ev.precedents || [] };
+        case "adversarial_result":
+          return {
+            ...state,
+            adversarialResult: {
+              claims: ev.claims || [],
+              survival_rate: ev.survival_rate ?? 0,
+              surviving_count: ev.surviving_count ?? 0,
+              defeated_count: ev.defeated_count ?? 0,
+              key_defeats: ev.key_defeats || [],
+            },
+          };
         case "complete":
           return { ...state, status: "complete", result: ev.result, progress: 100 };
         case "error":

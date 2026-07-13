@@ -188,3 +188,26 @@ export interface Webhook {
   created_at: string;
   failure_count: number;
 }
+
+// --- Adversarial Mode ---
+
+export interface ArgumentClaimResult {
+  agent_id: string;
+  archetype: string;
+  claim_text: string;
+  evidence: string;
+  status: "standing" | "defeated" | "amended";
+  attack_text: string;
+  attack_severity: string;
+  defense_response: string;
+  defense_text: string;
+  amended_claim: string;
+}
+
+export interface AdversarialResult {
+  claims: ArgumentClaimResult[];
+  survival_rate: number;
+  surviving_count: number;
+  defeated_count: number;
+  key_defeats: string[];
+}
