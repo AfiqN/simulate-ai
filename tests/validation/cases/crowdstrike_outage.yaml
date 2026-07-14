@@ -1,0 +1,60 @@
+name: "CrowdStrike Global IT Outage"
+date: "2024-07-19"
+domain: "tech"
+difficulty: "easy"
+
+stimulus: |
+  CrowdStrike, a leading cybersecurity firm with over 29,000 enterprise customers,
+  pushes a routine sensor configuration update (Channel File 291) to its Falcon
+  endpoint protection agent running on approximately 8.5 million Windows machines
+  globally. The update deploys automatically without staged rollout to all opted-in
+  systems simultaneously. Affected machines span airlines, hospitals, banks, media
+  broadcasters, 911 emergency dispatch systems, and government agencies. The update
+  triggers kernel-level crashes (Blue Screen of Death) and there is no remote remediation
+  path — each machine requires manual intervention via Safe Mode boot and deletion of
+  a specific sys file.
+
+ground_truth:
+  outcome: |
+    The faulty update caused simultaneous BSOD crashes across 8.5 million Windows
+    machines worldwide, grounding flights, disrupting hospital systems, knocking
+    banks offline, and disabling 911 services. Insured losses were estimated at
+    $5.4 billion. Full recovery took over two weeks for large enterprises due to
+    the manual remediation requirement. CrowdStrike stock dropped 11% on the first
+    trading day, and CEO George Kurtz testified before the U.S. Congress.
+
+  verdict_direction: "escalate"
+  verdict_keywords:
+    - "cascading failure"
+    - "single point of failure"
+    - "manual remediation"
+    - "critical infrastructure"
+    - "kernel access"
+    - "vendor lock-in"
+    - "litigation"
+
+  resilience: "Fragile"
+
+  actual_behaviors:
+    - actor: "CrowdStrike"
+      action: "Deployed untested configuration update globally without staged rollout; issued fix within 79 minutes but could not remotely remediate already-crashed machines"
+    - actor: "Delta Airlines"
+      action: "Suffered 5+ days of disruption, cancelled over 5,000 flights, claimed $500M in damages and filed lawsuit against CrowdStrike"
+    - actor: "Microsoft"
+      action: "Released recovery tool and worked with CrowdStrike on remediation guidance despite not being responsible for the faulty update"
+    - actor: "Enterprise IT teams"
+      action: "Manually rebooted machines into Safe Mode and deleted Channel File 291 one by one, creating weeks-long recovery queues"
+    - actor: "CEO George Kurtz"
+      action: "Apologized publicly, testified before U.S. House Homeland Security Committee in September 2024"
+    - actor: "Affected customers"
+      action: "Expressed anger but largely remained with CrowdStrike due to switching costs and vendor lock-in; churn was limited"
+
+  risks_materialized:
+    - "Single point of failure in critical infrastructure — one vendor update crashed systems across all sectors simultaneously"
+    - "Kernel-level access without adequate safeguards allowed a configuration error to cause unrecoverable system crashes"
+    - "No staged rollout meant zero opportunity to detect the fault before global propagation"
+    - "Manual remediation at scale proved impossible to execute quickly — 8.5M machines with no remote fix"
+    - "Cascading cross-sector failure — airlines, healthcare, finance, emergency services all degraded at once"
+    - "Litigation wave — Delta's $500M lawsuit plus class actions from shareholders and affected businesses"
+
+  timeline: "Update deployed at 04:09 UTC July 19; crashes began immediately worldwide; fix pushed within 79 minutes but required manual per-machine recovery; most enterprises took 1-2 weeks for full restoration"

@@ -1,0 +1,61 @@
+name: "TikTok US Ban Saga (2024)"
+date: "2024-04-24"
+domain: "tech_geopolitics"
+difficulty: "hard"
+
+stimulus: |
+  The US Congress passes the Protecting Americans from Foreign Adversary Controlled Applications Act
+  with broad bipartisan support, requiring ByteDance to divest TikTok's US operations within 270 days
+  or face a nationwide ban. TikTok has 170 million monthly active US users and ByteDance is valued at
+  approximately $225 billion. President Biden signs the bill into law on April 24, 2024. TikTok
+  immediately challenges the law in federal court, arguing it violates the First Amendment rights of
+  the platform and its users. China's commerce ministry states it would "firmly oppose" any forced sale,
+  and Chinese export control laws restrict the transfer of recommendation algorithm technology. The
+  Supreme Court agrees to hear the case on an expedited timeline ahead of the January 19, 2025 deadline.
+
+ground_truth:
+  outcome: |
+    The Supreme Court unanimously upholds the ban law on January 17, 2025, ruling that national security
+    interests outweigh First Amendment concerns. TikTok briefly goes dark for US users on January 19, 2025.
+    President Trump, inaugurated January 20, issues an executive order granting a 75-day extension and
+    proposes the US government take a 50% ownership stake in TikTok's US operations. ByteDance does not
+    divest and refuses to sell the recommendation algorithm. The app remains available but in legal limbo
+    through 2025 with no completed sale.
+
+  verdict_direction: "de-escalate"
+  verdict_keywords:
+    - "executive order"
+    - "extension"
+    - "legal limbo"
+    - "no divestiture"
+    - "political intervention"
+    - "national security"
+    - "algorithm"
+
+  resilience: "Moderate"
+
+  actual_behaviors:
+    - actor: "TikTok/ByteDance"
+      action: "Aggressively lobbied Congress, mobilized 170M users with in-app notifications urging them to contact representatives, and refused to sell the recommendation algorithm"
+    - actor: "US Supreme Court"
+      action: "Unanimously upheld the ban law in a 9-0 decision, siding with national security over First Amendment claims"
+    - actor: "President Trump"
+      action: "Reversed his own 2020 ban stance, issued 75-day executive order extension, proposed 50% US government stake in TikTok US operations"
+    - actor: "ByteDance"
+      action: "Refused to divest the core recommendation algorithm, citing Chinese export control laws blocking technology transfer"
+    - actor: "China Commerce Ministry"
+      action: "Blocked algorithm export under technology export control regulations, firmly opposed forced sale"
+    - actor: "US Users"
+      action: "Briefly migrated to Chinese alternatives RedNote (Xiaohongshu) and Lemon8 during the short ban period"
+    - actor: "Potential Buyers"
+      action: "Multiple parties emerged including Oracle and Microsoft-led consortiums, but none could close a deal without the algorithm"
+
+  risks_materialized:
+    - "Geopolitical weaponization of consumer tech platforms as bargaining chips between US and China"
+    - "First Amendment vs national security precedent — court ruled foreign ownership allows restriction of speech platform"
+    - "Platform dependency risk for 170 million users and millions of creators whose livelihoods depend on a single app"
+    - "Recommendation algorithm treated as critical IP that China classifies as unexportable technology"
+    - "Legal precedent established for banning foreign-controlled applications on national security grounds"
+    - "Executive power used to override statutory deadline through unilateral extension"
+
+  timeline: "April 2024 law signed → expedited court challenge through 2024 → January 17, 2025 Supreme Court upholds → January 19 brief ban → January 20 Trump executive order extension → ongoing legal and political limbo through 2025"

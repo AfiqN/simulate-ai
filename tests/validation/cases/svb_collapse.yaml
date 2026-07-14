@@ -1,0 +1,53 @@
+name: "Silicon Valley Bank Collapse"
+date: "2023-03-08"
+domain: "finance"
+difficulty: "medium"
+
+stimulus: |
+  Silicon Valley Bank (SVB), the 16th largest US bank with $209B in assets, announces a $1.8 billion
+  after-tax loss on the sale of its available-for-sale bond portfolio, which had declined in value due
+  to rising interest rates. The bank simultaneously announces a $2.25 billion capital raise to shore up
+  its balance sheet. Approximately 93% of SVB's deposits are uninsured, far exceeding the FDIC limit of
+  $250,000, with depositors concentrated among technology startups and venture capital firms. Within hours
+  of the announcement, prominent venture capital firms including Founders Fund and Coatue Management begin
+  publicly advising their portfolio companies to withdraw funds from SVB.
+
+ground_truth:
+  outcome: |
+    Depositors withdrew approximately $42 billion in a single day on March 9, 2023, leaving the bank with
+    a negative cash balance of roughly $958 million. The FDIC seized SVB on March 10, marking the second-largest
+    bank failure in US history. On March 12, the Treasury, Federal Reserve, and FDIC jointly announced all
+    depositors would be made whole regardless of insurance limits. Contagion spread to Signature Bank (closed
+    March 12) and First Republic Bank (seized May 1).
+
+  verdict_direction: "collapse"
+  verdict_keywords:
+    - "bank run"
+    - "FDIC seizure"
+    - "deposit flight"
+    - "contagion"
+    - "liquidity crisis"
+    - "government intervention"
+
+  resilience: "Fragile"
+
+  actual_behaviors:
+    - actor: "Venture capital firms"
+      action: "Publicly advised portfolio companies to withdraw deposits, acting as accelerants of panic via social media and group chats"
+    - actor: "Tech startup depositors"
+      action: "Engaged in herd behavior withdrawing $42B in 24 hours, coordinated through Twitter and VC networks"
+    - actor: "SVB management"
+      action: "Attempted capital raise that backfired by signaling distress, failed to communicate effectively with depositor base"
+    - actor: "Federal regulators (Treasury, Fed, FDIC)"
+      action: "Invoked systemic risk exception to guarantee all deposits including uninsured, created Bank Term Funding Program"
+    - actor: "Signature Bank and First Republic"
+      action: "Experienced contagion deposit outflows due to similar depositor profiles and concentration risk"
+
+  risks_materialized:
+    - "Concentrated uninsured deposit base (93%) created extreme vulnerability to coordinated withdrawal"
+    - "Social media and VC networks enabled bank run at unprecedented digital speed"
+    - "Interest rate risk on held-to-maturity bond portfolio crystallized into realized losses"
+    - "Maturity mismatch between long-duration assets and on-demand deposit liabilities"
+    - "Contagion to banks with similar risk profiles (concentrated deposits, tech sector exposure)"
+
+  timeline: "48 hours from capital raise announcement to FDIC seizure; 96 hours to full government backstop"

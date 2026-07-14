@@ -237,7 +237,7 @@ async def run_comparative_test(
             )
 
         # Delta
-        print(f"  Δ Accuracy: {comparison.accuracy_delta:+.2f} | Δ Risk ID: {comparison.risk_delta:+.1f}")
+        print(f"  Delta Accuracy: {comparison.accuracy_delta:+.2f} | Delta Risk ID: {comparison.risk_delta:+.1f}")
         print()
 
         comparisons.append(comparison)
@@ -257,7 +257,7 @@ def _print_summary(comparisons: list[ComparisonResult]):
     print(f"  COMPARATIVE SUMMARY")
     print(f"{'='*60}\n")
 
-    print(f"{'Case':<25} {'Collab':<8} {'Advers':<8} {'Δ Acc':<8} {'Δ Risk':<8} {'Quality':<8} {'Surv%':<6}")
+    print(f"{'Case':<25} {'Collab':<8} {'Advers':<8} {'dAcc':<8} {'dRisk':<8} {'Quality':<8} {'Surv%':<6}")
     print(f"{'-'*25} {'-'*7} {'-'*7} {'-'*7} {'-'*7} {'-'*7} {'-'*5}")
 
     for comp in comparisons:
@@ -281,7 +281,7 @@ def _print_summary(comparisons: list[ComparisonResult]):
         print(f"\n--- Averages ---")
         print(f"Collaborative: {avg_collab:.2f}/10")
         print(f"Adversarial:   {avg_adv:.2f}/10")
-        print(f"Δ Accuracy:    {avg_delta:+.2f}")
+        print(f"Delta Accuracy:    {avg_delta:+.2f}")
         print(f"Adv. Quality:  {avg_quality:.2f}/10")
 
         # Interpretation
@@ -298,9 +298,9 @@ def _print_summary(comparisons: list[ComparisonResult]):
 
         avg_risk_delta = sum(c.risk_delta for c in valid) / len(valid)
         if avg_risk_delta > 1.0:
-            print(f"\n[+] Adversarial mode identifies SIGNIFICANTLY MORE risks (Δ={avg_risk_delta:+.1f})")
+            print(f"\n[+] Adversarial mode identifies SIGNIFICANTLY MORE risks (d={avg_risk_delta:+.1f})")
         elif avg_risk_delta > 0:
-            print(f"\n[+] Adversarial mode identifies slightly more risks (Δ={avg_risk_delta:+.1f})")
+            print(f"\n[+] Adversarial mode identifies slightly more risks (d={avg_risk_delta:+.1f})")
 
 
 def _write_report(comparisons: list[ComparisonResult], model: str):

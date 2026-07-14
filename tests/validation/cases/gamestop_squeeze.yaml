@@ -1,0 +1,43 @@
+name: "GameStop Short Squeeze (January 2021)"
+date: "2021-01-28"
+domain: "finance_social"
+difficulty: "medium"
+
+stimulus: |
+  GameStop (GME), a brick-and-mortar video game retailer with declining revenues and ongoing store closures, currently carries short interest of approximately 140% of its float—meaning more shares have been sold short than actually exist in circulation. Melvin Capital, a hedge fund managing $12.5B in assets, holds a significant short position in GME. Meanwhile, Reddit's r/WallStreetBets community (11 million members) has identified the extreme short interest as a structural vulnerability and users are coordinating purchases of GME shares and call options. The stock price is approximately $20 and rising rapidly on increasing volume. Citadel and Point72 have just injected $2.75B in emergency capital into Melvin Capital to shore up its position. Robinhood, a zero-commission brokerage app popular with retail traders, is the primary platform being used for these purchases.
+
+ground_truth:
+  outcome: |
+    GME stock price rose from approximately $20 to an intraday high of $483 within 10 trading days, driven by a massive short squeeze and gamma squeeze from retail buying pressure. Melvin Capital lost 53% of its value in January 2021 alone and ultimately shut down in May 2022, never having recovered. On January 28, Robinhood restricted buying of GME and other volatile stocks (allowing only sell orders), triggering widespread public outrage and allegations of market manipulation on behalf of institutional players. Congressional hearings were held in February 2021, and multiple class action lawsuits were filed against Robinhood.
+
+  verdict_direction: "escalate"
+  verdict_keywords:
+    - "short squeeze"
+    - "retail coordination"
+    - "trading restrictions"
+    - "gamma squeeze"
+    - "social media"
+    - "systemic risk"
+
+  resilience: "Fragile"
+
+  actual_behaviors:
+    - actor: "Retail traders (r/WallStreetBets)"
+      action: "Coordinated mass buying of GME shares and call options via social media, creating sustained buying pressure that triggered a short squeeze"
+    - actor: "Melvin Capital"
+      action: "Faced infinite loss potential on short position, received $2.75B emergency injection from Citadel and Point72, ultimately closed short position at massive loss"
+    - actor: "Robinhood"
+      action: "Restricted buying of GME on January 28 citing clearing house deposit requirements (NSCC demanded increased collateral), allowing only sell orders, which crashed the stock price"
+    - actor: "Citadel Securities"
+      action: "Faced scrutiny over payment-for-order-flow relationship with Robinhood and potential conflict of interest as both market maker and hedge fund affiliate"
+    - actor: "Regulators (SEC, Congress)"
+      action: "Reactive response only—held hearings weeks after the event, issued no pre-emptive intervention despite visible systemic risk building in real-time"
+
+  risks_materialized:
+    - "Short squeeze mechanics exploited: 140% short interest created a structural vulnerability where forced covering amplified price increases exponentially"
+    - "Social media coordination at unprecedented scale enabled millions of retail traders to act with quasi-institutional buying power"
+    - "Broker-dealer conflict of interest: Robinhood's payment-for-order-flow model and clearing house capital requirements created incentives to restrict retail trading during peak volatility"
+    - "Regulatory gap: no existing framework addressed meme-stock phenomena or social-media-coordinated trading at this scale"
+    - "Gamma squeeze amplification: market makers hedging sold call options were forced to buy underlying shares, compounding upward price pressure"
+
+  timeline: "Approximately 2 weeks from $20 to $483 peak. Rapid escalation from January 13-27 as buying pressure mounted. Robinhood trading restriction imposed on day 10 (January 28). Price collapsed 44% on the restriction day. Congressional hearings held February 18, 2021. Melvin Capital shuttered May 2022."

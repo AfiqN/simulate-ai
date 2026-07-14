@@ -1,0 +1,55 @@
+name: "OpenAI Board Crisis / Sam Altman Firing"
+date: "2023-11-17"
+domain: "tech_corporate"
+difficulty: "medium"
+
+stimulus: |
+  The board of directors of a leading AI research company, structured as a nonprofit
+  governing a capped-profit subsidiary valued at approximately $90 billion, has abruptly
+  terminated its CEO citing a loss of confidence in his candor with the board. The decision
+  was made without advance notification to the company's largest investor, which has committed
+  $13 billion to the enterprise. Within hours, the company president and three senior
+  researchers resign in solidarity with the ousted CEO. An open letter circulates internally
+  and 700 of the company's 770 employees sign it, threatening to leave for the investor's
+  newly offered positions unless the board resigns and reinstates the CEO.
+
+ground_truth:
+  outcome: |
+    The fired CEO was reinstated within 5 days of his termination. Three of the four
+    dissenting board members were replaced with new directors. The major investor received
+    a non-voting board observer seat. The company announced plans to restructure its
+    governance, eventually converting toward a for-profit structure while maintaining
+    a nonprofit entity with a minority stake.
+
+  verdict_direction: "survive"
+  verdict_keywords:
+    - "reinstatement"
+    - "board replacement"
+    - "governance restructuring"
+    - "employee leverage"
+    - "investor influence"
+
+  resilience: "Moderate"
+
+  actual_behaviors:
+    - actor: "Employees"
+      action: "700 of 770 staff signed letter threatening mass departure to Microsoft unless board resigned"
+    - actor: "Microsoft"
+      action: "Offered positions to all OpenAI staff, leveraged $13B investment for board observer seat"
+    - actor: "Board dissidents"
+      action: "Lost legitimacy rapidly as employee and investor pressure mounted; 3 of 4 replaced within days"
+    - actor: "CEO (Sam Altman)"
+      action: "Returned as CEO with restructured board and strengthened position"
+    - actor: "President (Greg Brockman)"
+      action: "Resigned immediately in solidarity, returned alongside CEO"
+    - actor: "AI research community"
+      action: "Public outcry and open letters supporting reinstatement, amplifying pressure on board"
+
+  risks_materialized:
+    - "Near-total talent exodus risk as 91% of employees threatened to leave"
+    - "Governance mismatch between nonprofit board oversight and for-profit commercial reality exposed"
+    - "Single-person dependency on CEO demonstrated by organizational near-collapse upon removal"
+    - "Investor relations damage from excluding $13B partner from major decision"
+    - "Reputational damage to the board's stated mission of AI safety governance"
+
+  timeline: "5 days from firing to reinstatement; board restructuring completed within 2 weeks"
