@@ -137,6 +137,52 @@ async def _run_reconciliation(
     )
 
 
+def _is_pseudo_concession(defense_text: str) -> bool:
+    """Detect when a defense acknowledges the attack is correct but still tries to amend.
+
+    Only triggers on STRONG concession signals — where the defender explicitly
+    states they cannot defend the claim, not just that the attack has partial merit.
+    Partial acknowledgment + new evidence is legitimate amendment.
+    """
+    if not defense_text:
+        return False
+    lower = defense_text.lower()[:250]  # Check first 250 chars
+
+    # Strong concession: explicitly saying "I cannot/won't defend"
+    strong_concession_phrases = [
+        "i cannot defend",
+        "i can't defend",
+        "cannot be defended",
+        "i cannot rebut",
+        "i can't rebut",
+        "i will not defend",
+        "i won't defend",
+        "indefensible",
+    ]
+    if any(phrase in lower for phrase in strong_concession_phrases):
+        return True
+
+    # Weaker signal: "attack is correct" — only counts if no new evidence follows
+    weak_concession_phrases = [
+        "the attack is correct",
+        "the attack is substantially correct",
+        "the attack is largely correct",
+    ]
+    if any(phrase in lower for phrase in weak_concession_phrases):
+        # Check if there's new evidence introduced after the concession
+        new_evidence_signals = [
+            "however", "but", "nevertheless", "that said",
+            "new evidence", "additional data", "what the attack misses",
+            "the attacker overlooks", "counter-evidence",
+        ]
+        # If no new evidence signal found, it's a pseudo-concession
+        rest_of_text = defense_text.lower()[50:]  # Skip the opening concession
+        if not any(signal in rest_of_text for signal in new_evidence_signals):
+            return True
+
+    return False
+
+
 async def _run_adversarial_debate(
     agents: list[Agent],
     decisions_r1: list[dict],
@@ -265,13 +311,27 @@ async def _run_adversarial_debate(
         claim_obj.defense_text = defense.get("argument", "")
         claim_obj.amended_claim = defense.get("amended_claim", "")
 
-        # Determine survival
+        # Determine survival with severity-based ruling:
+        # - "fatal" attack + "amend" defense = defeated (amendment can't fix broken logic)
+        # - "fatal" attack + defense acknowledges flaw = defeated
+        # - "serious" attack + "amend" with concession language = defeated
         if response_type == "concede":
             claim_obj.status = "defeated"
         elif response_type == "amend":
-            claim_obj.status = "amended"
+            # Severity gate: fatal attacks cannot be amended away
+            if claim_obj.attack_severity == "fatal":
+                claim_obj.status = "defeated"
+            # Detect pseudo-concessions disguised as amendments
+            elif _is_pseudo_concession(claim_obj.defense_text):
+                claim_obj.status = "defeated"
+            else:
+                claim_obj.status = "amended"
         else:  # "rebut"
-            claim_obj.status = "standing"
+            # Even rebuttals against fatal attacks need new evidence
+            if claim_obj.attack_severity == "fatal" and _is_pseudo_concession(claim_obj.defense_text):
+                claim_obj.status = "defeated"
+            else:
+                claim_obj.status = "standing"
 
     adversarial_result = AdversarialRoundResult(claims=all_claims)
 

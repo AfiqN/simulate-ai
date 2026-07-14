@@ -549,14 +549,16 @@ ATTACK: "{attack_text}"
 RATED SEVERITY: {attack_severity}
 
 You have ONE chance to respond. Choose honestly:
-- REBUT: Provide a counter-argument that neutralizes the attack. You must introduce NEW evidence or logic not already in your original claim.
-- CONCEDE: Acknowledge the flaw. Honest concession is not weakness — it strengthens your surviving claims and your credibility.
-- AMEND: Modify your claim to address the flaw while preserving the core insight. The amended claim must be MORE specific than the original.
+- REBUT: Provide a counter-argument that neutralizes the attack. You must introduce NEW evidence or logic not already in your original claim. A rebut MUST present new facts, data, or reasoning that the attacker did not consider.
+- CONCEDE: Acknowledge the flaw is genuine and your claim does not hold. Honest concession is not weakness — it strengthens your surviving claims and your credibility.
+- AMEND: Modify your claim to address the flaw while preserving the core insight. The amended claim must be SUBSTANTIALLY DIFFERENT from the original — not just softer language or hedging.
 
-Guidelines:
-- If the attack identifies a genuine logical flaw you cannot counter, CONCEDE. Do not bullshit.
-- If you can rebut, your rebuttal must be SPECIFIC (not "that's not how it works" but "specifically, X happens because Y").
-- If amending, the new claim must directly address the flaw raised.
+STRICT RULES — read carefully:
+- If the attack severity is "fatal" and you cannot introduce genuinely NEW counter-evidence, you MUST CONCEDE. Amending a fatally flawed claim is not allowed — a fatal flaw means the core logic is broken, not just imprecise.
+- If you find yourself writing "the attack is correct" or "the attack lands" or "I cannot defend" — that IS a concession. Do not then amend. Choose CONCEDE.
+- AMEND is only valid when: (a) the core insight of your claim remains true, AND (b) the flaw identified is about scope/precision, NOT about the fundamental logic being wrong.
+- If the attack exposes that your claim's causal mechanism is wrong (not just overstated), CONCEDE.
+- Do NOT use amend as a way to retreat to a weaker version of a broken claim. That is intellectual dishonesty.
 
 Output ONLY valid JSON:
 {{"response": "rebut|concede|amend", "argument": "your defense or concession reasoning", "amended_claim": "new version of claim (only if response is amend, otherwise empty string)"}}"""
