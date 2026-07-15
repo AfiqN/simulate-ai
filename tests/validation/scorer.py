@@ -42,6 +42,24 @@ Respond ONLY with a JSON object in this exact format:
 }"""
 
 
+def _truncate_report_smart(report_md: str, max_chars: int = 15000) -> str:
+    """Truncate report preserving beginning and end sections.
+
+    Reports are structured markdown with numbered sections. If truncation is
+    needed, keep the first ~60% and last ~40% to preserve both the verdict
+    (top) and recommendations/resilience (bottom).
+    """
+    if len(report_md) <= max_chars:
+        return report_md
+    head_size = int(max_chars * 0.6)
+    tail_size = max_chars - head_size - 50  # 50 chars for separator
+    return (
+        report_md[:head_size]
+        + "\n\n[... middle sections condensed for brevity ...]\n\n"
+        + report_md[-tail_size:]
+    )
+
+
 def _build_judge_prompt(
     report_md: str,
     verdict: str,
@@ -58,7 +76,7 @@ def _build_judge_prompt(
         f"- Pre-crisis Consensus: {resilience_metrics.get('pre_crisis_consensus', 'N/A')}\n"
         f"- Post-crisis Consensus: {resilience_metrics.get('post_crisis_consensus', 'N/A')}\n"
         f"- Stability Index: {resilience_metrics.get('stability_index', 'N/A')}\n\n"
-        f"FULL REPORT:\n{report_md[:6000]}\n"  # Truncate to avoid token overflow
+        f"FULL REPORT:\n{_truncate_report_smart(report_md)}\n"
     )
 
     truth_section = (
