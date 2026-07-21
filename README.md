@@ -18,33 +18,48 @@ An Executive Compiler then produces a Markdown diagnostic report with a determin
 
 ## Requirements
 
-- Python 3.12 or later
-- An LLM backend: a Google AI Studio API key, an OpenAI API key, or a running Ollama server with at least one chat-capable model pulled
+- Python 3.11 or later
+- Node.js 20+ (for frontend builds only)
+- An LLM backend: a Google AI Studio API key, an OpenAI-compatible API key, or a running Ollama server with at least one chat-capable model pulled
 
-## Installation
+## Quick Start
 
 ```bash
 git clone <repo-url> SimulateAI
 cd SimulateAI
-python -m venv venv
-source venv/bin/activate          # Linux/WSL
-# .\venv\Scripts\Activate.ps1     # Windows PowerShell
+cp .env.example .env        # Fill in your API keys
 pip install -r requirements.txt
+python server.py            # Backend + frontend on http://localhost:8000
+```
+
+Or with Docker:
+
+```bash
+cp .env.example .env        # Fill in your API keys
+docker compose up --build   # Everything on http://localhost:8000
 ```
 
 ## Configuration
 
-Create `config.py` in the repository root (gitignored — never commit your API keys):
+Copy `.env.example` to `.env` and set your values:
 
-```python
-LLM_PROVIDER = "gemini"           # "gemini" | "openai" | "ollama"
-OLLAMA_HOST = "http://localhost:11434"
-GEMINI_API_KEY = "<your-key>"
-GEMINI_MODEL = "gemma-4-26b-a4b-it"
-DEFAULT_MODEL = GEMINI_MODEL if LLM_PROVIDER == "gemini" else "qwen2.5:3b"
-REQUEST_TIMEOUT = 120.0
-MAX_CONCURRENCY = 5
+```bash
+# LLM Provider: "ollama", "gemini", or "openai"
+LLM_PROVIDER=openai
+
+# Only the keys for your chosen provider are required:
+GEMINI_API_KEY=             # for gemini
+OPENAI_API_KEY=             # for openai
+OPENAI_BASE_URL=https://api.openai.com/v1
+OLLAMA_HOST=http://localhost:11434  # for ollama
+
+# Optional
+MAX_CONCURRENCY=5
+RAG_ENABLED=true
+BRAVE_API_KEY=              # Brave Search for RAG enrichment
 ```
+
+`config.py` reads these via `os.getenv()` with sensible defaults. You can also set env vars directly without a `.env` file.
 
 ## Running the interactive CLI
 
@@ -132,6 +147,8 @@ python server.py --reload          # Auto-reload for development
 
 ### Endpoints
 
+**GET /api/health** — Health check. Returns provider and model info.
+
 **POST /api/simulate** — Start a new simulation. Returns immediately with a run ID.
 
 ```json
@@ -213,9 +230,9 @@ tests/
 
 | Provider | How to configure |
 |---|---|
-| **Gemini** (Google AI Studio) | Set `LLM_PROVIDER = "gemini"` and `GEMINI_API_KEY` in `config.py`. Uses the OpenAI-compatible endpoint at `generativelanguage.googleapis.com`. |
-| **OpenAI** | Set `LLM_PROVIDER = "openai"` and provide your `OPENAI_API_KEY`. |
-| **Ollama** (local) | Set `LLM_PROVIDER = "ollama"` and `OLLAMA_HOST`. Default model: `qwen2.5:3b`. |
+| **Gemini** (Google AI Studio) | Set `LLM_PROVIDER=gemini` and `GEMINI_API_KEY` in `.env`. Uses the OpenAI-compatible endpoint at `generativelanguage.googleapis.com`. |
+| **OpenAI** | Set `LLM_PROVIDER=openai` and provide `OPENAI_API_KEY` + `OPENAI_BASE_URL` in `.env`. |
+| **Ollama** (local) | Set `LLM_PROVIDER=ollama` and `OLLAMA_HOST` in `.env`. Default model: `qwen2.5:3b`. |
 
 Provider and model can also be overridden per-run via `--provider` / `--model` on the CLI, or via the `provider` / `model` fields in the API request body.
 
@@ -227,12 +244,11 @@ Provider and model can also be overridden per-run via `--provider` / `--model` o
 
 ## Scope
 
-This is Phase 1 (Local PoC). The following are explicitly out of scope:
+This project has reached the end of Phase 1 (Local PoC with Web UI). The following are possible extensions:
 
-- Persistent agent state across sessions (Phase 2)
-- Backtesting against historical scenarios (Phase 2)
-- Web-based Simulation Cockpit (Phase 2)
-- Scale beyond ~20 agents per run (Phase 3)
-- Prompt caching to reduce input token costs (Phase 2)
+- Persistent agent state across sessions
+- Backtesting against historical scenarios
+- Scale beyond ~20 agents per run
+- Prompt caching to reduce input token costs
 
 See `project-brief.md` for the full roadmap.
