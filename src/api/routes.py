@@ -18,6 +18,17 @@ router = APIRouter(prefix="/api")
 RUNS_DIR = Path(__file__).resolve().parent.parent.parent / "tests" / "runs"
 
 
+@router.get("/health")
+async def health_check():
+    """Health check — verifies the API is up and returns basic status."""
+    from config import LLM_PROVIDER, DEFAULT_MODEL
+    return {
+        "status": "ok",
+        "provider": LLM_PROVIDER,
+        "model": DEFAULT_MODEL,
+    }
+
+
 @router.post("/simulate", response_model=SimulationStatus)
 async def start_simulation(req: SimulationRequest, request: Request):
     """Start a new simulation run. Returns immediately with a run ID to poll."""

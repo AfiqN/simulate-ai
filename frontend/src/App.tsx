@@ -3,6 +3,7 @@ import { useSimulation, useSimulationEvents } from "./hooks/useSimulation";
 import { useWebSocket } from "./hooks/useWebSocket";
 import { startSimulation, approveSchema, cancelSimulation, getHistory } from "./lib/api";
 import { Header } from "./components/layout/Header";
+import { LandingHero } from "./components/layout/LandingHero";
 import { HistoryList } from "./components/layout/HistoryList";
 import { SimForm } from "./components/simulation/SimForm";
 import { PipelineProgress } from "./components/simulation/PipelineProgress";
@@ -19,6 +20,7 @@ import type { SimulationConfig, SimulationResult, RunSummaryItem } from "./types
 export default function App() {
   const [showHistory, setShowHistory] = useState(false);
   const [showWebhooks, setShowWebhooks] = useState(false);
+  const [showLanding, setShowLanding] = useState(true);
   const [historyRuns, setHistoryRuns] = useState<RunSummaryItem[]>([]);
   const { state, dispatch } = useSimulation();
   const { events, status: wsStatus } = useWebSocket(state.runId);
@@ -29,6 +31,7 @@ export default function App() {
     const next = !showHistory;
     setShowHistory(next);
     if (next) setShowWebhooks(false);
+    if (next) setShowLanding(false);
     if (next) {
       getHistory()
         .then((data) => setHistoryRuns(data.runs))
@@ -40,10 +43,16 @@ export default function App() {
     const next = !showWebhooks;
     setShowWebhooks(next);
     if (next) setShowHistory(false);
+    if (next) setShowLanding(false);
+  };
+
+  const handleGetStarted = () => {
+    setShowLanding(false);
   };
 
   const handleSubmit = async (config: SimulationConfig) => {
     setShowHistory(false);
+    setShowLanding(false);
     try {
       const { id } = await startSimulation(config);
       dispatch({ type: "START", runId: id });
@@ -79,6 +88,7 @@ export default function App() {
 
   const handleReset = () => {
     dispatch({ type: "RESET" });
+    setShowLanding(true);
   };
 
   // Determine which round's agents to show as cards
@@ -121,7 +131,12 @@ export default function App() {
         {/* Simulation view */}
         {!showHistory && !showWebhooks && (
           <>
-            {state.status !== "complete" && (
+            {/* Landing hero — shown until user clicks Get Started or starts a sim */}
+            {showLanding && state.status === "idle" && (
+              <LandingHero onGetStarted={handleGetStarted} />
+            )}
+
+            {state.status !== "complete" && !showLanding && (
               <SimForm
                 onSubmit={handleSubmit}
                 disabled={state.status === "running" || state.status === "schema_pending"}
