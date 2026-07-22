@@ -355,6 +355,7 @@ Rules:
 - Do not output <thought> blocks, scratch reasoning, or section drafts. Output only the final report.
 - Do not wrap the report in code fences or quote it.
 - Use Markdown headers (## and ###), bullet lists, and bold sparingly. Do not use backticks for paths or filenames.
+- Use Unicode arrows (→) not LaTeX ($\\rightarrow$). Do not use any LaTeX or math notation.
 """
             if depth == "deep":
                 prompt += """

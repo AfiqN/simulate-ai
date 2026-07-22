@@ -21,7 +21,7 @@ class SimulationRequest(BaseModel):
     provider: Optional[str] = Field(default=None, description="Override LLM provider (gemini/ollama/openai).")
     crisis_override: Optional[str] = Field(default=None, description="Custom crisis event for Round 3.")
     rag_enabled: Optional[bool] = Field(default=None, description="Override RAG. None=use config default, True=force on, False=force off.")
-    depth: Literal["quick", "standard", "deep"] = Field(default="standard", description="Analysis depth: quick (2 rounds, concise), standard (full), deep (verbose + minority report).")
+    depth: Literal["quick", "standard", "deep"] = Field(default="quick", description="Analysis depth: quick (2 rounds, concise), standard (full), deep (verbose + minority report).")
     mode: Literal["collaborative", "adversarial"] = Field(default="collaborative", description="Debate mode: collaborative (consensus-seeking) or adversarial (argument survival through challenge).")
     custom_stakeholders: Optional[list[CustomStakeholder]] = Field(default=None, max_length=10, description="User-defined stakeholder personas to inject (max 10).")
     historical_precedents: Optional[list[dict[str, Any]]] = Field(default=None, max_length=5, description="User-supplied historical precedents (title, year, summary, outcome, relevance, domain).")

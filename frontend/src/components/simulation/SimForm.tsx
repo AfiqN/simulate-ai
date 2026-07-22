@@ -16,7 +16,7 @@ interface Props {
 export function SimForm({ onSubmit, disabled }: Props) {
   const [stimulus, setStimulus] = useState("");
   const [agentCount, setAgentCount] = useState(5);
-  const [depth, setDepth] = useState<"quick" | "standard" | "deep">("standard");
+  const [depth, setDepth] = useState<"quick" | "standard" | "deep">("quick");
   const [mode, setMode] = useState<"collaborative" | "adversarial">("collaborative");
   const [customStakeholders, setCustomStakeholders] = useState<CustomStakeholder[]>([]);
   const [historicalPrecedents, setHistoricalPrecedents] = useState<HistoricalPrecedent[]>([]);
