@@ -1,109 +1,38 @@
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { ChevronDown } from "lucide-react";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import type { SimulationResult } from "../../types";
 
 interface Props {
   result: SimulationResult;
 }
 
-function getVerdictVariant(verdict: string): "success" | "destructive" | "warning" {
-  const v = verdict.toLowerCase();
-  if (v.includes("resilient")) return "success";
-  if (v.includes("fragile")) return "destructive";
-  return "warning";
-}
-
 export function ReportSection({ result }: Props) {
   const [showRaw, setShowRaw] = useState(false);
 
-  const verdict = result.resilience_metrics?.verdict || result.verdict || "Unknown";
-  const stability = result.resilience_metrics?.decision_stability;
-  const drift = result.resilience_metrics?.utility_drift_mean;
-
   return (
-    <Card className="p-4 space-y-4">
-      {/* Verdict badge */}
-      <div className="flex items-center gap-4">
-        <Badge variant={getVerdictVariant(verdict)} className="px-3 py-1.5 text-[14px]">
-          {verdict}
-        </Badge>
-        {stability !== undefined && (
-          <span className="text-[13px] text-[#6B6B6B]">
-            Stability: <span className="font-['JetBrains_Mono'] text-[#0F0F0F]">{(stability * 100).toFixed(0)}%</span>
-          </span>
-        )}
-        {drift !== undefined && (
-          <span className="text-[13px] text-[#6B6B6B]">
-            Drift: <span className="font-['JetBrains_Mono'] text-[#0F0F0F]">{drift >= 0 ? "+" : ""}{drift.toFixed(3)}</span>
-          </span>
-        )}
-      </div>
-
-      {/* External events */}
-      {result.crisis_event && (
-        <div className="space-y-2">
-          {typeof result.crisis_event === "object" ? (
-            <>
-              {result.crisis_event.stress && (
-                <div className="border-l-2 border-[#8B1A1A] pl-3">
-                  <span className="text-[11px] text-[#8B1A1A] uppercase tracking-wider font-medium">Stress Event</span>
-                  <p className="text-[13px] text-[#0F0F0F] mt-0.5">{result.crisis_event.stress}</p>
-                </div>
-              )}
-              {result.crisis_event.validation && (
-                <div className="border-l-2 border-[#166534] pl-3">
-                  <span className="text-[11px] text-[#166534] uppercase tracking-wider font-medium">Validation Event</span>
-                  <p className="text-[13px] text-[#0F0F0F] mt-0.5">{result.crisis_event.validation}</p>
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="border-l-2 border-[#8B1A1A] pl-3">
-              <span className="text-[11px] text-[#8B1A1A] uppercase tracking-wider font-medium">Crisis</span>
-              <p className="text-[13px] text-[#0F0F0F] mt-0.5">{result.crisis_event}</p>
-            </div>
-          )}
-        </div>
-      )}
-
+    <div className="space-y-4">
       {/* Rendered markdown report */}
       {result.report_md && (
-        <div className="prose prose-sm max-w-none text-[13px] leading-relaxed text-[#0F0F0F] [&_h1]:text-[16px] [&_h1]:font-medium [&_h1]:mt-4 [&_h1]:mb-2 [&_h2]:text-[14px] [&_h2]:font-medium [&_h2]:mt-3 [&_h2]:mb-1.5 [&_h3]:text-[13px] [&_h3]:font-medium [&_h3]:mt-2 [&_h3]:mb-1 [&_p]:mb-2 [&_ul]:pl-4 [&_li]:mb-0.5 [&_strong]:text-[#0F0F0F] [&_em]:text-[#6B6B6B] [&_blockquote]:border-l-2 [&_blockquote]:border-[#E5E5E5] [&_blockquote]:pl-3 [&_blockquote]:text-[#6B6B6B]">
+        <div className="prose prose-sm max-w-none text-[14px] leading-[1.7] text-[#0F0F0F] [&_h1]:text-[18px] [&_h1]:font-semibold [&_h1]:mt-6 [&_h1]:mb-3 [&_h1]:tracking-[-0.02em] [&_h2]:text-[15px] [&_h2]:font-medium [&_h2]:mt-5 [&_h2]:mb-2 [&_h3]:text-[14px] [&_h3]:font-medium [&_h3]:mt-4 [&_h3]:mb-1.5 [&_p]:mb-3 [&_ul]:pl-5 [&_ul]:mb-3 [&_ol]:pl-5 [&_ol]:mb-3 [&_li]:mb-1 [&_strong]:text-[#0F0F0F] [&_em]:text-[#6B6B6B] [&_blockquote]:border-l-2 [&_blockquote]:border-[#E5E5E5] [&_blockquote]:pl-4 [&_blockquote]:text-[#6B6B6B] [&_blockquote]:italic [&_code]:text-[12px] [&_code]:font-['JetBrains_Mono'] [&_code]:bg-[#F5F5F5] [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded-[3px]">
           <ReactMarkdown>{result.report_md}</ReactMarkdown>
         </div>
       )}
 
       {/* Collapsible raw JSON */}
-      <div className="border-t border-[#E5E5E5] pt-3">
+      <div className="border-t border-[#F0F0F0] pt-3 mt-4">
         <button
           onClick={() => setShowRaw(!showRaw)}
           className="flex items-center gap-1.5 text-[12px] text-[#9B9B9B] hover:text-[#6B6B6B] transition-colors"
         >
-          <ChevronDown
-            size={12}
-            className={`transition-transform duration-200 ${showRaw ? "rotate-180" : ""}`}
-          />
-          Raw JSON
+          <span className={`transition-transform duration-200 inline-block ${showRaw ? "rotate-90" : ""}`}>▸</span>
+          Raw data
         </button>
         {showRaw && (
-          <pre className="mt-2 p-3 bg-[#FAFAFA] border border-[#E5E5E5] rounded-[6px] text-[11px] font-['JetBrains_Mono'] text-[#6B6B6B] overflow-x-auto max-h-[400px] overflow-y-auto">
+          <pre className="mt-3 p-4 bg-[#FAFAFA] border border-[#E5E5E5] rounded-[8px] text-[11px] font-['JetBrains_Mono'] text-[#6B6B6B] overflow-x-auto max-h-[400px] overflow-y-auto leading-relaxed">
             {JSON.stringify(result, null, 2)}
           </pre>
         )}
       </div>
-
-      {/* Timing */}
-      {result.timings && (
-        <div className="flex gap-4 text-[12px] text-[#9B9B9B]">
-          <span>Total: <span className="font-['JetBrains_Mono'] text-[#6B6B6B]">{result.timings.total.toFixed(1)}s</span></span>
-          <span>R1: <span className="font-['JetBrains_Mono']">{result.timings.r1.toFixed(1)}s</span></span>
-          <span>R2: <span className="font-['JetBrains_Mono']">{result.timings.r2.toFixed(1)}s</span></span>
-          <span>R3: <span className="font-['JetBrains_Mono']">{result.timings.r3.toFixed(1)}s</span></span>
-        </div>
-      )}
-    </Card>
+    </div>
   );
 }

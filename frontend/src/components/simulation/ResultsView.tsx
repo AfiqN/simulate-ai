@@ -1,7 +1,5 @@
 import { useState, useRef, useCallback } from "react";
 import { generateReport } from "../../lib/pdfReport";
-import { ExecutiveSummary } from "./ExecutiveSummary";
-import { CrisisCallout } from "./CrisisCallout";
 import { ReportSection } from "./ReportSection";
 import { RoundTimeline } from "./RoundTimeline";
 import { AdversarialResultPanel } from "./AdversarialResultPanel";
@@ -40,6 +38,35 @@ function computeHHI(voteTally: Record<string, number>, totalAgents: number): num
   return shares.reduce((sum, s) => sum + s * s, 0);
 }
 
+function CollapsibleSection({ title, children, defaultOpen = false }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="border border-[#E5E5E5] rounded-[10px] overflow-hidden">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full px-5 py-3.5 flex items-center justify-between text-left hover:bg-[#FAFAFA] transition-colors"
+      >
+        <span className="text-[13px] font-medium text-[#0F0F0F]">{title}</span>
+        <span className={`text-[#8B8B8B] text-[12px] transition-transform duration-200 ${open ? "rotate-180" : ""}`}>
+          ▾
+        </span>
+      </button>
+      {open && (
+        <div className="px-5 pb-5 border-t border-[#F0F0F0] pt-4 animate-fade-in">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function getVerdictColor(verdict: string) {
+  const v = verdict.toLowerCase();
+  if (v.includes("resilient")) return "text-[#16653A]";
+  if (v.includes("fragile") || v.includes("rejected")) return "text-[#8B1A1A]";
+  return "text-[#5B21B6]";
+}
+
 export function ResultsView({ result, rounds, agentsByRound, schema, factionUpdates, triggersEvents, historicalPrecedents, adversarialResult, runId, onReset }: Props) {
   const [exporting, setExporting] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
@@ -65,66 +92,114 @@ export function ResultsView({ result, rounds, agentsByRound, schema, factionUpda
     }
   }, [result, rounds, schema]);
 
-  // Crisis event extraction
+  const verdict = result.resilience_metrics?.verdict || result.verdict || "Unknown";
+  const stability = result.resilience_metrics?.decision_stability;
+  const drift = result.resilience_metrics?.utility_drift_mean;
+  const latestRound = rounds[rounds.length - 1];
+  const totalAgents = latestRound?.decisions?.length || 0;
+
   const crisisStress = typeof result.crisis_event === "object"
     ? result.crisis_event?.stress
     : typeof result.crisis_event === "string"
     ? result.crisis_event
     : null;
-  const crisisValidation = typeof result.crisis_event === "object"
-    ? result.crisis_event?.validation
-    : null;
 
   return (
-    <div className="space-y-6">
-      {/* Actions bar */}
-      <div className="flex flex-wrap items-center gap-3">
-        <button
-          onClick={onReset}
-          className="px-4 py-2 text-[13px] border border-[#E5E5E5] rounded-[6px] text-[#6B6B6B] hover:border-[#D0D0D0] hover:text-[#0F0F0F] transition-colors"
-        >
-          ← New Simulation
-        </button>
-        {runId && (
-          <button
-            onClick={handleShare}
-            className="px-4 py-2 text-[13px] border border-[#E5E5E5] rounded-[6px] text-[#6B6B6B] hover:border-[#D0D0D0] hover:text-[#0F0F0F] transition-colors"
-          >
-            {shareCopied ? "Link copied!" : "Share"}
-          </button>
-        )}
-        {runId && <ExportButton runId={runId} />}
+    <div className="space-y-5 animate-fade-in" ref={reportRef}>
+      {/* Top: Verdict card */}
+      <div className="bg-[#0F0F0F] rounded-[12px] p-6 sm:p-8 text-white">
+        <div className="flex items-start justify-between mb-6">
+          <div>
+            <p className="text-[11px] text-[#6B6B6B] uppercase tracking-wider font-['JetBrains_Mono'] mb-1">
+              Simulation Complete
+            </p>
+            <h1 className="text-[18px] sm:text-[22px] font-medium tracking-[-0.02em] leading-tight">
+              {schema?.scenario_name || result.scenario_name || "Simulation Report"}
+            </h1>
+          </div>
+          <div className="flex items-center gap-2">
+            {runId && (
+              <button
+                onClick={handleShare}
+                className="px-3 py-1.5 text-[12px] text-[#8B8B8B] border border-[#3A3A3A] rounded-[6px] hover:border-[#6B6B6B] hover:text-white transition-colors"
+              >
+                {shareCopied ? "Copied!" : "Share"}
+              </button>
+            )}
+            <button
+              onClick={handleExportPdf}
+              disabled={exporting}
+              className="px-3 py-1.5 text-[12px] text-[#8B8B8B] border border-[#3A3A3A] rounded-[6px] hover:border-[#6B6B6B] hover:text-white transition-colors disabled:opacity-50"
+            >
+              {exporting ? "Exporting…" : "Export PDF"}
+            </button>
+          </div>
+        </div>
+
+        {/* Verdict + key metrics */}
+        <div className="flex flex-wrap items-end gap-8">
+          <div>
+            <p className="text-[10px] text-[#6B6B6B] uppercase tracking-wider mb-1">Verdict</p>
+            <p className={`text-[28px] sm:text-[32px] font-semibold tracking-[-0.02em] ${getVerdictColor(verdict).replace("text-", "text-")} ${verdict.toLowerCase().includes("resilient") ? "text-[#4ADE80]" : verdict.toLowerCase().includes("fragile") ? "text-[#EF4444]" : "text-[#C4B5FD]"}`}>
+              {verdict}
+            </p>
+          </div>
+          {stability !== undefined && (
+            <div>
+              <p className="text-[10px] text-[#6B6B6B] uppercase tracking-wider mb-1">Stability</p>
+              <p className="text-[20px] font-['JetBrains_Mono'] font-medium text-white tabular-nums">
+                {(stability * 100).toFixed(0)}%
+              </p>
+            </div>
+          )}
+          {drift !== undefined && (
+            <div>
+              <p className="text-[10px] text-[#6B6B6B] uppercase tracking-wider mb-1">Utility Drift</p>
+              <p className="text-[20px] font-['JetBrains_Mono'] font-medium text-white tabular-nums">
+                {drift >= 0 ? "+" : ""}{drift.toFixed(3)}
+              </p>
+            </div>
+          )}
+          {totalAgents > 0 && (
+            <div>
+              <p className="text-[10px] text-[#6B6B6B] uppercase tracking-wider mb-1">Agents</p>
+              <p className="text-[20px] font-['JetBrains_Mono'] font-medium text-white tabular-nums">
+                {totalAgents}
+              </p>
+            </div>
+          )}
+          {result.timings?.total && (
+            <div>
+              <p className="text-[10px] text-[#6B6B6B] uppercase tracking-wider mb-1">Duration</p>
+              <p className="text-[20px] font-['JetBrains_Mono'] font-medium text-white tabular-nums">
+                {result.timings.total.toFixed(1)}s
+              </p>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* PDF-capturable area */}
-      <div ref={reportRef} className="space-y-6">
-        {/* Executive Summary */}
-        <ExecutiveSummary
-          result={result}
-          rounds={rounds}
-          scenarioName={schema?.scenario_name}
-          onExportPdf={handleExportPdf}
-          exporting={exporting}
-        />
+      {/* Crisis event callout */}
+      {crisisStress && (
+        <div className="flex items-start gap-3 p-4 bg-[#FAFAFA] border border-[#E5E5E5] rounded-[10px]">
+          <span className="text-[11px] text-[#8B8B8B] uppercase tracking-wider font-medium shrink-0 mt-0.5">Crisis</span>
+          <p className="text-[13px] text-[#0F0F0F] leading-relaxed">{crisisStress}</p>
+        </div>
+      )}
 
-        {/* Crisis Callout */}
-        {crisisStress && (
-          <CrisisCallout stressEvent={crisisStress} validationEvent={crisisValidation} />
-        )}
+      {/* Analysis Report — the main content */}
+      <div className="border border-[#E5E5E5] rounded-[10px] bg-white p-5 sm:p-8">
+        <h2 className="text-[13px] text-[#8B8B8B] uppercase tracking-wider font-medium mb-4">Analysis</h2>
+        <ReportSection result={result} />
+      </div>
 
-        {/* Metrics - rebalanced layout */}
+      {/* Metrics — collapsible */}
+      <CollapsibleSection title="Metrics & Charts" defaultOpen={true}>
         <div className="space-y-4">
-          <h2 className="text-[15px] font-medium tracking-[-0.02em]">Metrics</h2>
-
-          {/* Vote tally - full width */}
           <VoteTally rounds={rounds} />
-
-          {/* Dimension chart - full width */}
           {result.quantitative_metrics?.dimension_stats && (
             <DimensionChart stats={result.quantitative_metrics.dimension_stats} />
           )}
-
-          {/* Consensus + Swing side by side */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <ConsensusGauge
               rounds={rounds.map((r) => ({
@@ -137,49 +212,41 @@ export function ResultsView({ result, rounds, agentsByRound, schema, factionUpda
             )}
           </div>
         </div>
+      </CollapsibleSection>
 
-        {/* Adversarial Debate Results (replaces Coalition Dynamics in adversarial mode) */}
-        {adversarialResult && adversarialResult.claims.length > 0 && (
+      {/* Adversarial Debate */}
+      {adversarialResult && adversarialResult.claims.length > 0 && (
+        <CollapsibleSection title="Adversarial Debate" defaultOpen={true}>
+          <AdversarialResultPanel result={adversarialResult} />
+        </CollapsibleSection>
+      )}
+
+      {/* Coalition Dynamics */}
+      {!adversarialResult && result.faction_metrics && (
+        <CollapsibleSection title="Coalition Dynamics">
           <div className="space-y-4">
-            <h2 className="text-[15px] font-medium tracking-[-0.02em]">Adversarial Debate</h2>
-            <AdversarialResultPanel result={adversarialResult} />
-          </div>
-        )}
-
-        {/* Coalition Dynamics (collaborative mode only) */}
-        {!adversarialResult && result.faction_metrics && (
-          <div className="space-y-4">
-            <h2 className="text-[15px] font-medium tracking-[-0.02em]">Coalition Dynamics</h2>
-
-            {/* Faction size over rounds - full width */}
             <FactionTimeline history={result.faction_metrics.faction_history} />
-
-            {/* Alluvial flow - full width */}
             <FactionFlow agentsByRound={agentsByRound} rounds={rounds} />
-
-            {/* Cohesion + Defections side by side */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <CohesionMeter factionUpdates={factionUpdates} />
               <DefectionLog events={result.faction_metrics.alliance_events} />
             </div>
-
-            {/* Panel debate - deep mode only */}
             <PanelDebateView agentsByRound={agentsByRound} rounds={rounds} />
           </div>
-        )}
+        </CollapsibleSection>
+      )}
 
-        {/* Round Timeline with all agents */}
-        {Object.keys(agentsByRound).length > 0 && (
-          <div>
-            <h2 className="text-[15px] font-medium tracking-[-0.02em] mb-3">Agent Decisions</h2>
-            <RoundTimeline rounds={rounds} agentsByRound={agentsByRound} />
-          </div>
-        )}
+      {/* Agent Decisions */}
+      {Object.keys(agentsByRound).length > 0 && (
+        <CollapsibleSection title="Agent Decisions">
+          <RoundTimeline rounds={rounds} agentsByRound={agentsByRound} />
+        </CollapsibleSection>
+      )}
 
-        {/* Dynamics: Triggers + Historical Context */}
-        {((triggersEvents && triggersEvents.length > 0) || (historicalPrecedents && historicalPrecedents.length > 0)) && (
+      {/* Dynamics */}
+      {((triggersEvents && triggersEvents.length > 0) || (historicalPrecedents && historicalPrecedents.length > 0)) && (
+        <CollapsibleSection title="Dynamics & Context">
           <div className="space-y-4">
-            <h2 className="text-[15px] font-medium tracking-[-0.02em]">Dynamics</h2>
             {triggersEvents && triggersEvents.length > 0 && (
               <ConditionalTriggersPanel triggers={triggersEvents} />
             )}
@@ -187,13 +254,18 @@ export function ResultsView({ result, rounds, agentsByRound, schema, factionUpda
               <HistoricalContextPanel precedents={historicalPrecedents} />
             )}
           </div>
-        )}
+        </CollapsibleSection>
+      )}
 
-        {/* Report markdown + raw data */}
-        <div>
-          <h2 className="text-[15px] font-medium tracking-[-0.02em] mb-3">Analysis Report</h2>
-          <ReportSection result={result} />
-        </div>
+      {/* Export row + back */}
+      <div className="flex items-center justify-between pt-2">
+        <button
+          onClick={onReset}
+          className="px-4 py-2 text-[13px] text-[#8B8B8B] hover:text-[#0F0F0F] border border-[#E5E5E5] hover:border-[#D0D0D0] rounded-[6px] transition-colors"
+        >
+          ← New Simulation
+        </button>
+        {runId && <ExportButton runId={runId} />}
       </div>
     </div>
   );
