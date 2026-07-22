@@ -10,8 +10,8 @@ __pycache__
 venv
 env
 
-# Node (frontend builds inside Docker)
-frontend/node_modules
+# Node (not needed - static/dist is pre-built)
+frontend
 
 # Runtime data
 tests/runs

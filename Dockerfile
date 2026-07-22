@@ -1,18 +1,16 @@
-FROM node:20-slim AS frontend-build
-WORKDIR /app/frontend
-COPY frontend/package.json frontend/package-lock.json* ./
-RUN npm ci
-COPY frontend/ ./
-RUN npm run build
-
 FROM python:3.11-slim
 WORKDIR /app
 
-COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+# Install deps one-by-one to stay within Railway's memory limit
+RUN pip install --no-cache-dir httpx==0.27.2
+RUN pip install --no-cache-dir rich==13.9.4
+RUN pip install --no-cache-dir fastapi==0.115.6
+RUN pip install --no-cache-dir "uvicorn[standard]==0.32.1"
+RUN pip install --no-cache-dir aiosqlite==0.20.0
+RUN pip install --no-cache-dir PyYAML==6.0.2
+RUN pip install --no-cache-dir python-dotenv==1.0.1
 
 COPY . .
-COPY --from=frontend-build /app/static/dist ./static/dist
 
 EXPOSE 8000
 
