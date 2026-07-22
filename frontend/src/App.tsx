@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSimulation, useSimulationEvents } from "./hooks/useSimulation";
 import { useWebSocket } from "./hooks/useWebSocket";
-import { startSimulation, approveSchema, cancelSimulation } from "./lib/api";
+import { startSimulation, approveSchema, cancelSimulation, getRunDetail } from "./lib/api";
 import { Header } from "./components/layout/Header";
 import { LandingHero } from "./components/layout/LandingHero";
 import { SettingsPanel } from "./components/layout/SettingsPanel";
@@ -18,10 +18,25 @@ import type { SimulationConfig } from "./types";
 export default function App() {
   const [showLanding, setShowLanding] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const { state, dispatch } = useSimulation();
   const { events, status: wsStatus } = useWebSocket(state.runId);
 
   useSimulationEvents(dispatch, events);
+
+  // Share link: load run from ?run=<id> on page load
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const runId = params.get("run");
+    if (runId) {
+      setShowLanding(false);
+      getRunDetail(runId).then((data) => {
+        if (data.status === "completed" && data.result) {
+          dispatch({ type: "LOAD_RESULT", result: data.result });
+        }
+      }).catch(() => {});
+    }
+  }, []);
 
   const handleGetStarted = () => {
     setShowLanding(false);
@@ -29,11 +44,12 @@ export default function App() {
 
   const handleSubmit = async (config: SimulationConfig) => {
     setShowLanding(false);
+    setSubmitError(null);
     try {
       const { id } = await startSimulation(config);
       dispatch({ type: "START", runId: id });
-    } catch (err) {
-      console.error("Failed to start simulation:", err);
+    } catch (err: any) {
+      setSubmitError(err.message || "Failed to start simulation");
     }
   };
 
@@ -60,6 +76,9 @@ export default function App() {
   const handleReset = () => {
     dispatch({ type: "RESET" });
     setShowLanding(true);
+    setSubmitError(null);
+    // Clear URL params
+    window.history.replaceState({}, "", window.location.pathname);
   };
 
   // Determine which round's agents to show as cards
@@ -90,6 +109,24 @@ export default function App() {
             onSubmit={handleSubmit}
             disabled={state.status === "running" || state.status === "schema_pending"}
           />
+        )}
+
+        {/* Submit error (rate limit, network, etc.) */}
+        {submitError && state.status === "idle" && (
+          <div className="border border-[#8B1A1A]/20 rounded-[6px] bg-[#FEF2F2] p-4 flex items-start gap-3">
+            <div className="flex-1">
+              <p className="text-[14px] text-[#8B1A1A]">{submitError}</p>
+              {submitError.includes("Demo limit") && (
+                <button
+                  onClick={() => setShowSettings(true)}
+                  className="mt-2 text-[13px] text-[#8B1A1A] underline font-medium"
+                >
+                  Add your own API key for unlimited access
+                </button>
+              )}
+            </div>
+            <button onClick={() => setSubmitError(null)} className="text-[#8B1A1A]/60 hover:text-[#8B1A1A] text-[18px]">&times;</button>
+          </div>
         )}
 
         {state.status === "running" && (

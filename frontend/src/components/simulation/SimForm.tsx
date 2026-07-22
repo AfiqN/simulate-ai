@@ -59,7 +59,7 @@ export function SimForm({ onSubmit, disabled }: Props) {
             />
           </div>
 
-          <div className="flex items-end gap-4">
+          <div className="flex flex-wrap items-end gap-4">
             <div className="space-y-1.5">
               <label className="block text-[11px] text-[#9B9B9B] uppercase tracking-wider font-medium">
                 Agents

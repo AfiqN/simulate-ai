@@ -42,7 +42,17 @@ function computeHHI(voteTally: Record<string, number>, totalAgents: number): num
 
 export function ResultsView({ result, rounds, agentsByRound, schema, factionUpdates, triggersEvents, historicalPrecedents, adversarialResult, runId, onReset }: Props) {
   const [exporting, setExporting] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
+
+  const handleShare = useCallback(() => {
+    if (!runId) return;
+    const url = `${window.location.origin}?run=${runId}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    });
+  }, [runId]);
 
   const handleExportPdf = useCallback(async () => {
     setExporting(true);
@@ -68,13 +78,21 @@ export function ResultsView({ result, rounds, agentsByRound, schema, factionUpda
   return (
     <div className="space-y-6">
       {/* Actions bar */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <button
           onClick={onReset}
           className="px-4 py-2 text-[13px] border border-[#E5E5E5] rounded-[6px] text-[#6B6B6B] hover:border-[#D0D0D0] hover:text-[#0F0F0F] transition-colors"
         >
           ← New Simulation
         </button>
+        {runId && (
+          <button
+            onClick={handleShare}
+            className="px-4 py-2 text-[13px] border border-[#E5E5E5] rounded-[6px] text-[#6B6B6B] hover:border-[#D0D0D0] hover:text-[#0F0F0F] transition-colors"
+          >
+            {shareCopied ? "Link copied!" : "Share"}
+          </button>
+        )}
         {runId && <ExportButton runId={runId} />}
       </div>
 

@@ -4,13 +4,13 @@ interface Props {
 
 export function LandingHero({ onGetStarted }: Props) {
   return (
-    <div className="py-16 space-y-10">
+    <div className="py-8 sm:py-16 space-y-8 sm:space-y-10">
       {/* Hero */}
       <div className="text-center space-y-4">
-        <h2 className="text-[32px] font-semibold tracking-[-0.03em] text-[#0F0F0F]">
+        <h2 className="text-[24px] sm:text-[32px] font-semibold tracking-[-0.03em] text-[#0F0F0F]">
           Stress-test any decision before it happens
         </h2>
-        <p className="text-[16px] text-[#6B6B6B] max-w-[560px] mx-auto leading-relaxed">
+        <p className="text-[14px] sm:text-[16px] text-[#6B6B6B] max-w-[560px] mx-auto leading-relaxed">
           SimulateAI runs a multi-agent debate on your idea — product launch, policy change,
           strategic bet — and surfaces risks, consensus gaps, and resilience before reality does.
         </p>
