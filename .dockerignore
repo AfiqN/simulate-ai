@@ -1,0 +1,33 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+.pytest_cache
+.venv
+venv
+env
+
+# Node (frontend builds inside Docker)
+frontend/node_modules
+
+# Runtime data
+tests/runs
+data/*.db
+*.db
+
+# IDE / OS
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
+# Docs / non-essential
+graphify-out
+docs
+.claude
+.claude-kiro
+*.md
+!requirements.txt

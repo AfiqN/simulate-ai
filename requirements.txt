@@ -3,8 +3,5 @@ rich==13.*
 fastapi==0.115.*
 uvicorn[standard]==0.32.*
 aiosqlite==0.20.*
-ddgs>=6.0
 PyYAML==6.*
 python-dotenv==1.*
-
-pytest==8.*
