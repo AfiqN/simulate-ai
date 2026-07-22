@@ -201,6 +201,11 @@ Base your crisis event on a real or plausible variation of these precedents."""
         # Adversarial debate section (replaces faction mapping in adversarial mode)
         adversarial_section = ""
         adversarial_report_instruction = ""
+        faction_section_fallback = (
+            "2. FACTION MAPPING & ALIGNMENT\n"
+            "   - Group agents into emergent factions based on the actions they took and the reasoning they revealed.\n"
+            "   - Note any agent who shifted position between rounds and why (use the swing analysis above).\n"
+        )
         if adversarial_result is not None:
             adversarial_section = f"""
 ## ARGUMENT SURVIVAL ANALYSIS (Adversarial Debate — pre-computed)
@@ -330,10 +335,7 @@ Write a professional Markdown report with these sections, in this order. Adapt t
    - One paragraph of brutally honest synthesis. No sycophancy.
    - Reference the vote tally and consensus index from the metrics above.
 
-{adversarial_report_instruction if adversarial_result else """2. FACTION MAPPING & ALIGNMENT
-   - Group agents into emergent factions based on the actions they took and the reasoning they revealed.
-   - Note any agent who shifted position between rounds and why (use the swing analysis above).
-"""}
+{adversarial_report_instruction if adversarial_result else faction_section_fallback}
 3. STRUCTURAL BLIND SPOTS (RED-TEAMING)
    - Pull concrete flaws, frictions, or skepticism from the agents' private monologues and public statements.
    - List them as bullets with the evidence (which agent surfaced which concern).
