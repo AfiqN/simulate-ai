@@ -20,13 +20,13 @@ class UnifiedLLMClient:
     or use as an async context manager.
     """
 
-    def __init__(self, host: Optional[str] = None, model: Optional[str] = None, provider: Optional[str] = None):
+    def __init__(self, host: Optional[str] = None, model: Optional[str] = None, provider: Optional[str] = None, api_key: Optional[str] = None):
         self.provider = provider or LLM_PROVIDER
         self.host = (host or OLLAMA_HOST).rstrip("/")
         self.model = model
-        self.gemini_api_key = GEMINI_API_KEY
+        self.gemini_api_key = api_key if (api_key and self.provider == "gemini") else GEMINI_API_KEY
         self.gemini_base_url = "https://generativelanguage.googleapis.com/v1beta/openai"
-        self.openai_api_key = OPENAI_API_KEY
+        self.openai_api_key = api_key if (api_key and self.provider == "openai") else OPENAI_API_KEY
         self.openai_base_url = (OPENAI_BASE_URL or "https://api.openai.com/v1").rstrip("/")
         self._http: Optional[httpx.AsyncClient] = None
 

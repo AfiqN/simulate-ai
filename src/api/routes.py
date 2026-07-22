@@ -49,6 +49,7 @@ async def start_simulation(req: SimulationRequest, request: Request):
         mode=req.mode,
         custom_stakeholders=[s.model_dump() for s in req.custom_stakeholders] if req.custom_stakeholders else None,
         historical_precedents=req.historical_precedents,
+        api_key=request.headers.get("x-api-key"),
     )
 
     await insert_run(

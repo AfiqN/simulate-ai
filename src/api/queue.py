@@ -26,7 +26,8 @@ class SimulationJob:
                  crisis_override: str | None = None, rag_enabled: bool | None = None,
                  depth: str = "standard", mode: str = "collaborative",
                  custom_stakeholders: list[dict] | None = None,
-                 historical_precedents: list[dict] | None = None):
+                 historical_precedents: list[dict] | None = None,
+                 api_key: str | None = None):
         self.run_id = run_id
         self.stimulus = stimulus
         self.agent_count = agent_count
@@ -39,6 +40,7 @@ class SimulationJob:
         self.mode = mode
         self.custom_stakeholders = custom_stakeholders
         self.historical_precedents = historical_precedents
+        self.api_key = api_key
         self.status: str = "queued"
         self.scenario_name: str | None = None
         self.verdict: str | None = None
@@ -102,7 +104,7 @@ async def _execute_simulation(job: SimulationJob, db) -> None:
         "depth": job.depth,
     }, run_id=job.run_id)
 
-    client = OllamaClient(host=OLLAMA_HOST, model=job.model, provider=job.provider)
+    client = OllamaClient(host=OLLAMA_HOST, model=job.model, provider=job.provider, api_key=job.api_key)
     start = time.time()
 
     try:

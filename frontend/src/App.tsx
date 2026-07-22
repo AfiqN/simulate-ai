@@ -4,6 +4,7 @@ import { useWebSocket } from "./hooks/useWebSocket";
 import { startSimulation, approveSchema, cancelSimulation } from "./lib/api";
 import { Header } from "./components/layout/Header";
 import { LandingHero } from "./components/layout/LandingHero";
+import { SettingsPanel } from "./components/layout/SettingsPanel";
 import { SimForm } from "./components/simulation/SimForm";
 import { PipelineProgress } from "./components/simulation/PipelineProgress";
 import { SchemaApproval } from "./components/simulation/SchemaApproval";
@@ -16,6 +17,7 @@ import type { SimulationConfig } from "./types";
 
 export default function App() {
   const [showLanding, setShowLanding] = useState(true);
+  const [showSettings, setShowSettings] = useState(false);
   const { state, dispatch } = useSimulation();
   const { events, status: wsStatus } = useWebSocket(state.runId);
 
@@ -74,7 +76,8 @@ export default function App() {
 
   return (
     <div className="min-h-screen">
-      <Header />
+      <Header onOpenSettings={() => setShowSettings(true)} />
+      <SettingsPanel open={showSettings} onClose={() => setShowSettings(false)} />
 
       <main className="mx-auto max-w-[960px] px-6 py-6 space-y-6">
         {/* Landing hero — shown until user clicks Get Started or starts a sim */}
