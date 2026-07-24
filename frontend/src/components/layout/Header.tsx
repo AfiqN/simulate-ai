@@ -5,8 +5,8 @@ interface Props {
 export function Header({ onOpenSettings }: Props) {
   return (
     <header className="px-6 py-4 flex items-center justify-between max-w-[960px] mx-auto">
-      <div className="flex items-center gap-2">
-        <div className="w-[18px] h-[18px] bg-[#0F0F0F] rounded-[4px]" />
+      <div className="flex items-center gap-2.5">
+        <img src="/logo-mark.svg" alt="" className="h-[22px] w-auto" />
         <span className="text-[15px] font-medium tracking-[-0.01em] text-[#0F0F0F]">
           SimulateAI
         </span>
