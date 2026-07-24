@@ -1,254 +1,249 @@
+<div align="center">
+
+<img src="frontend/public/logo-mark.svg" alt="SimulateAI" width="64" />
+
 # SimulateAI
 
-Multi-agent LLM simulation platform for stress-testing ideas. Submit any concept — a product pitch, draft policy, research question, or strategic decision — and an LLM-generated swarm of personas evaluates it across three rounds of structured debate, then produces a resilience analysis report.
+**Know what will go wrong before it does.**
 
-This repository is Phase 1 (Local PoC) of the broader product roadmap described in `project-brief.md`.
+AI personas debate your idea from every angle — surfacing blind spots, coalition risks, and failure modes in minutes.
 
-## How it works
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-3776AB.svg)](https://python.org)
+[![React 18](https://img.shields.io/badge/react-18-61DAFB.svg)](https://react.dev)
+[![FastAPI](https://img.shields.io/badge/FastAPI-009688.svg)](https://fastapi.tiangolo.com)
+[![Deploy on Railway](https://img.shields.io/badge/deploy-Railway-0B0D0E.svg)](https://railway.app)
 
-Every simulation runs in five stages:
+[Live Demo](https://simulate-ai-production.up.railway.app) · [How It Works](#how-it-works) · [Getting Started](#getting-started) · [API Reference](#api-reference)
 
-1. **Architect.** A single LLM call analyzes the stimulus and produces a `SimulationSchema` defining the entire vocabulary: action verbs (e.g. `INVEST/PASS/COUNTER_OFFER` for a pitch, `SUPPORT/OPPOSE/AMEND` for a policy debate), emotional states, resource model, linguistic clusters, macro-environmental anchors, and crisis dimensions. Nothing is hardcoded.
-2. **Swarm generation.** A second LLM call designs N persona profiles aligned to the schema. A diversity heuristic rejects monoculture swarms and retries once.
-3. **Round 1 — Initial perception.** Each agent independently evaluates the stimulus and commits to an action with a utility score.
-4. **Round 2 — Directed debate.** Each agent is paired with an adversary via a ΔU-maximizing algorithm and must engage that opponent's stance directly.
-5. **Round 3 — Crisis stress-test.** An external shock is synthesized from the dominant Round 2 concern (or injected manually), and the swarm re-evaluates.
+</div>
 
-An Executive Compiler then produces a Markdown diagnostic report with a deterministic resilience verdict (Fragile / Moderate / Resilient) computed from R2→R3 decision stability, utility drift, and terminal-action share.
+---
 
-## Requirements
+![SimulateAI Landing Page](docs/screenshot-landing.png)
 
-- Python 3.11 or later
-- Node.js 20+ (for frontend builds only)
-- An LLM backend: a Google AI Studio API key, an OpenAI-compatible API key, or a running Ollama server with at least one chat-capable model pulled
+## What is SimulateAI?
 
-## Quick Start
+SimulateAI is a multi-agent simulation platform that stress-tests your decisions before you commit to them. Submit any concept — a product pitch, draft policy, research question, or strategic move — and a swarm of AI personas evaluates it through structured debate rounds.
+
+The result: a diagnostic report with a resilience verdict (Fragile / Moderate / Resilient) backed by quantified metrics — not vibes.
+
+### Use cases
+
+- **Founders** — Stress-test a pitch before investor meetings
+- **Product managers** — Pressure-test feature decisions from multiple user perspectives
+- **Policy makers** — Simulate stakeholder reactions to new regulations
+- **Strategists** — Find failure modes in strategic plans before execution
+
+## How It Works
+
+Every simulation runs through five stages:
+
+```
+STIMULUS → ARCHITECT → SWARM → 3-ROUND DEBATE → DIAGNOSTIC REPORT
+```
+
+1. **Architect** — Analyzes your input and generates a dynamic simulation schema (actions, emotional states, resource models)
+2. **Swarm Generation** — Creates N diverse personas aligned to the schema
+3. **Round 1: Perception** — Each agent independently evaluates the stimulus
+4. **Round 2: Debate** — Agents are paired with adversaries and must engage opposing stances
+5. **Round 3: Crisis** — An external shock is synthesized; the swarm re-evaluates under pressure
+
+A compiler then produces a structured diagnostic with a deterministic resilience verdict computed from decision stability, utility drift, and coalition dynamics.
+
+![SimulateAI Form](docs/screenshot-form.png)
+
+## Getting Started
+
+### Prerequisites
+
+- Python 3.11+
+- Node.js 20+ (for frontend development)
+- An API key from Google AI Studio, OpenAI, or a running Ollama instance
+
+### Quick Start
 
 ```bash
-git clone <repo-url> SimulateAI
-cd SimulateAI
-cp .env.example .env        # Fill in your API keys
+git clone https://github.com/AfiqN/simulate-ai.git
+cd simulate-ai
+cp .env.example .env        # Add your API key
 pip install -r requirements.txt
-python server.py            # Backend + frontend on http://localhost:8000
+python server.py            # → http://localhost:8000
 ```
 
-Or with Docker:
+### Docker
 
 ```bash
-cp .env.example .env        # Fill in your API keys
-docker compose up --build   # Everything on http://localhost:8000
+cp .env.example .env        # Add your API key
+docker compose up --build   # → http://localhost:8000
 ```
 
-## Configuration
-
-Copy `.env.example` to `.env` and set your values:
+### Environment Variables
 
 ```bash
-# LLM Provider: "ollama", "gemini", or "openai"
-LLM_PROVIDER=openai
+# Required: pick one provider
+LLM_PROVIDER=gemini              # gemini | openai | ollama
 
-# Only the keys for your chosen provider are required:
-GEMINI_API_KEY=             # for gemini
-OPENAI_API_KEY=             # for openai
+# Provider keys (only your chosen provider needed)
+GEMINI_API_KEY=your-key-here
+OPENAI_API_KEY=your-key-here
 OPENAI_BASE_URL=https://api.openai.com/v1
-OLLAMA_HOST=http://localhost:11434  # for ollama
+OLLAMA_HOST=http://localhost:11434
 
 # Optional
 MAX_CONCURRENCY=5
 RAG_ENABLED=true
-BRAVE_API_KEY=              # Brave Search for RAG enrichment
+BRAVE_API_KEY=                   # Brave Search for RAG enrichment
 ```
 
-`config.py` reads these via `os.getenv()` with sensible defaults. You can also set env vars directly without a `.env` file.
+## Supported Providers
 
-## Running the interactive CLI
+| Provider | Config | Notes |
+|----------|--------|-------|
+| **Google Gemini** | `LLM_PROVIDER=gemini` + `GEMINI_API_KEY` | Free tier available |
+| **OpenAI** | `LLM_PROVIDER=openai` + `OPENAI_API_KEY` | GPT-4o recommended |
+| **Ollama** | `LLM_PROVIDER=ollama` + `OLLAMA_HOST` | Fully local, no API key needed |
 
-```bash
-source /mnt/g/WSL/venv/bin/activate && python main.py   # WSL
-# or
-python main.py
-```
+Users can also bring their own API key directly in the web UI — no server-side key required.
 
-Two modes are available:
+## Tech Stack
 
-- **Sandbox chat** — 1:1 streaming chat with the configured LLM, useful for sanity-checking the connection.
-- **Swarm simulation** — the full Architect → Swarm → 3-round pipeline. You will be prompted for the stimulus text, agent count, and concurrency limit.
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React 18, TypeScript, Tailwind CSS, Vite |
+| Backend | Python 3.11, FastAPI, asyncio |
+| LLM | Multi-provider (Gemini, OpenAI, Ollama) |
+| Database | SQLite (aiosqlite) |
+| Deploy | Railway, Docker |
 
-## Running scenarios non-interactively
+## API Reference
 
-Pre-written stimuli live in `tests/scenarios/`. Run any one of them, or all in sequence:
+### `POST /api/simulate`
 
-```bash
-# Run by prefix or name fragment
-python tests/run_scenario.py 01
-python tests/run_scenario.py fintech
-
-# Run every scenario sequentially
-python tests/run_scenario.py --all
-
-# Override agent count and concurrency
-python tests/run_scenario.py 02 --agents 5 --concurrency 3
-
-# Run 2 scenarios concurrently
-python tests/run_scenario.py --all --parallel 2
-
-# Inject a custom crisis event for Round 3
-python tests/run_scenario.py 04 --crisis "A massive data breach occurs"
-
-# Override provider and model
-python tests/run_scenario.py 01 --provider openai --model gpt-4o
-python tests/run_scenario.py 01 --provider ollama --model qwen2.5:3b
-```
-
-### CLI flags
-
-| Flag | Default | Description |
-|---|---|---|
-| `scenario` | — | Name fragment, numeric prefix, or path to a `.txt` file |
-| `--all` | false | Run every scenario in `tests/scenarios/` |
-| `--agents N` | 5 | Agent count per scenario |
-| `--concurrency N` | 2 | Max simultaneous LLM calls |
-| `--parallel N` | 1 | Run N scenarios concurrently (each gets its own client) |
-| `--provider` | config default | `gemini`, `openai`, or `ollama` |
-| `--model MODEL` | config default | Model name passed to the provider |
-| `--crisis TEXT` | auto-generated | Custom crisis event injected into Round 3 |
-
-### Run output
-
-Each run is saved to `tests/runs/<timestamp>__<scenario>/`:
-
-- `stimulus.txt` — the original prompt
-- `report.md` — the Executive Diagnostic Report
-- `metrics.json` — schema, decisions per round, adversary map, resilience metrics, timings
-- `transcript.txt` / `transcript.html` — full Rich-rendered console output
-- `bundle/` — self-contained shareable export (`manifest.json`, `simulation.json`, `report.md`)
-
-When running multiple scenarios, a `summary_<timestamp>.json` is also written to `tests/runs/` aggregating verdicts and timings.
-
-### Comparing batch runs
-
-```bash
-python tests/compare_runs.py tests/runs/summary_A.json tests/runs/summary_B.json
-```
-
-Prints a side-by-side table of resilience verdicts, stability scores, and elapsed time — useful for tracking regressions after code changes.
-
-`tests/runs/` is gitignored.
-
-## API server
-
-The REST API lets you run simulations programmatically and query historical results. It persists run metadata to a SQLite database at `data/simulate.db`.
-
-```bash
-python server.py                   # Start on port 8000
-python server.py --port 9000       # Custom port
-python server.py --reload          # Auto-reload for development
-```
-
-### Endpoints
-
-**GET /api/health** — Health check. Returns provider and model info.
-
-**POST /api/simulate** — Start a new simulation. Returns immediately with a run ID.
+Start a new simulation. Returns immediately with a run ID for polling.
 
 ```json
 {
-  "stimulus": "A fintech startup pitching micro-investment accounts to Indonesian regulators",
+  "stimulus": "A fintech startup pitching micro-investment accounts to regulators",
   "agent_count": 5,
   "concurrency": 2,
   "provider": "gemini",
-  "model": "gemma-4-26b-a4b-it",
-  "crisis_override": "A sudden regulatory freeze on all new fintech licenses"
+  "model": "gemma-4-26b-a4b-it"
 }
 ```
 
 All fields except `stimulus` are optional.
 
-**GET /api/simulate/{id}** — Poll run status. Returns `status` (`queued` | `running` | `completed` | `failed`), `verdict`, `elapsed_s`, and the full result payload once complete.
+### `GET /api/simulate/{id}`
 
-**GET /api/runs** — List historical runs from the database, newest first.
+Poll run status. Returns `queued` | `running` | `completed` | `failed` with full results on completion.
 
-Query params: `limit` (default 50), `offset` (default 0), `verdict` (filter by Fragile / Moderate / Resilient).
+### `GET /api/runs`
 
-**GET /api/runs/{id}** — Full metrics JSON for a specific historical run (reads from `metrics.json` on disk).
+List historical runs. Supports `limit`, `offset`, and `verdict` filter params.
 
-## Running the unit tests
+### `GET /api/health`
+
+Health check — returns provider and model info.
+
+## CLI Usage
+
+SimulateAI also ships with a full CLI for batch testing and scripting:
+
+```bash
+# Interactive mode
+python main.py
+
+# Run a predefined scenario
+python tests/run_scenario.py fintech
+
+# Run all scenarios
+python tests/run_scenario.py --all --parallel 2
+
+# Override provider per-run
+python tests/run_scenario.py 01 --provider openai --model gpt-4o
+```
+
+<details>
+<summary>CLI flags reference</summary>
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `scenario` | — | Name fragment, prefix, or path to `.txt` file |
+| `--all` | false | Run every scenario in `tests/scenarios/` |
+| `--agents N` | 5 | Agent count per scenario |
+| `--concurrency N` | 2 | Max simultaneous LLM calls |
+| `--parallel N` | 1 | Run N scenarios concurrently |
+| `--provider` | env default | `gemini`, `openai`, or `ollama` |
+| `--model` | env default | Model name for the provider |
+| `--crisis TEXT` | auto | Custom crisis event for Round 3 |
+
+</details>
+
+## Architecture
+
+```
+├── server.py              # FastAPI entry point
+├── config.py              # Provider configuration
+├── src/
+│   ├── agent/             # Agent logic (perceive, debate, crisis rounds)
+│   ├── api/               # REST endpoints, job queue
+│   ├── cli/               # Interactive CLI
+│   ├── export/            # Run bundle writer
+│   ├── llm/               # Multi-provider LLM client
+│   ├── persistence/       # SQLite storage
+│   ├── report/            # Diagnostic compiler
+│   └── schema/            # Simulation schema architect
+├── frontend/              # React + Vite SPA
+│   ├── src/components/    # UI components
+│   └── public/            # Static assets
+└── tests/
+    ├── scenarios/         # Predefined stimuli
+    └── unit/              # Deterministic helper tests
+```
+
+## Development
+
+```bash
+# Backend
+pip install -r requirements.txt
+python server.py --reload
+
+# Frontend
+cd frontend
+npm install
+npm run dev                # → http://localhost:5173
+```
+
+### Running Tests
 
 ```bash
 python -m pytest tests/unit/ -v
 ```
 
-Covers deterministic helpers — JSON parsing, resilience metrics, adversary mapping, and swarm diversity. The LLM-driven path is verified by running scenarios and inspecting generated reports.
+## Deployment
 
-## Repository layout
+SimulateAI is deployed on Railway. The server serves both the API and the pre-built frontend from `static/dist/`.
 
-```
-main.py                     entry point (delegates to src.cli.menu)
-server.py                   API server entry point (FastAPI + uvicorn)
-config.py                   LLM provider configuration (gitignored)
-requirements.txt
-pytest.ini
-project-brief.md            product vision and roadmap
-CLAUDE.md                   architecture notes for AI assistants
-data/
-  simulate.db               SQLite run index (auto-created by server)
-src/
-  agent/
-    agent.py                single-agent LLM rounds (perceive, debate, crisis)
-    adversary.py            ΔU pairing algorithm
-    profile.py              AgentProfile, AgentAttributes, ResourceBalance
-    swarm.py                LLM-driven persona generator
-  api/
-    app.py                  FastAPI app factory and lifespan (DB init)
-    routes.py               /api/simulate and /api/runs route handlers
-    models.py               Pydantic request/response models
-    queue.py                In-memory job queue for async simulation runs
-  cli/
-    menu.py                 main menu and sandbox chat
-    rendering.py            Rich panel and table helpers
-    simulation.py           3-round orchestrator
-  export/
-    bundle.py               Self-contained run bundle writer (manifest + full data)
-  llm/
-    client.py               UnifiedLLMClient (Gemini, OpenAI, Ollama)
-    json_parse.py           Robust JSON extraction and thought-tag stripping
-  persistence/
-    db.py                   SQLite async helpers (aiosqlite)
-  report/
-    compiler.py             Crisis synthesis and diagnostic report
-  schema/
-    architect.py            Schema design LLM call
-    simulation_schema.py    SimulationSchema dataclasses
-tests/
-  scenarios/                .txt stimuli for non-interactive runs
-  run_scenario.py           Non-interactive runner (writes bundle + batch summary)
-  compare_runs.py           Side-by-side diff of two batch summaries
-  unit/                     Deterministic helper tests
+```bash
+# Build frontend for production
+cd frontend && npm run build    # outputs to ../static/dist/
+
+# Start production server
+python server.py
 ```
 
-## Supported providers
+## Contributing
 
-| Provider | How to configure |
-|---|---|
-| **Gemini** (Google AI Studio) | Set `LLM_PROVIDER=gemini` and `GEMINI_API_KEY` in `.env`. Uses the OpenAI-compatible endpoint at `generativelanguage.googleapis.com`. |
-| **OpenAI** | Set `LLM_PROVIDER=openai` and provide `OPENAI_API_KEY` + `OPENAI_BASE_URL` in `.env`. |
-| **Ollama** (local) | Set `LLM_PROVIDER=ollama` and `OLLAMA_HOST` in `.env`. Default model: `qwen2.5:3b`. |
+Contributions are welcome. Please:
 
-Provider and model can also be overridden per-run via `--provider` / `--model` on the CLI, or via the `provider` / `model` fields in the API request body.
+1. Fork the repo
+2. Create a feature branch (`git checkout -b feat/your-feature`)
+3. Commit your changes
+4. Push and open a Pull Request
 
-## Operational notes
+For bugs, please open an issue with steps to reproduce.
 
-- **Concurrency.** Agent rounds run behind an `asyncio.Semaphore`. Worker tasks stagger start times (`idx * 2`s for Round 1, `4 + idx * 3`s for Rounds 2–3) to stay within the Gemini free-tier per-minute quota.
-- **Retry layer.** The LLM client retries on 429, 500, 502, 503, and 504 with exponential backoff (up to 5 attempts).
-- **Failure modes.** If the Architect or swarm generator fails twice, the run aborts with a clear error. Per-agent round failures are tolerated — the agent is marked Failed in the live monitor and the pipeline continues with a synthesized fallback entry.
+## License
 
-## Scope
-
-This project has reached the end of Phase 1 (Local PoC with Web UI). The following are possible extensions:
-
-- Persistent agent state across sessions
-- Backtesting against historical scenarios
-- Scale beyond ~20 agents per run
-- Prompt caching to reduce input token costs
-
-See `project-brief.md` for the full roadmap.
+[MIT](LICENSE) © AfiqN
