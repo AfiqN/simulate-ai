@@ -32,15 +32,15 @@ function NodeGraph() {
         <line x1="300" y1="120" x2="420" y2="80" stroke="#E0E0E0" strokeWidth="1" />
 
         {/* Debate lines between agents - fully connected 3×3 animated dashes */}
-        <line x1="180" y1="40" x2="300" y2="40" stroke="#0F0F0F" strokeWidth="1.2" strokeDasharray="3 6" className="animate-[dash_2.5s_linear_infinite]" />
-        <line x1="180" y1="40" x2="300" y2="80" stroke="#0F0F0F" strokeWidth="1.2" strokeDasharray="3 6" style={{ animationDelay: "0.3s" }} className="animate-[dash_2.5s_linear_infinite]" />
-        <line x1="180" y1="40" x2="300" y2="120" stroke="#0F0F0F" strokeWidth="1.2" strokeDasharray="3 6" style={{ animationDelay: "0.6s" }} className="animate-[dash_2.5s_linear_infinite]" />
-        <line x1="180" y1="80" x2="300" y2="40" stroke="#0F0F0F" strokeWidth="1.2" strokeDasharray="3 6" style={{ animationDelay: "0.9s" }} className="animate-[dash_2.5s_linear_infinite]" />
-        <line x1="180" y1="80" x2="300" y2="80" stroke="#0F0F0F" strokeWidth="1.2" strokeDasharray="3 6" style={{ animationDelay: "1.2s" }} className="animate-[dash_2.5s_linear_infinite]" />
-        <line x1="180" y1="80" x2="300" y2="120" stroke="#0F0F0F" strokeWidth="1.2" strokeDasharray="3 6" style={{ animationDelay: "1.5s" }} className="animate-[dash_2.5s_linear_infinite]" />
-        <line x1="180" y1="120" x2="300" y2="40" stroke="#0F0F0F" strokeWidth="1.2" strokeDasharray="3 6" style={{ animationDelay: "1.8s" }} className="animate-[dash_2.5s_linear_infinite]" />
-        <line x1="180" y1="120" x2="300" y2="80" stroke="#0F0F0F" strokeWidth="1.2" strokeDasharray="3 6" style={{ animationDelay: "2.1s" }} className="animate-[dash_2.5s_linear_infinite]" />
-        <line x1="180" y1="120" x2="300" y2="120" stroke="#0F0F0F" strokeWidth="1.2" strokeDasharray="3 6" style={{ animationDelay: "2.4s" }} className="animate-[dash_2.5s_linear_infinite]" />
+        <line x1="180" y1="40" x2="300" y2="40" stroke="#0F0F0F" strokeWidth="1.2" strokeDasharray="4 8" className="animate-[dash_3s_ease-in-out_infinite]" />
+        <line x1="180" y1="40" x2="300" y2="80" stroke="#0F0F0F" strokeWidth="1.2" strokeDasharray="4 8" style={{ animationDelay: "0.35s" }} className="animate-[dash_3s_ease-in-out_infinite]" />
+        <line x1="180" y1="40" x2="300" y2="120" stroke="#0F0F0F" strokeWidth="1.2" strokeDasharray="4 8" style={{ animationDelay: "0.7s" }} className="animate-[dash_3s_ease-in-out_infinite]" />
+        <line x1="180" y1="80" x2="300" y2="40" stroke="#0F0F0F" strokeWidth="1.2" strokeDasharray="4 8" style={{ animationDelay: "1.05s" }} className="animate-[dash_3s_ease-in-out_infinite]" />
+        <line x1="180" y1="80" x2="300" y2="80" stroke="#0F0F0F" strokeWidth="1.2" strokeDasharray="4 8" style={{ animationDelay: "1.4s" }} className="animate-[dash_3s_ease-in-out_infinite]" />
+        <line x1="180" y1="80" x2="300" y2="120" stroke="#0F0F0F" strokeWidth="1.2" strokeDasharray="4 8" style={{ animationDelay: "1.75s" }} className="animate-[dash_3s_ease-in-out_infinite]" />
+        <line x1="180" y1="120" x2="300" y2="40" stroke="#0F0F0F" strokeWidth="1.2" strokeDasharray="4 8" style={{ animationDelay: "2.1s" }} className="animate-[dash_3s_ease-in-out_infinite]" />
+        <line x1="180" y1="120" x2="300" y2="80" stroke="#0F0F0F" strokeWidth="1.2" strokeDasharray="4 8" style={{ animationDelay: "2.45s" }} className="animate-[dash_3s_ease-in-out_infinite]" />
+        <line x1="180" y1="120" x2="300" y2="120" stroke="#0F0F0F" strokeWidth="1.2" strokeDasharray="4 8" style={{ animationDelay: "2.8s" }} className="animate-[dash_3s_ease-in-out_infinite]" />
 
         {/* Input node */}
         <circle cx="60" cy="80" r="7" fill="#0F0F0F" />

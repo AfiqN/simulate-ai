@@ -76,8 +76,16 @@
 }
 
 @keyframes dash {
-  to {
+  0% {
+    stroke-dashoffset: 0;
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
     stroke-dashoffset: -24;
+    opacity: 0.3;
   }
 }
 
