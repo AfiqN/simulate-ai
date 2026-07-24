@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
-import { useSimulation, useSimulationEvents } from "./hooks/useSimulation";
+import { useSimulation, useSimulationEvents, getPersistedRun } from "./hooks/useSimulation";
 import { useWebSocket } from "./hooks/useWebSocket";
+import { useNotification } from "./hooks/useNotification";
+import { useDocumentTitle } from "./hooks/useDocumentTitle";
 import { startSimulation, approveSchema, cancelSimulation, getRunDetail } from "./lib/api";
 import { Header } from "./components/layout/Header";
 import { LandingHero } from "./components/layout/LandingHero";
@@ -16,14 +18,19 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [lastStimulus, setLastStimulus] = useState("");
+  const [lastDepth, setLastDepth] = useState<string>("standard");
   const { state, dispatch } = useSimulation();
   const { events, status: wsStatus } = useWebSocket(state.runId);
+  const { notify } = useNotification();
 
   useSimulationEvents(dispatch, events);
+  useDocumentTitle(state.status, state.progress);
 
+  // Recover active run from localStorage on mount
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const runId = params.get("run");
+
     if (runId) {
       setShowLanding(false);
       getRunDetail(runId).then((data) => {
@@ -31,8 +38,36 @@ export default function App() {
           dispatch({ type: "LOAD_RESULT", result: data.result });
         }
       }).catch(() => {});
+      return;
+    }
+
+    // Check localStorage for an in-progress run
+    const persisted = getPersistedRun();
+    if (persisted) {
+      setShowLanding(false);
+      getRunDetail(persisted.runId).then((data) => {
+        if (data.status === "completed" && data.result) {
+          dispatch({ type: "LOAD_RESULT", result: data.result });
+        } else if (data.status === "running" || data.status === "queued") {
+          // Reconnect to the live simulation
+          dispatch({ type: "START", runId: persisted.runId });
+        }
+      }).catch(() => {
+        // Run not found — clear stale entry
+        dispatch({ type: "RESET" });
+      });
     }
   }, []);
+
+  // Fire browser notification on completion/error
+  useEffect(() => {
+    if (state.status === "complete" && state.result) {
+      const verdict = state.result.verdict || "Done";
+      notify("Simulation complete", `Verdict: ${verdict}`);
+    } else if (state.status === "error") {
+      notify("Simulation failed", state.error || "An error occurred");
+    }
+  }, [state.status]);
 
   const handleGetStarted = () => {
     setShowLanding(false);
@@ -42,6 +77,7 @@ export default function App() {
     setShowLanding(false);
     setSubmitError(null);
     setLastStimulus(config.stimulus);
+    setLastDepth(config.depth);
     try {
       const { id } = await startSimulation(config);
       dispatch({ type: "START", runId: id });
@@ -134,6 +170,7 @@ export default function App() {
             latestAgents={latestAgents}
             latestRound={latestRound}
             stimulus={lastStimulus}
+            depth={lastDepth}
             wsConnected={wsStatus === "connected"}
             onCancel={handleCancel}
           />

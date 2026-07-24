@@ -9,6 +9,7 @@ interface Props {
   latestAgents: AgentDecision[];
   latestRound: number;
   stimulus?: string;
+  depth?: string;
   wsConnected: boolean;
   onCancel: () => void;
 }
@@ -96,7 +97,21 @@ function StageBreadcrumb({ currentStage }: { currentStage: PipelineStage | null 
   );
 }
 
-export function SimulationLive({ currentStage, progress, agents, latestAgents, latestRound, stimulus, wsConnected, onCancel }: Props) {
+// Estimated total time in seconds by depth
+const ESTIMATE_BY_DEPTH: Record<string, number> = {
+  quick: 180,    // ~3 min
+  standard: 300, // ~5 min
+  deep: 480,     // ~8 min
+};
+
+function formatEstimate(seconds: number): string {
+  if (seconds <= 0) return "almost done";
+  const m = Math.ceil(seconds / 60);
+  if (m <= 1) return "< 1 min left";
+  return `~${m} min left`;
+}
+
+export function SimulationLive({ currentStage, progress, agents, latestAgents, latestRound, stimulus, depth, wsConnected, onCancel }: Props) {
   const [elapsed, setElapsed] = useState(0);
   const [activityLog, setActivityLog] = useState<string[]>([]);
   const logEndRef = useRef<HTMLDivElement>(null);
@@ -155,9 +170,16 @@ export function SimulationLive({ currentStage, progress, agents, latestAgents, l
                 <div className="w-[6px] h-[6px] rounded-full bg-[#6B6B6B] animate-pulse" />
               )}
             </div>
-            <span className="text-[13px] text-[#6B6B6B] font-['JetBrains_Mono'] tabular-nums">
-              {formatElapsed(elapsed)}
-            </span>
+            <div className="flex items-center gap-3">
+              <span className="text-[13px] text-[#6B6B6B] font-['JetBrains_Mono'] tabular-nums">
+                {formatElapsed(elapsed)}
+              </span>
+              {depth && (
+                <span className="text-[11px] text-[#505050] font-['JetBrains_Mono']">
+                  · {formatEstimate(Math.max(0, (ESTIMATE_BY_DEPTH[depth] || 300) - elapsed))}
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Stage verb */}

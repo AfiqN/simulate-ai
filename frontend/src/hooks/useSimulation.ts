@@ -163,8 +163,54 @@ function reducer(state: SimState, action: SimAction): SimState {
   }
 }
 
+const STORAGE_KEY = "simulate-ai-active-run";
+
+interface PersistedRun {
+  runId: string;
+  startedAt: number;
+  depth?: string;
+}
+
+function persistRun(run: PersistedRun) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(run));
+  } catch {}
+}
+
+function clearPersistedRun() {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {}
+}
+
+export function getPersistedRun(): PersistedRun | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    // Expire after 15 minutes (simulation can't take longer)
+    if (Date.now() - parsed.startedAt > 15 * 60 * 1000) {
+      clearPersistedRun();
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
 export function useSimulation() {
   const [state, dispatch] = useReducer(reducer, initialState);
+
+  // Persist run to localStorage on start, clear on completion/error/reset
+  useEffect(() => {
+    if (state.status === "running" && state.runId) {
+      persistRun({ runId: state.runId, startedAt: Date.now() });
+    } else if (state.status === "complete" || state.status === "error" || state.status === "idle") {
+      clearPersistedRun();
+    }
+  }, [state.status, state.runId]);
+
   return { state, dispatch };
 }
 
