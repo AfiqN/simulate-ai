@@ -254,12 +254,12 @@ export function LandingHero({ onGetStarted }: Props) {
       <footer className="border-t border-[#F0F0F0] pt-6 max-w-[860px] mx-auto">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-[12px] text-[#8B8B8B]">
           <div className="flex items-center gap-2">
-            <div className="w-[14px] h-[14px] bg-[#0F0F0F] rounded-[3px]" />
+            <img src="/logo-mark.svg" alt="" className="h-[16px] w-auto" />
             <span className="font-medium text-[#6B6B6B]">SimulateAI</span>
           </div>
           <div className="flex items-center gap-4">
             <a
-              href="https://github.com/afiq2001/SimulateAI"
+              href="https://github.com/AfiqN/simulate-ai"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-[#0F0F0F] transition-colors"
