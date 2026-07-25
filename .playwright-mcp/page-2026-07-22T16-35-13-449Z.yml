@@ -1,0 +1,31 @@
+- generic [ref=f9e3]:
+  - banner [ref=f9e4]:
+    - generic [ref=f9e5]: SimulateAI
+    - button "Settings" [ref=f9e8]
+  - main [ref=f9e9]:
+    - generic [ref=f9e126]:
+      - generic [ref=f9e127]:
+        - generic [ref=f9e128]: What decision do you want to test?
+        - textbox "e.g. We're considering launching a freemium tier for our B2B product to accelerate growth, but it might cannibalize paid conversions..." [ref=f9e129]
+        - generic [ref=f9e130]:
+          - generic [ref=f9e131]: "Try:"
+          - button "Launch a 4-day work week policy at a 500-person company" [ref=f9e132]
+          - button "Release an AI code assistant as a paid SaaS product" [ref=f9e133]
+          - button "Propose a carbon tax in a developing economy" [ref=f9e134]
+      - generic [ref=f9e135]:
+        - generic [ref=f9e136]:
+          - generic [ref=f9e137]: Agents
+          - spinbutton [ref=f9e138]: "5"
+        - generic [ref=f9e139]:
+          - generic [ref=f9e140]: Depth
+          - combobox [ref=f9e141] [cursor=pointer]:
+            - option "Quick" [selected]
+            - option "Standard"
+            - option "Deep"
+        - generic [ref=f9e142]:
+          - generic [ref=f9e143]: Mode
+          - combobox [ref=f9e144] [cursor=pointer]:
+            - option "Collaborative" [selected]
+            - option "Adversarial"
+        - button "+ More" [ref=f9e145]
+        - button "Run Simulation →" [disabled] [ref=f9e146]

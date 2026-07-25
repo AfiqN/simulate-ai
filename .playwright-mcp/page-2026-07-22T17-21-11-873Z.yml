@@ -1,0 +1,22 @@
+- generic [ref=f13e3]:
+  - paragraph [ref=f13e4]: Preview Mode — UI demo only
+  - generic [ref=f13e5]:
+    - generic [ref=f13e9]:
+      - generic [ref=f13e10]:
+        - generic [ref=f13e11]: Running
+        - generic [ref=f13e13]: 0s
+      - generic [ref=f13e14]:
+        - paragraph [ref=f13e15]: Schema Design
+        - paragraph [ref=f13e16]: Designing scenario architecture
+        - paragraph [ref=f13e17]: "\"Launch a 4-day work week policy at a 500-person company\""
+      - generic [ref=f13e32]: 5%
+    - generic [ref=f13e37]:
+      - generic [ref=f13e38]:
+        - heading "Agents" [level=3] [ref=f13e40]
+        - paragraph [ref=f13e47]: Generating personas...
+      - generic [ref=f13e48]:
+        - heading "Activity" [level=3] [ref=f13e50]
+        - generic [ref=f13e53]:
+          - generic [ref=f13e54]: "01"
+          - generic [ref=f13e55]: Designing scenario architecture
+    - button "Cancel" [ref=f13e57]

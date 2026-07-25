@@ -1,0 +1,21 @@
+- generic [ref=f12e3]:
+  - paragraph [ref=f12e4]: Preview Mode — UI demo only
+  - generic [ref=f12e5]:
+    - generic [ref=f12e6]:
+      - generic [ref=f12e7]:
+        - generic [ref=f12e8]: live
+        - generic [ref=f12e11]: 0s
+      - generic [ref=f12e12]:
+        - paragraph [ref=f12e13]: Schema Design
+        - paragraph [ref=f12e14]: Designing scenario architecture
+      - generic [ref=f12e15]: 5%
+    - generic [ref=f12e20]:
+      - generic [ref=f12e21]:
+        - heading "Agents" [level=3] [ref=f12e23]
+        - paragraph [ref=f12e30]: Generating personas...
+      - generic [ref=f12e31]:
+        - heading "Activity" [level=3] [ref=f12e32]
+        - generic [ref=f12e34]:
+          - generic [ref=f12e35]: "01"
+          - generic [ref=f12e36]: Designing scenario architecture
+    - button "Cancel" [ref=f12e38]

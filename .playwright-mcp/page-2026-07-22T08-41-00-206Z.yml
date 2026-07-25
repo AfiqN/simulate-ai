@@ -1,0 +1,69 @@
+- generic [ref=f2e3]:
+  - banner [ref=f2e4]:
+    - generic [ref=f2e5]: SimulateAI
+    - button "Settings" [ref=f2e8]
+  - main [ref=f2e9]:
+    - generic [ref=f2e10]:
+      - generic [ref=f2e11]:
+        - paragraph [ref=f2e12]: Multi-agent decision intelligence
+        - heading "Know what will go wrong before it does" [level=1] [ref=f2e13]:
+          - text: Know what will go wrong
+          - generic [ref=f2e14]: before it does
+        - paragraph [ref=f2e15]: AI personas debate your idea from every angle — surfacing blind spots, coalition risks, and failure modes in minutes.
+        - button "Run a simulation" [ref=f2e16]
+      - generic [ref=f2e17]:
+        - heading "How it works" [level=2] [ref=f2e18]
+        - generic [ref=f2e19]:
+          - generic [ref=f2e20]:
+            - text: "01"
+            - heading "Describe a decision" [level=3] [ref=f2e21]
+            - paragraph [ref=f2e22]: A product launch, policy change, strategic bet — anything with stakeholders and uncertainty.
+          - generic [ref=f2e23]:
+            - text: "02"
+            - heading "Agents stress-test it" [level=3] [ref=f2e24]
+            - paragraph [ref=f2e25]: LLM-generated personas form coalitions, debate, and react to a crisis event across three rounds.
+          - generic [ref=f2e26]:
+            - text: "03"
+            - heading "Get a diagnostic" [level=3] [ref=f2e27]
+            - paragraph [ref=f2e28]: Verdict, resilience score, risk map, and actionable recommendations — ready to share.
+      - generic [ref=f2e29]:
+        - heading "What you get" [level=2] [ref=f2e30]
+        - generic [ref=f2e32]:
+          - generic [ref=f2e33]:
+            - generic [ref=f2e34]:
+              - paragraph [ref=f2e35]: Simulation result
+              - paragraph [ref=f2e36]: Launch a 4-day work week at a 500-person company
+            - generic [ref=f2e37]: Conditionally Viable
+          - generic [ref=f2e38]:
+            - generic [ref=f2e39]:
+              - paragraph [ref=f2e40]: 72%
+              - paragraph [ref=f2e41]: Resilience
+            - generic [ref=f2e42]:
+              - paragraph [ref=f2e43]: 3 / 5 agents
+              - paragraph [ref=f2e44]: Consensus
+            - generic [ref=f2e45]:
+              - paragraph [ref=f2e46]: Moderate
+              - paragraph [ref=f2e47]: Risk level
+          - generic [ref=f2e48]:
+            - paragraph [ref=f2e49]: Round progression
+            - generic [ref=f2e50]:
+              - paragraph [ref=f2e53]: Perception
+              - paragraph [ref=f2e56]: Debate
+              - paragraph [ref=f2e59]: Crisis
+        - paragraph [ref=f2e60]: Actual simulation output — not a mockup
+      - generic [ref=f2e61]:
+        - heading "Use cases" [level=2] [ref=f2e62]
+        - generic [ref=f2e63]:
+          - generic [ref=f2e64]:
+            - heading "Product launches" [level=3] [ref=f2e65]
+            - paragraph [ref=f2e66]: Will users adopt? Which stakeholders will resist? What kills momentum?
+          - generic [ref=f2e67]:
+            - heading "Policy decisions" [level=3] [ref=f2e68]
+            - paragraph [ref=f2e69]: Test political feasibility, coalition stability, and unintended consequences.
+          - generic [ref=f2e70]:
+            - heading "Strategic bets" [level=3] [ref=f2e71]
+            - paragraph [ref=f2e72]: Stress-test M&A, market entry, org restructures — before committing resources.
+      - generic [ref=f2e73]:
+        - heading "Decisions are expensive. Simulations aren't." [level=2] [ref=f2e74]
+        - paragraph [ref=f2e75]: Free to use — bring your own API key for unlimited runs.
+        - button "Try it now" [ref=f2e76]

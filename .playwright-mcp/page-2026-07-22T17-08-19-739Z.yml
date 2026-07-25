@@ -1,0 +1,88 @@
+- generic [ref=f10e3]:
+  - banner [ref=f10e4]:
+    - generic [ref=f10e5]: SimulateAI
+    - button "Settings" [ref=f10e8]
+  - main [ref=f10e9]:
+    - generic [ref=f10e10]:
+      - generic [ref=f10e11]:
+        - paragraph [ref=f10e12]: For founders, PMs, and strategists
+        - heading "Know what will go wrong before it does" [level=1] [ref=f10e13]:
+          - text: Know what will go wrong
+          - generic [ref=f10e14]: before it does
+        - paragraph [ref=f10e15]: AI personas debate your idea from every angle — surfacing blind spots, coalition risks, and failure modes in minutes.
+        - button "Run a simulation →" [ref=f10e17]:
+          - text: Run a simulation
+          - generic [ref=f10e18]: →
+        - img [ref=f10e21]:
+          - generic [ref=f10e33]: STIMULUS
+          - generic [ref=f10e40]: DEBATE
+          - generic [ref=f10e42]: VERDICT
+          - generic [ref=f10e43]: round 1
+          - generic [ref=f10e44]: round 2
+      - generic [ref=f10e46]:
+        - heading "How it works" [level=2] [ref=f10e47]
+        - generic [ref=f10e48]:
+          - generic [ref=f10e49]:
+            - generic [ref=f10e50]:
+              - generic [ref=f10e51]: "01"
+              - heading "Describe a decision" [level=3] [ref=f10e52]
+            - paragraph [ref=f10e53]: A product launch, policy change, strategic bet — anything with stakeholders and uncertainty.
+          - generic [ref=f10e54]:
+            - generic [ref=f10e55]:
+              - generic [ref=f10e56]: "02"
+              - heading "Agents stress-test it" [level=3] [ref=f10e57]
+            - paragraph [ref=f10e58]: LLM-generated personas form coalitions, debate, and react to a crisis event across three rounds.
+          - generic [ref=f10e59]:
+            - generic [ref=f10e60]:
+              - generic [ref=f10e61]: "03"
+              - heading "Get a diagnostic" [level=3] [ref=f10e62]
+            - paragraph [ref=f10e63]: Verdict, resilience score, risk map, and actionable recommendations — ready to share.
+      - generic [ref=f10e64]:
+        - generic [ref=f10e65]:
+          - heading "What you get" [level=2] [ref=f10e66]
+          - generic [ref=f10e67]: sample output
+        - generic [ref=f10e73]:
+          - generic [ref=f10e74]:
+            - generic [ref=f10e75]:
+              - paragraph [ref=f10e76]: Launch a 4-day work week at a 500-person company
+              - paragraph [ref=f10e77]: 5 agents · 3 rounds · collaborative mode
+            - generic [ref=f10e78]: Conditionally Viable
+          - generic [ref=f10e79]:
+            - generic [ref=f10e80]:
+              - paragraph [ref=f10e81]: 72%
+              - paragraph [ref=f10e82]: Resilience
+            - generic [ref=f10e83]:
+              - paragraph [ref=f10e84]: 3 / 5
+              - paragraph [ref=f10e85]: Consensus
+            - generic [ref=f10e86]:
+              - paragraph [ref=f10e87]: Moderate
+              - paragraph [ref=f10e88]: Risk level
+          - generic [ref=f10e89]:
+            - paragraph [ref=f10e92]: Perception
+            - paragraph [ref=f10e95]: Debate
+            - paragraph [ref=f10e98]: Crisis
+      - generic [ref=f10e100]:
+        - heading "Use cases" [level=2] [ref=f10e101]
+        - generic [ref=f10e102]:
+          - generic [ref=f10e103]:
+            - heading "Product launches" [level=3] [ref=f10e104]
+            - paragraph [ref=f10e105]: Will users adopt? Which stakeholders will resist? What kills momentum?
+          - generic [ref=f10e106]:
+            - heading "Policy decisions" [level=3] [ref=f10e107]
+            - paragraph [ref=f10e108]: Test political feasibility, coalition stability, and unintended consequences.
+          - generic [ref=f10e109]:
+            - heading "Strategic bets" [level=3] [ref=f10e110]
+            - paragraph [ref=f10e111]: Stress-test M&A, market entry, org restructures — before committing resources.
+      - generic [ref=f10e112]:
+        - heading "Decisions are expensive. Simulations aren't." [level=2] [ref=f10e113]
+        - paragraph [ref=f10e114]: Free to use — bring your own API key for unlimited runs.
+        - button "Try it now →" [ref=f10e115]:
+          - text: Try it now
+          - generic [ref=f10e116]: →
+      - generic [ref=f10e118]:
+        - generic [ref=f10e119]: SimulateAI
+        - generic [ref=f10e122]:
+          - link "GitHub" [ref=f10e123] [cursor=pointer]:
+            - /url: https://github.com/afiq2001/SimulateAI
+          - generic [ref=f10e124]: ·
+          - generic [ref=f10e125]: Open-source simulation engine

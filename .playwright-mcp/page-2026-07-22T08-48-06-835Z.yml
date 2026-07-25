@@ -1,0 +1,79 @@
+- generic [ref=f4e3]:
+  - banner [ref=f4e4]:
+    - generic [ref=f4e5]: SimulateAI
+    - button "Settings" [ref=f4e8]
+  - main [ref=f4e9]:
+    - generic [ref=f4e10]:
+      - generic [ref=f4e11]:
+        - paragraph [ref=f4e12]: For founders, PMs, and strategists
+        - heading "Know what will go wrong before it does" [level=1] [ref=f4e13]:
+          - text: Know what will go wrong
+          - generic [ref=f4e14]: before it does
+        - paragraph [ref=f4e15]: AI personas debate your idea from every angle — surfacing blind spots, coalition risks, and failure modes in minutes.
+        - button "Run a simulation →" [ref=f4e17]:
+          - text: Run a simulation
+          - generic [ref=f4e18]: →
+      - generic [ref=f4e19]:
+        - heading "How it works" [level=2] [ref=f4e20]
+        - generic [ref=f4e21]:
+          - generic [ref=f4e22]:
+            - text: "01"
+            - heading "Describe a decision" [level=3] [ref=f4e23]
+            - paragraph [ref=f4e24]: A product launch, policy change, strategic bet — anything with stakeholders and uncertainty.
+          - generic [ref=f4e25]:
+            - text: "02"
+            - heading "Agents stress-test it" [level=3] [ref=f4e26]
+            - paragraph [ref=f4e27]: LLM-generated personas form coalitions, debate, and react to a crisis event across three rounds.
+          - generic [ref=f4e28]:
+            - text: "03"
+            - heading "Get a diagnostic" [level=3] [ref=f4e29]
+            - paragraph [ref=f4e30]: Verdict, resilience score, risk map, and actionable recommendations — ready to share.
+      - generic [ref=f4e31]:
+        - heading "What you get" [level=2] [ref=f4e32]
+        - generic [ref=f4e34]:
+          - generic [ref=f4e35]:
+            - generic [ref=f4e36]:
+              - paragraph [ref=f4e37]: Simulation result
+              - paragraph [ref=f4e38]: Launch a 4-day work week at a 500-person company
+            - generic [ref=f4e39]: Conditionally Viable
+          - generic [ref=f4e40]:
+            - generic [ref=f4e41]:
+              - paragraph [ref=f4e42]: 72%
+              - paragraph [ref=f4e43]: Resilience
+            - generic [ref=f4e44]:
+              - paragraph [ref=f4e45]: 3 / 5
+              - paragraph [ref=f4e46]: Consensus
+            - generic [ref=f4e47]:
+              - paragraph [ref=f4e48]: Moderate
+              - paragraph [ref=f4e49]: Risk level
+          - generic [ref=f4e50]:
+            - paragraph [ref=f4e51]: Round progression
+            - generic [ref=f4e52]:
+              - paragraph [ref=f4e55]: Perception
+              - paragraph [ref=f4e58]: Debate
+              - paragraph [ref=f4e61]: Crisis
+      - generic [ref=f4e62]:
+        - heading "Use cases" [level=2] [ref=f4e63]
+        - generic [ref=f4e64]:
+          - generic [ref=f4e65]:
+            - heading "Product launches" [level=3] [ref=f4e66]
+            - paragraph [ref=f4e67]: Will users adopt? Which stakeholders will resist? What kills momentum?
+          - generic [ref=f4e68]:
+            - heading "Policy decisions" [level=3] [ref=f4e69]
+            - paragraph [ref=f4e70]: Test political feasibility, coalition stability, and unintended consequences.
+          - generic [ref=f4e71]:
+            - heading "Strategic bets" [level=3] [ref=f4e72]
+            - paragraph [ref=f4e73]: Stress-test M&A, market entry, org restructures — before committing resources.
+      - generic [ref=f4e74]:
+        - heading "Decisions are expensive. Simulations aren't." [level=2] [ref=f4e75]
+        - paragraph [ref=f4e76]: Free to use — bring your own API key for unlimited runs.
+        - button "Try it now →" [ref=f4e77]:
+          - text: Try it now
+          - generic [ref=f4e78]: →
+      - generic [ref=f4e80]:
+        - generic [ref=f4e81]: SimulateAI
+        - generic [ref=f4e84]:
+          - link "GitHub" [ref=f4e85] [cursor=pointer]:
+            - /url: https://github.com/afiq2001/SimulateAI
+          - generic [ref=f4e86]: ·
+          - generic [ref=f4e87]: Multi-agent simulation engine
