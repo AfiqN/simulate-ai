@@ -13,6 +13,14 @@ export default defineConfig({
   build: {
     outDir: "../static/dist",
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          recharts: ["recharts"],
+          pdf: ["jspdf", "jspdf-autotable"],
+        },
+      },
+    },
   },
   server: {
     port: 5173,

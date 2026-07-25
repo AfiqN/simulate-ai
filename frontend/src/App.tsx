@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { useSimulation, useSimulationEvents, getPersistedRun } from "./hooks/useSimulation";
 import { useWebSocket } from "./hooks/useWebSocket";
 import { useNotification } from "./hooks/useNotification";
@@ -9,9 +9,11 @@ import { LandingHero } from "./components/layout/LandingHero";
 import { SettingsPanel } from "./components/layout/SettingsPanel";
 import { SimForm } from "./components/simulation/SimForm";
 import { SimulationLive } from "./components/simulation/SimulationLive";
-import { SchemaApproval } from "./components/simulation/SchemaApproval";
-import { ResultsView } from "./components/simulation/ResultsView";
 import type { SimulationConfig } from "./types";
+
+// Lazy-loaded: only needed after simulation completes or during schema gate
+const ResultsView = lazy(() => import("./components/simulation/ResultsView").then(m => ({ default: m.ResultsView })));
+const SchemaApproval = lazy(() => import("./components/simulation/SchemaApproval").then(m => ({ default: m.SchemaApproval })));
 
 export default function App() {
   const [showLanding, setShowLanding] = useState(true);
@@ -155,10 +157,12 @@ export default function App() {
 
         {/* Schema approval */}
         {state.status === "schema_pending" && state.schema && (
-          <SchemaApproval
-            schema={state.schema}
-            onApprove={handleApproveSchema}
-          />
+          <Suspense fallback={<div className="py-10 text-center text-[13px] text-[#8B8B8B]">Loading...</div>}>
+            <SchemaApproval
+              schema={state.schema}
+              onApprove={handleApproveSchema}
+            />
+          </Suspense>
         )}
 
         {/* Running — immersive live view */}
@@ -191,18 +195,20 @@ export default function App() {
 
         {/* Complete: Full results view */}
         {state.status === "complete" && state.result && (
-          <ResultsView
-            result={state.result}
-            rounds={state.rounds}
-            agentsByRound={state.agentsByRound}
-            schema={state.schema}
-            factionUpdates={state.factionUpdates}
-            triggersEvents={state.triggersEvents}
-            historicalPrecedents={state.historicalPrecedents}
-            adversarialResult={state.adversarialResult}
-            runId={state.runId || undefined}
-            onReset={handleReset}
-          />
+          <Suspense fallback={<div className="py-10 text-center text-[13px] text-[#8B8B8B]">Loading results...</div>}>
+            <ResultsView
+              result={state.result}
+              rounds={state.rounds}
+              agentsByRound={state.agentsByRound}
+              schema={state.schema}
+              factionUpdates={state.factionUpdates}
+              triggersEvents={state.triggersEvents}
+              historicalPrecedents={state.historicalPrecedents}
+              adversarialResult={state.adversarialResult}
+              runId={state.runId || undefined}
+              onReset={handleReset}
+            />
+          </Suspense>
         )}
       </main>
     </div>
