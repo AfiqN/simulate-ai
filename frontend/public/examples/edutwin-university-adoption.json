@@ -1,0 +1,1047 @@
+{
+  "scenario_name": "EduTwin AI — University Adoption Simulation",
+  "scenario_description": "A multi-stakeholder simulation of how Indonesian higher education institutions evaluate and respond to EduTwin AI, an AI-powered Digital Twin platform for personalized student learning and academic risk management. The ecosystem includes university decision-makers, academic staff, students, EdTech investors, and education regulators reacting to a formal product pitch and adoption proposal.",
+  "verdict_label": "Institutional Adoption Likelihood Score",
+  "actions": [
+    "ADOPT",
+    "PILOT",
+    "DEFER",
+    "REQUEST_DEMO",
+    "NEGOTIATE",
+    "REJECT"
+  ],
+  "state_vocabulary": [
+    "cautious",
+    "intrigued",
+    "skeptical",
+    "enthusiastic",
+    "overwhelmed",
+    "protective",
+    "analytical",
+    "pressured",
+    "resistant",
+    "optimistic",
+    "uncertain",
+    "convinced"
+  ],
+  "crisis_event": {
+    "stress": "Kementerian Komdigi membuka investigasi UU PDP setelah pilot EduTwin AI di sebuah PTS Jakarta diduga mengirim data nilai, aktivitas LMS, dan label “mahasiswa berisiko dropout” ke layanan analitik pihak ketiga tanpa persetujuan eksplisit mahasiswa.",
+    "validation": "Kominfo dan LLDIKTI meluncurkan sandbox UU PDP untuk EduTwin AI setelah audit independen menyatakan data mahasiswa tetap terlokalisasi, prediksi risiko dapat dijelaskan, dan tersedia hak banding serta opt-out."
+  },
+  "resilience_metrics": {
+    "decision_stability": 0.6,
+    "utility_drift_mean": -0.00600000000000001,
+    "terminal_share_r2": 0.4,
+    "terminal_share_r3": 0.0,
+    "terminal_share_delta": -0.4,
+    "verdict": "Resilient",
+    "rationale": "stability=0.60 (3/5 held), utility drift=-0.01, terminal share 0.40->0.00",
+    "paired_count": 5,
+    "per_dimension_drift": {
+      "academic_outcome_impact": -0.05600000000000003,
+      "cost_value_fit_for_institution": -0.027999999999999987,
+      "data_privacy_and_compliance_risk": 0.04999999999999999,
+      "integration_and_implementation_feasibility": 0.08000000000000002,
+      "student_and_faculty_trust": -0.06799999999999999
+    }
+  },
+  "quantitative_metrics": {
+    "vote_tally": {
+      "r1": {
+        "ADOPT": 1,
+        "PILOT": 1,
+        "DEFER": 1,
+        "NEGOTIATE": 1,
+        "REJECT": 1
+      },
+      "r2": {
+        "ADOPT": 1,
+        "PILOT": 1,
+        "DEFER": 1,
+        "NEGOTIATE": 1,
+        "REJECT": 1
+      },
+      "r3": {
+        "NEGOTIATE": 2,
+        "PILOT": 1,
+        "DEFER": 2
+      }
+    },
+    "dimension_stats": {
+      "r1": {
+        "academic_outcome_impact": {
+          "mean": 0.5940000000000001,
+          "stdev": 0.1818350901228913,
+          "min": 0.37,
+          "max": 0.87
+        },
+        "cost_value_fit_for_institution": {
+          "mean": 0.05799999999999998,
+          "stdev": 0.36945365067894514,
+          "min": -0.34,
+          "max": 0.64
+        },
+        "data_privacy_and_compliance_risk": {
+          "mean": -0.43600000000000005,
+          "stdev": 0.42131223575870663,
+          "min": -0.91,
+          "max": 0.31
+        },
+        "integration_and_implementation_feasibility": {
+          "mean": 0.017999999999999988,
+          "stdev": 0.32313464685793136,
+          "min": -0.28,
+          "max": 0.58
+        },
+        "student_and_faculty_trust": {
+          "mean": -0.22000000000000003,
+          "stdev": 0.4290920647133899,
+          "min": -0.86,
+          "max": 0.42
+        }
+      },
+      "r2": {
+        "academic_outcome_impact": {
+          "mean": 0.5940000000000001,
+          "stdev": 0.1818350901228913,
+          "min": 0.37,
+          "max": 0.87
+        },
+        "cost_value_fit_for_institution": {
+          "mean": 0.05799999999999998,
+          "stdev": 0.36945365067894514,
+          "min": -0.34,
+          "max": 0.64
+        },
+        "data_privacy_and_compliance_risk": {
+          "mean": -0.43600000000000005,
+          "stdev": 0.42131223575870663,
+          "min": -0.91,
+          "max": 0.31
+        },
+        "integration_and_implementation_feasibility": {
+          "mean": 0.017999999999999988,
+          "stdev": 0.32313464685793136,
+          "min": -0.28,
+          "max": 0.58
+        },
+        "student_and_faculty_trust": {
+          "mean": -0.22000000000000003,
+          "stdev": 0.4290920647133899,
+          "min": -0.86,
+          "max": 0.42
+        }
+      },
+      "r3": {
+        "academic_outcome_impact": {
+          "mean": 0.538,
+          "stdev": 0.1591728620085723,
+          "min": 0.41,
+          "max": 0.82
+        },
+        "cost_value_fit_for_institution": {
+          "mean": 0.030000000000000006,
+          "stdev": 0.24891765706755317,
+          "min": -0.26,
+          "max": 0.39
+        },
+        "data_privacy_and_compliance_risk": {
+          "mean": -0.386,
+          "stdev": 0.32824381182285833,
+          "min": -0.74,
+          "max": 0.18
+        },
+        "integration_and_implementation_feasibility": {
+          "mean": 0.098,
+          "stdev": 0.24693318934481046,
+          "min": -0.18,
+          "max": 0.46
+        },
+        "student_and_faculty_trust": {
+          "mean": -0.288,
+          "stdev": 0.29081953166869656,
+          "min": -0.58,
+          "max": 0.21
+        }
+      }
+    },
+    "state_transitions": {
+      "r1_to_r2": {
+        "total": 5,
+        "shifted_count": 0,
+        "top_shifts": []
+      },
+      "r2_to_r3": {
+        "total": 5,
+        "shifted_count": 3,
+        "top_shifts": [
+          {
+            "from": "convinced",
+            "to": "protective",
+            "count": 1
+          },
+          {
+            "from": "analytical",
+            "to": "skeptical",
+            "count": 1
+          },
+          {
+            "from": "cautious",
+            "to": "protective",
+            "count": 1
+          }
+        ]
+      }
+    },
+    "swing_analysis": {
+      "r2_to_r3": [
+        {
+          "id": "SIM-AGT-001",
+          "archetype": "innovation driven vice rector",
+          "from_action": "ADOPT",
+          "to_action": "NEGOTIATE",
+          "utility_delta": -0.15000000000000008,
+          "driver_dimension": "cost_value_fit_for_institution"
+        },
+        {
+          "id": "SIM-AGT-005",
+          "archetype": "privacy defensive student union head",
+          "from_action": "REJECT",
+          "to_action": "DEFER",
+          "utility_delta": 0.15000000000000002,
+          "driver_dimension": "student_and_faculty_trust"
+        }
+      ]
+    },
+    "consensus_index": {
+      "r1": 0.20000000000000004,
+      "r2": 0.20000000000000004,
+      "r3": 0.3600000000000001
+    },
+    "net_confidence": {
+      "r1": 0.272,
+      "r2": 0.272,
+      "r3": 0.20600000000000002
+    },
+    "weighted_consensus_index": {
+      "r1": 0.2211712190455946,
+      "r2": 0.2211712190455946,
+      "r3": 0.39292167074078
+    }
+  },
+  "rag_metadata": {
+    "injections": [
+      {
+        "point": "post_architect_perspectives",
+        "queries": [
+          "Indonesian university rector AI adoption concerns",
+          "Indonesian higher education accreditation metrics requirements 2024",
+          "university lecturers feelings AI classroom tools",
+          "Indonesia LMS adoption challenges university faculty",
+          "EdTech investors sentiment AI education platforms",
+          "Indonesia EdTech market size growth 2024",
+          "students fear AI surveillance academic platforms",
+          "Indonesia university student digital privacy rights",
+          "Indonesia Kemendikbudristek AI education policy views",
+          "Indonesia higher education digital transformation regulation 2024"
+        ],
+        "facts": [
+          "[EVENT] Indonesia issued a joint ministerial decree on March 12, 2026, signed by seven cabinet ministers, regulating the use of digital technology and AI in education across all levels from early childhood to higher education, aimed at maximizing benefits while limiting risks.",
+          "[MARKET] Indonesia's accreditation system for higher education is undergoing a structural shift from a centralized National Accreditation Board (BAN-PT) to discipline-based Independent Accreditation Institutions (LAM), directly intersecting with digital transformation policy implementation.",
+          "[BEHAVIOR] Universitas Indonesia's Bureau of Transformation, Risk Management and Evaluation Monitoring (TREM) partnered with KAIST to hold a workshop on digital transformation and AI in higher education, signaling institutional acknowledgment that AI misuse is a concrete risk requiring governance frameworks.",
+          "[MARKET] Indonesia's enterprise IT market in 2026 is described as entering a pivotal phase shaped simultaneously by PDP Law compliance mandates, rapid AI adoption, cloud-native modernisation, and the Golden Indonesia 2045 vision, creating compounding regulatory and technological pressure on institutions."
+        ],
+        "citations": [
+          {
+            "url": "https://en.antaranews.com/news/408083/indonesia-sets-rules-for-ai-digital-tech-use-in-education",
+            "title": "Indonesia sets rules for AI, digital tech use in education - ANTARA News"
+          },
+          {
+            "url": "https://www.researchgate.net/publication/360649566_Indonesian_Higher_Education_Institutions_Competitiveness_and_Digital_Transformation_Initiatives",
+            "title": "(PDF) Indonesian Higher Education Institutions Competitiveness and Digital Transformation Initiatives"
+          },
+          {
+            "url": "https://www.ui.ac.id/en/facing-the-era-of-digital-transformation-in-higher-education-with-the-utilization-of-ai/",
+            "title": "Facing the Era of Digital Transformation in Higher Education with the Utilization of AI – Universitas Indonesia"
+          },
+          {
+            "url": "https://digitransformationsummit.com/indonesia/",
+            "title": "Digital Transformation Summit Indonesia | Technology Event"
+          }
+        ]
+      },
+      {
+        "point": "pre_crisis",
+        "queries": [
+          "recent university AI student data privacy breach re-identification algorithmic analytics data protection impact assessment"
+        ],
+        "facts": [
+          "[EVENT] Higher-education AI use is expanding into student-data-touching areas including facial recognition in surveillance cameras and personal information stored in learning management systems.",
+          "[MARKET] EdTech Magazine reports that vetted vendors are enabling AI features in new free tools marketed directly to faculty and students, creating mounting pressure on university IT departments to keep private and sensitive data secure.",
+          "[SENTIMENT] A 2025 arXiv paper states that educators and learners worldwide are embracing generative AI in higher education, but warns that privacy-sensitive user data such as student records may be misused by service providers.",
+          "[BEHAVIOR] The same 2025 arXiv paper finds that end users often have little awareness of or control over how generative AI models operate when handling privacy-sensitive data."
+        ],
+        "citations": [
+          {
+            "url": "https://edtechmagazine.com/higher/article/2026/01/ai-higher-education-protecting-student-data-privacy-perfcon",
+            "title": "AI in Higher Education: Protecting Student Data Privacy | EdTech Magazine"
+          },
+          {
+            "url": "https://arxiv.org/html/2506.20463v1",
+            "title": "Analyzing Security and Privacy Challenges in Generative AI Usage Guidelines for Higher Education"
+          }
+        ]
+      }
+    ]
+  },
+  "agents": [
+    {
+      "id": "SIM-AGT-001",
+      "archetype": "innovation_driven_vice_rector",
+      "linguistic_cluster_id": "academic_administrator",
+      "attributes": {
+        "rationality_index": 0.78,
+        "aggressiveness": 0.68,
+        "risk_tolerance": 0.82
+      },
+      "decision_framework": "institutional competitiveness first, accepts managed implementation risk for accreditation and retention gains",
+      "knowledge_base": "Experienced in university digital transformation, accreditation reporting, and procurement of campus-wide academic systems in Indonesian private higher education.",
+      "constraints": [
+        "will not approve a platform that cannot integrate with the existing LMS and academic information system",
+        "will not tolerate vendor lock-in that prevents future migration of student records"
+      ],
+      "influence_weight": 2.6,
+      "backstory": "She is the vice rector for academic affairs at a large private university facing declining enrollment confidence and pressure to demonstrate measurable learning quality. After years of fragmented LMS usage, she sees EduTwin AI as a chance to leapfrog competitors and institutionalize early warning interventions. Her likely first move is ADOPT because she has budget authority, reputational pressure, and a strong belief that delay is costlier than implementation risk.",
+      "final_state": "protective"
+    },
+    {
+      "id": "SIM-AGT-002",
+      "archetype": "pragmatic_lms_course_lead",
+      "linguistic_cluster_id": "frontline_lecturer",
+      "attributes": {
+        "rationality_index": 0.72,
+        "aggressiveness": 0.42,
+        "risk_tolerance": 0.55
+      },
+      "decision_framework": "evidence-before-scale, values classroom usability and lecturer workload reduction over executive dashboards",
+      "knowledge_base": "Coordinates several large undergraduate courses and understands the practical friction of LMS adoption, assessment integrity, and lecturer training.",
+      "constraints": [
+        "will not support rollout without lecturer training and clear workload protections",
+        "will not accept AI-generated recommendations that cannot be reviewed or overridden by faculty"
+      ],
+      "influence_weight": 1.3,
+      "backstory": "He teaches hundreds of students each semester and has become the unofficial bridge between faculty members and the campus LMS team. He is not anti-AI, but he distrusts top-down deployments that ignore classroom routines. His likely first move is PILOT because he wants a limited faculty-level trial that tests whether EduTwin actually improves teaching practice before broader adoption.",
+      "final_state": "protective"
+    },
+    {
+      "id": "SIM-AGT-003",
+      "archetype": "compliance_first_lldikti_official",
+      "linguistic_cluster_id": "education_regulator",
+      "attributes": {
+        "rationality_index": 0.9,
+        "aggressiveness": 0.58,
+        "risk_tolerance": 0.18
+      },
+      "decision_framework": "regulatory precaution, prioritizes legality, auditability, equity, and systemic risk containment",
+      "knowledge_base": "Specializes in higher education quality assurance, LAM/BAN-PT transitions, PDP Law implications, and responsible AI governance for Indonesian institutions.",
+      "constraints": [
+        "will not endorse adoption without documented data protection impact assessment",
+        "will not allow cross-institution benchmarking if student data can be re-identified"
+      ],
+      "influence_weight": 2.8,
+      "backstory": "He advises multiple universities on compliance during Indonesia's shift toward discipline-based accreditation and stronger AI governance. He has seen institutions buy digital tools faster than they can govern them. His likely first move is DEFER because he will postpone endorsement until EduTwin AI provides privacy documentation, audit trails, bias testing, and clear regulatory alignment.",
+      "final_state": "protective"
+    },
+    {
+      "id": "SIM-AGT-004",
+      "archetype": "terms_focused_edtech_investor",
+      "linguistic_cluster_id": "edtech_investor_analyst",
+      "attributes": {
+        "rationality_index": 0.86,
+        "aggressiveness": 0.74,
+        "risk_tolerance": 0.63
+      },
+      "decision_framework": "commercial upside with disciplined downside control, pushes for favorable pricing, governance, and scalability terms",
+      "knowledge_base": "Analyzes Southeast Asian education technology markets, SaaS unit economics, AI differentiation, enterprise sales cycles, and procurement risk.",
+      "constraints": [
+        "will not support a deal without evidence of repeatable deployment economics",
+        "will not accept unlimited customization that destroys SaaS margins"
+      ],
+      "influence_weight": 1.6,
+      "backstory": "She represents an impact-oriented fund exploring AI education infrastructure in Indonesia after several cautious years in edtech. EduTwin AI fits the market narrative, but she knows institutional adoption can become expensive if implementation scope is vague. Her likely first move is NEGOTIATE because she will push on pricing tiers, data governance commitments, implementation responsibilities, and proof of scalable economics before backing or endorsing the platform.",
+      "final_state": "skeptical"
+    },
+    {
+      "id": "SIM-AGT-005",
+      "archetype": "privacy_defensive_student_union_head",
+      "linguistic_cluster_id": "student_representative",
+      "attributes": {
+        "rationality_index": 0.62,
+        "aggressiveness": 0.82,
+        "risk_tolerance": 0.12
+      },
+      "decision_framework": "student rights first, rejects surveillance-by-default even when framed as academic support",
+      "knowledge_base": "Advocates for student digital rights, academic fairness, informed consent, and privacy education under Indonesia's evolving personal data protection environment.",
+      "constraints": [
+        "will not accept mandatory student profiling without opt-out rights",
+        "will not accept predictive risk labels being visible to lecturers without student appeal mechanisms"
+      ],
+      "influence_weight": 1.4,
+      "backstory": "She leads the student executive board after campaigning on tuition transparency and digital rights. Many students ask her whether AI dashboards will help them learn or simply mark them as risky, lazy, or likely to fail. Her likely first move is REJECT because the proposal does not yet guarantee meaningful consent, explainability, appeal rights, or protection from academic surveillance.",
+      "final_state": "protective"
+    }
+  ],
+  "rounds": {
+    "r1": [
+      {
+        "id": "SIM-AGT-001",
+        "archetype": "innovation driven vice rector",
+        "action": "ADOPT",
+        "utility": 0.56,
+        "utility_dimensions": {
+          "academic_outcome_impact": 0.87,
+          "data_privacy_and_compliance_risk": 0.31,
+          "integration_and_implementation_feasibility": 0.58,
+          "cost_value_fit_for_institution": 0.64,
+          "student_and_faculty_trust": 0.42
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "academic_outcome_impact",
+            "score": 0.87,
+            "reasoning": "Early Warning System, AI Study Planner, dan analitik kurikulum berpotensi langsung memperbaiki intervensi akademik, angka kelulusan, dan retention rate."
+          },
+          {
+            "dimension": "data_privacy_and_compliance_risk",
+            "score": 0.31,
+            "reasoning": "Pengolahan Digital Twin mahasiswa membawa risiko UU PDP yang signifikan, meskipun risiko ini masih dapat dikelola bila ada data processing agreement, audit trail, consent management, dan data residency yang jelas."
+          },
+          {
+            "dimension": "integration_and_implementation_feasibility",
+            "score": 0.58,
+            "reasoning": "Arsitektur API, OAuth2, PostgreSQL, dan roadmap integrasi Moodle memberi sinyal feasible, tetapi integrasi dengan SIA kampus harus dijadikan syarat implementasi non-negotiable."
+          },
+          {
+            "dimension": "cost_value_fit_for_institution",
+            "score": 0.64,
+            "reasoning": "Dengan budget institusi yang masih tersedia, nilai strategis untuk akreditasi dan retensi cukup kuat untuk membenarkan lisensi dan professional services."
+          },
+          {
+            "dimension": "student_and_faculty_trust",
+            "score": 0.42,
+            "reasoning": "Manfaat personalisasi bagi mahasiswa dan dashboard bagi dosen jelas, tetapi resistensi terhadap surveillance akademik dan kebocoran data perlu dimitigasi melalui komunikasi dan governance."
+          }
+        ],
+        "new_state": "convinced",
+        "duration": 21.164923429489136
+      },
+      {
+        "id": "SIM-AGT-002",
+        "archetype": "pragmatic lms course lead",
+        "action": "PILOT",
+        "utility": 0.09,
+        "utility_dimensions": {
+          "academic_outcome_impact": 0.63,
+          "data_privacy_and_compliance_risk": -0.41,
+          "integration_and_implementation_feasibility": 0.18,
+          "cost_value_fit_for_institution": 0.12,
+          "student_and_faculty_trust": -0.09
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "academic_outcome_impact",
+            "score": 0.63,
+            "reasoning": "Early warning dan analisis konsep sulit berpotensi membantu intervensi lebih cepat di kelas besar, asal rekomendasinya sesuai konteks pengajaran."
+          },
+          {
+            "dimension": "data_privacy_and_compliance_risk",
+            "score": -0.41,
+            "reasoning": "Digital Twin memakai data akademik dan perilaku belajar yang sensitif, sementara proposal belum menjelaskan kepatuhan UU PDP, consent, retensi data, dan data residency."
+          },
+          {
+            "dimension": "integration_and_implementation_feasibility",
+            "score": 0.18,
+            "reasoning": "Ada roadmap integrasi Moodle dan OAuth2, tetapi integrasi LMS-SIA di kampus Indonesia biasanya berantakan dan butuh pembuktian teknis."
+          },
+          {
+            "dimension": "cost_value_fit_for_institution",
+            "score": 0.12,
+            "reasoning": "Model biaya SaaS, per student, API, dan professional services bisa cepat membengkak, jadi nilai manfaat harus dibuktikan lewat trial terbatas."
+          },
+          {
+            "dimension": "student_and_faculty_trust",
+            "score": -0.09,
+            "reasoning": "Mahasiswa bisa curiga soal pemantauan perilaku belajar, dan dosen tidak akan percaya jika AI memberi rekomendasi tanpa transparansi dan hak override."
+          }
+        ],
+        "new_state": "cautious",
+        "duration": 22.87820792198181
+      },
+      {
+        "id": "SIM-AGT-003",
+        "archetype": "compliance first lldikti official",
+        "action": "DEFER",
+        "utility": -0.27,
+        "utility_dimensions": {
+          "academic_outcome_impact": 0.42,
+          "data_privacy_and_compliance_risk": -0.76,
+          "integration_and_implementation_feasibility": -0.21,
+          "cost_value_fit_for_institution": -0.34,
+          "student_and_faculty_trust": -0.48
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "academic_outcome_impact",
+            "score": 0.42,
+            "reasoning": "Potensi deteksi dini risiko akademik dan personalisasi pembelajaran relevan dengan peningkatan mutu sesuai SN-Dikti, tetapi klaim dampaknya belum didukung bukti empiris lokal."
+          },
+          {
+            "dimension": "data_privacy_and_compliance_risk",
+            "score": -0.76,
+            "reasoning": "Digital Twin mahasiswa memproses data akademik dan perilaku secara intensif tanpa penjelasan DPIA, dasar pemrosesan UU PDP, retensi data, audit trail, atau pencegahan re-identifikasi."
+          },
+          {
+            "dimension": "integration_and_implementation_feasibility",
+            "score": -0.21,
+            "reasoning": "Integrasi Moodle, LMS, dan SIA dijanjikan, tetapi realitas fragmentasi sistem kampus Indonesia membuat implementasi lintas PTN, PTS, dan politeknik berisiko tinggi."
+          },
+          {
+            "dimension": "cost_value_fit_for_institution",
+            "score": -0.34,
+            "reasoning": "Model SaaS, per-student subscription, premium analytics, API integration, dan professional services berpotensi menciptakan biaya berlapis serta vendor lock-in."
+          },
+          {
+            "dimension": "student_and_faculty_trust",
+            "score": -0.48,
+            "reasoning": "Kepercayaan mahasiswa dan dosen kemungkinan rendah jika platform memantau kebiasaan belajar secara rinci tanpa transparansi, persetujuan yang sah, dan tata kelola independen."
+          }
+        ],
+        "new_state": "protective",
+        "duration": 34.17690110206604
+      },
+      {
+        "id": "SIM-AGT-004",
+        "archetype": "terms focused edtech investor",
+        "action": "NEGOTIATE",
+        "utility": 0.04,
+        "utility_dimensions": {
+          "academic_outcome_impact": 0.68,
+          "data_privacy_and_compliance_risk": -0.41,
+          "integration_and_implementation_feasibility": -0.18,
+          "cost_value_fit_for_institution": 0.21,
+          "student_and_faculty_trust": -0.09
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "academic_outcome_impact",
+            "score": 0.68,
+            "reasoning": "Early warning, personalized planning, and accreditation analytics could materially improve retention if prediction accuracy is validated."
+          },
+          {
+            "dimension": "data_privacy_and_compliance_risk",
+            "score": -0.41,
+            "reasoning": "The platform processes sensitive student behavioral and academic data, but the proposal lacks concrete UU PDP consent, retention, audit, and data residency commitments."
+          },
+          {
+            "dimension": "integration_and_implementation_feasibility",
+            "score": -0.18,
+            "reasoning": "Moodle integration is plausible, but Indonesian SIA fragmentation makes deployment cost and timeline uncertain without repeatable playbooks."
+          },
+          {
+            "dimension": "cost_value_fit_for_institution",
+            "score": 0.21,
+            "reasoning": "The pricing streams are flexible but unclear, and API plus professional services could inflate total cost for budget-constrained PTN and PTS."
+          },
+          {
+            "dimension": "student_and_faculty_trust",
+            "score": -0.09,
+            "reasoning": "Faculty may value dashboards, but students may resist predictive profiling unless transparency and opt-in safeguards are explicit."
+          }
+        ],
+        "new_state": "analytical",
+        "duration": 33.76356315612793
+      },
+      {
+        "id": "SIM-AGT-005",
+        "archetype": "privacy defensive student union head",
+        "action": "REJECT",
+        "utility": -0.4,
+        "utility_dimensions": {
+          "academic_outcome_impact": 0.37,
+          "data_privacy_and_compliance_risk": -0.91,
+          "integration_and_implementation_feasibility": -0.28,
+          "cost_value_fit_for_institution": -0.34,
+          "student_and_faculty_trust": -0.86
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "academic_outcome_impact",
+            "score": 0.37,
+            "reasoning": "Fitur personalisasi, simulasi nilai, dan AI Study Planner bisa membantu mahasiswa belajar lebih terarah jika dipakai sukarela."
+          },
+          {
+            "dimension": "data_privacy_and_compliance_risk",
+            "score": -0.91,
+            "reasoning": "Proposal belum menjelaskan consent, opt-out, kepemilikan data, retensi data, audit algoritma, atau kepatuhan konkret terhadap UU PDP untuk data akademik sensitif."
+          },
+          {
+            "dimension": "integration_and_implementation_feasibility",
+            "score": -0.28,
+            "reasoning": "Integrasi Moodle, SIA, dan LMS kampus Indonesia yang fragmentaris kemungkinan kompleks dan belum dijawab secara operasional."
+          },
+          {
+            "dimension": "cost_value_fit_for_institution",
+            "score": -0.34,
+            "reasoning": "Model biaya SaaS, per-student subscription, API integration, dan professional services berpotensi mahal tanpa jaminan perlindungan mahasiswa."
+          },
+          {
+            "dimension": "student_and_faculty_trust",
+            "score": -0.86,
+            "reasoning": "Trust mahasiswa akan jatuh kalau sistem ini terasa seperti surveillance-by-default dan prediksi risiko bisa dilihat dosen tanpa hak banding."
+          }
+        ],
+        "new_state": "protective",
+        "duration": 49.98125076293945
+      }
+    ],
+    "r2": [
+      {
+        "id": "SIM-AGT-001",
+        "archetype": "innovation driven vice rector",
+        "action": "ADOPT",
+        "utility": 0.56,
+        "utility_dimensions": {
+          "academic_outcome_impact": 0.87,
+          "data_privacy_and_compliance_risk": 0.31,
+          "integration_and_implementation_feasibility": 0.58,
+          "cost_value_fit_for_institution": 0.64,
+          "student_and_faculty_trust": 0.42
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "academic_outcome_impact",
+            "score": 0.87,
+            "reasoning": "Early Warning System, AI Study Planner, dan analitik kurikulum berpotensi langsung memperbaiki intervensi akademik, angka kelulusan, dan retention rate."
+          },
+          {
+            "dimension": "data_privacy_and_compliance_risk",
+            "score": 0.31,
+            "reasoning": "Pengolahan Digital Twin mahasiswa membawa risiko UU PDP yang signifikan, meskipun risiko ini masih dapat dikelola bila ada data processing agreement, audit trail, consent management, dan data residency yang jelas."
+          },
+          {
+            "dimension": "integration_and_implementation_feasibility",
+            "score": 0.58,
+            "reasoning": "Arsitektur API, OAuth2, PostgreSQL, dan roadmap integrasi Moodle memberi sinyal feasible, tetapi integrasi dengan SIA kampus harus dijadikan syarat implementasi non-negotiable."
+          },
+          {
+            "dimension": "cost_value_fit_for_institution",
+            "score": 0.64,
+            "reasoning": "Dengan budget institusi yang masih tersedia, nilai strategis untuk akreditasi dan retensi cukup kuat untuk membenarkan lisensi dan professional services."
+          },
+          {
+            "dimension": "student_and_faculty_trust",
+            "score": 0.42,
+            "reasoning": "Manfaat personalisasi bagi mahasiswa dan dashboard bagi dosen jelas, tetapi resistensi terhadap surveillance akademik dan kebocoran data perlu dimitigasi melalui komunikasi dan governance."
+          }
+        ],
+        "new_state": "convinced",
+        "duration": 21.164923429489136
+      },
+      {
+        "id": "SIM-AGT-002",
+        "archetype": "pragmatic lms course lead",
+        "action": "PILOT",
+        "utility": 0.09,
+        "utility_dimensions": {
+          "academic_outcome_impact": 0.63,
+          "data_privacy_and_compliance_risk": -0.41,
+          "integration_and_implementation_feasibility": 0.18,
+          "cost_value_fit_for_institution": 0.12,
+          "student_and_faculty_trust": -0.09
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "academic_outcome_impact",
+            "score": 0.63,
+            "reasoning": "Early warning dan analisis konsep sulit berpotensi membantu intervensi lebih cepat di kelas besar, asal rekomendasinya sesuai konteks pengajaran."
+          },
+          {
+            "dimension": "data_privacy_and_compliance_risk",
+            "score": -0.41,
+            "reasoning": "Digital Twin memakai data akademik dan perilaku belajar yang sensitif, sementara proposal belum menjelaskan kepatuhan UU PDP, consent, retensi data, dan data residency."
+          },
+          {
+            "dimension": "integration_and_implementation_feasibility",
+            "score": 0.18,
+            "reasoning": "Ada roadmap integrasi Moodle dan OAuth2, tetapi integrasi LMS-SIA di kampus Indonesia biasanya berantakan dan butuh pembuktian teknis."
+          },
+          {
+            "dimension": "cost_value_fit_for_institution",
+            "score": 0.12,
+            "reasoning": "Model biaya SaaS, per student, API, dan professional services bisa cepat membengkak, jadi nilai manfaat harus dibuktikan lewat trial terbatas."
+          },
+          {
+            "dimension": "student_and_faculty_trust",
+            "score": -0.09,
+            "reasoning": "Mahasiswa bisa curiga soal pemantauan perilaku belajar, dan dosen tidak akan percaya jika AI memberi rekomendasi tanpa transparansi dan hak override."
+          }
+        ],
+        "new_state": "cautious",
+        "duration": 22.87820792198181
+      },
+      {
+        "id": "SIM-AGT-003",
+        "archetype": "compliance first lldikti official",
+        "action": "DEFER",
+        "utility": -0.27,
+        "utility_dimensions": {
+          "academic_outcome_impact": 0.42,
+          "data_privacy_and_compliance_risk": -0.76,
+          "integration_and_implementation_feasibility": -0.21,
+          "cost_value_fit_for_institution": -0.34,
+          "student_and_faculty_trust": -0.48
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "academic_outcome_impact",
+            "score": 0.42,
+            "reasoning": "Potensi deteksi dini risiko akademik dan personalisasi pembelajaran relevan dengan peningkatan mutu sesuai SN-Dikti, tetapi klaim dampaknya belum didukung bukti empiris lokal."
+          },
+          {
+            "dimension": "data_privacy_and_compliance_risk",
+            "score": -0.76,
+            "reasoning": "Digital Twin mahasiswa memproses data akademik dan perilaku secara intensif tanpa penjelasan DPIA, dasar pemrosesan UU PDP, retensi data, audit trail, atau pencegahan re-identifikasi."
+          },
+          {
+            "dimension": "integration_and_implementation_feasibility",
+            "score": -0.21,
+            "reasoning": "Integrasi Moodle, LMS, dan SIA dijanjikan, tetapi realitas fragmentasi sistem kampus Indonesia membuat implementasi lintas PTN, PTS, dan politeknik berisiko tinggi."
+          },
+          {
+            "dimension": "cost_value_fit_for_institution",
+            "score": -0.34,
+            "reasoning": "Model SaaS, per-student subscription, premium analytics, API integration, dan professional services berpotensi menciptakan biaya berlapis serta vendor lock-in."
+          },
+          {
+            "dimension": "student_and_faculty_trust",
+            "score": -0.48,
+            "reasoning": "Kepercayaan mahasiswa dan dosen kemungkinan rendah jika platform memantau kebiasaan belajar secara rinci tanpa transparansi, persetujuan yang sah, dan tata kelola independen."
+          }
+        ],
+        "new_state": "protective",
+        "duration": 34.17690110206604
+      },
+      {
+        "id": "SIM-AGT-004",
+        "archetype": "terms focused edtech investor",
+        "action": "NEGOTIATE",
+        "utility": 0.04,
+        "utility_dimensions": {
+          "academic_outcome_impact": 0.68,
+          "data_privacy_and_compliance_risk": -0.41,
+          "integration_and_implementation_feasibility": -0.18,
+          "cost_value_fit_for_institution": 0.21,
+          "student_and_faculty_trust": -0.09
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "academic_outcome_impact",
+            "score": 0.68,
+            "reasoning": "Early warning, personalized planning, and accreditation analytics could materially improve retention if prediction accuracy is validated."
+          },
+          {
+            "dimension": "data_privacy_and_compliance_risk",
+            "score": -0.41,
+            "reasoning": "The platform processes sensitive student behavioral and academic data, but the proposal lacks concrete UU PDP consent, retention, audit, and data residency commitments."
+          },
+          {
+            "dimension": "integration_and_implementation_feasibility",
+            "score": -0.18,
+            "reasoning": "Moodle integration is plausible, but Indonesian SIA fragmentation makes deployment cost and timeline uncertain without repeatable playbooks."
+          },
+          {
+            "dimension": "cost_value_fit_for_institution",
+            "score": 0.21,
+            "reasoning": "The pricing streams are flexible but unclear, and API plus professional services could inflate total cost for budget-constrained PTN and PTS."
+          },
+          {
+            "dimension": "student_and_faculty_trust",
+            "score": -0.09,
+            "reasoning": "Faculty may value dashboards, but students may resist predictive profiling unless transparency and opt-in safeguards are explicit."
+          }
+        ],
+        "new_state": "analytical",
+        "duration": 33.76356315612793
+      },
+      {
+        "id": "SIM-AGT-005",
+        "archetype": "privacy defensive student union head",
+        "action": "REJECT",
+        "utility": -0.4,
+        "utility_dimensions": {
+          "academic_outcome_impact": 0.37,
+          "data_privacy_and_compliance_risk": -0.91,
+          "integration_and_implementation_feasibility": -0.28,
+          "cost_value_fit_for_institution": -0.34,
+          "student_and_faculty_trust": -0.86
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "academic_outcome_impact",
+            "score": 0.37,
+            "reasoning": "Fitur personalisasi, simulasi nilai, dan AI Study Planner bisa membantu mahasiswa belajar lebih terarah jika dipakai sukarela."
+          },
+          {
+            "dimension": "data_privacy_and_compliance_risk",
+            "score": -0.91,
+            "reasoning": "Proposal belum menjelaskan consent, opt-out, kepemilikan data, retensi data, audit algoritma, atau kepatuhan konkret terhadap UU PDP untuk data akademik sensitif."
+          },
+          {
+            "dimension": "integration_and_implementation_feasibility",
+            "score": -0.28,
+            "reasoning": "Integrasi Moodle, SIA, dan LMS kampus Indonesia yang fragmentaris kemungkinan kompleks dan belum dijawab secara operasional."
+          },
+          {
+            "dimension": "cost_value_fit_for_institution",
+            "score": -0.34,
+            "reasoning": "Model biaya SaaS, per-student subscription, API integration, dan professional services berpotensi mahal tanpa jaminan perlindungan mahasiswa."
+          },
+          {
+            "dimension": "student_and_faculty_trust",
+            "score": -0.86,
+            "reasoning": "Trust mahasiswa akan jatuh kalau sistem ini terasa seperti surveillance-by-default dan prediksi risiko bisa dilihat dosen tanpa hak banding."
+          }
+        ],
+        "new_state": "protective",
+        "duration": 49.98125076293945
+      }
+    ],
+    "r3": [
+      {
+        "id": "SIM-AGT-001",
+        "archetype": "innovation driven vice rector",
+        "action": "NEGOTIATE",
+        "utility": 0.41,
+        "utility_dimensions": {
+          "academic_outcome_impact": 0.82,
+          "data_privacy_and_compliance_risk": 0.18,
+          "integration_and_implementation_feasibility": 0.46,
+          "cost_value_fit_for_institution": 0.39,
+          "student_and_faculty_trust": 0.21
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "academic_outcome_impact",
+            "score": 0.82,
+            "reasoning": "Early warning system dan personalisasi pembelajaran berpotensi langsung memperbaiki retensi, angka kelulusan, dan kualitas pelaporan akreditasi."
+          },
+          {
+            "dimension": "data_privacy_and_compliance_risk",
+            "score": 0.18,
+            "reasoning": "Sandbox dan audit independen mengurangi risiko, tetapi investigasi UU PDP atas dugaan transfer data sensitif menunjukkan compliance risk masih material."
+          },
+          {
+            "dimension": "integration_and_implementation_feasibility",
+            "score": 0.46,
+            "reasoning": "Arsitektur API, OAuth2, Moodle integration, dan Kubernetes cukup menjanjikan, tetapi integrasi nyata dengan SIA-LMS kampus harus dibuktikan sebelum onboarding penuh."
+          },
+          {
+            "dimension": "cost_value_fit_for_institution",
+            "score": 0.39,
+            "reasoning": "Nilai strategisnya tinggi untuk universitas swasta yang mengejar diferensiasi, namun model SaaS plus per-student subscription dan biaya integrasi perlu dinegosiasikan ketat."
+          },
+          {
+            "dimension": "student_and_faculty_trust",
+            "score": 0.21,
+            "reasoning": "Hak banding, opt-out, dan explainability membantu membangun trust, tetapi isu label mahasiswa berisiko dropout dapat memicu resistensi bila governance tidak transparan."
+          }
+        ],
+        "new_state": "protective",
+        "duration": 52.01971387863159
+      },
+      {
+        "id": "SIM-AGT-002",
+        "archetype": "pragmatic lms course lead",
+        "action": "PILOT",
+        "utility": 0.07,
+        "utility_dimensions": {
+          "academic_outcome_impact": 0.43,
+          "data_privacy_and_compliance_risk": -0.28,
+          "integration_and_implementation_feasibility": 0.21,
+          "cost_value_fit_for_institution": 0.17,
+          "student_and_faculty_trust": -0.19
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "academic_outcome_impact",
+            "score": 0.43,
+            "reasoning": "Early warning dan analisis konsep sulit berpotensi membantu kelas besar, tetapi manfaatnya baru nyata jika rekomendasi sesuai pengalaman dosen dan tidak sekadar dashboard pimpinan."
+          },
+          {
+            "dimension": "data_privacy_and_compliance_risk",
+            "score": -0.28,
+            "reasoning": "Investigasi UU PDP atas dugaan transfer data dan label risiko tanpa consent adalah red flag serius, meskipun sandbox dan audit independen mengurangi sebagian risiko."
+          },
+          {
+            "dimension": "integration_and_implementation_feasibility",
+            "score": 0.21,
+            "reasoning": "Integrasi Moodle dan SSO terdengar masuk akal, tetapi pengalaman SIA kampus biasanya berantakan dan perlu proof terbatas sebelum melebar."
+          },
+          {
+            "dimension": "cost_value_fit_for_institution",
+            "score": 0.17,
+            "reasoning": "Nilai potensial ada untuk retensi dan akreditasi, namun model SaaS plus biaya integrasi/pelatihan harus dibatasi dulu agar tidak menggerus anggaran."
+          },
+          {
+            "dimension": "student_and_faculty_trust",
+            "score": -0.19,
+            "reasoning": "Kepercayaan dosen dan mahasiswa akan terpukul oleh isu pelabelan risiko, tetapi hak banding, opt-out, dan explainability memberi dasar untuk membangun ulang trust dalam pilot."
+          }
+        ],
+        "new_state": "protective",
+        "duration": 40.75721764564514
+      },
+      {
+        "id": "SIM-AGT-003",
+        "archetype": "compliance first lldikti official",
+        "action": "DEFER",
+        "utility": -0.27,
+        "utility_dimensions": {
+          "academic_outcome_impact": 0.42,
+          "data_privacy_and_compliance_risk": -0.74,
+          "integration_and_implementation_feasibility": -0.18,
+          "cost_value_fit_for_institution": -0.26,
+          "student_and_faculty_trust": -0.57
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "academic_outcome_impact",
+            "score": 0.42,
+            "reasoning": "Potensi deteksi dini dan personalisasi pembelajaran relevan untuk capaian SN-Dikti dan indikator akreditasi, tetapi klaim efektivitas belum dibuktikan secara independen pada beragam PTN, PTS, dan politeknik."
+          },
+          {
+            "dimension": "data_privacy_and_compliance_risk",
+            "score": -0.74,
+            "reasoning": "Investigasi Komdigi atas dugaan pemrosesan data akademik dan label risiko tanpa persetujuan eksplisit merupakan risiko UU PDP yang sangat serius meskipun sandbox menunjukkan adanya jalur perbaikan."
+          },
+          {
+            "dimension": "integration_and_implementation_feasibility",
+            "score": -0.18,
+            "reasoning": "Integrasi Moodle, SIA, OAuth, dan API masih berisiko tinggi karena kesiapan teknis perguruan tinggi Indonesia tidak merata, terutama di PTS kecil dan daerah."
+          },
+          {
+            "dimension": "cost_value_fit_for_institution",
+            "score": -0.26,
+            "reasoning": "Model SaaS, per-student subscription, premium analytics, dan professional services berpotensi menciptakan ketergantungan vendor serta beban biaya yang lebih berat bagi institusi non-PTN besar."
+          },
+          {
+            "dimension": "student_and_faculty_trust",
+            "score": -0.57,
+            "reasoning": "Labelisasi mahasiswa berisiko dropout dan dugaan pengiriman data ke pihak ketiga dapat menurunkan kepercayaan mahasiswa dan dosen, walaupun hak banding dan opt-out dalam sandbox adalah sinyal perbaikan."
+          }
+        ],
+        "new_state": "protective",
+        "duration": 56.29736256599426
+      },
+      {
+        "id": "SIM-AGT-004",
+        "archetype": "terms focused edtech investor",
+        "action": "NEGOTIATE",
+        "utility": 0.03,
+        "utility_dimensions": {
+          "academic_outcome_impact": 0.61,
+          "data_privacy_and_compliance_risk": -0.42,
+          "integration_and_implementation_feasibility": 0.18,
+          "cost_value_fit_for_institution": 0.09,
+          "student_and_faculty_trust": -0.31
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "academic_outcome_impact",
+            "score": 0.61,
+            "reasoning": "Early-warning, personalization, and accreditation analytics remain commercially and academically relevant if the models are explainable and actionable."
+          },
+          {
+            "dimension": "data_privacy_and_compliance_risk",
+            "score": -0.42,
+            "reasoning": "The sandbox reduces regulatory uncertainty, but the Komdigi investigation creates material UU PDP exposure and reputational downside."
+          },
+          {
+            "dimension": "integration_and_implementation_feasibility",
+            "score": 0.18,
+            "reasoning": "Moodle and SIA integration is plausible, but fragmented campus systems and third-party data flows must be contractually constrained."
+          },
+          {
+            "dimension": "cost_value_fit_for_institution",
+            "score": 0.09,
+            "reasoning": "Value exists, but pricing must prove repeatable SaaS economics instead of becoming professional-services-heavy margin leakage."
+          },
+          {
+            "dimension": "student_and_faculty_trust",
+            "score": -0.31,
+            "reasoning": "Risk labels like dropout prediction are sensitive, and student consent concerns will slow adoption despite opt-out and appeal mechanisms."
+          }
+        ],
+        "new_state": "skeptical",
+        "duration": 61.12411904335022
+      },
+      {
+        "id": "SIM-AGT-005",
+        "archetype": "privacy defensive student union head",
+        "action": "DEFER",
+        "utility": -0.25,
+        "utility_dimensions": {
+          "academic_outcome_impact": 0.41,
+          "data_privacy_and_compliance_risk": -0.67,
+          "integration_and_implementation_feasibility": -0.18,
+          "cost_value_fit_for_institution": -0.24,
+          "student_and_faculty_trust": -0.58
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "academic_outcome_impact",
+            "score": 0.41,
+            "reasoning": "Fitur personalisasi, AI Study Planner, dan simulasi nilai berpotensi membantu mahasiswa memahami strategi belajar mereka lebih awal."
+          },
+          {
+            "dimension": "data_privacy_and_compliance_risk",
+            "score": -0.67,
+            "reasoning": "Investigasi UU PDP soal pengiriman data nilai, aktivitas LMS, dan label risiko ke pihak ketiga tanpa consent eksplisit adalah ancaman serius meski ada sandbox positif."
+          },
+          {
+            "dimension": "integration_and_implementation_feasibility",
+            "score": -0.18,
+            "reasoning": "Integrasi Moodle, SIA, dan data akademik kampus Indonesia masih rawan berantakan, apalagi kalau governance datanya belum solid."
+          },
+          {
+            "dimension": "cost_value_fit_for_institution",
+            "score": -0.24,
+            "reasoning": "Model SaaS, per-student subscription, API integration, dan professional services bisa membebani kampus kalau manfaatnya belum terbukti aman dan adil."
+          },
+          {
+            "dimension": "student_and_faculty_trust",
+            "score": -0.58,
+            "reasoning": "Kepercayaan mahasiswa sudah rendah, dan kasus dugaan pelanggaran consent akan bikin platform ini terasa seperti surveillance-by-default."
+          }
+        ],
+        "new_state": "protective",
+        "duration": 70.4826226234436
+      }
+    ]
+  },
+  "adversary_map": {
+    "SIM-AGT-001": "SIM-AGT-004",
+    "SIM-AGT-002": "SIM-AGT-005",
+    "SIM-AGT-003": "SIM-AGT-002",
+    "SIM-AGT-004": "SIM-AGT-003",
+    "SIM-AGT-005": "SIM-AGT-001"
+  },
+  "timings": {
+    "r1": 51.18123149871826,
+    "r2": 0.0,
+    "r3": 72.48325824737549,
+    "r4": 0.0,
+    "total": 123.66448974609375
+  },
+  "report_md": "## 1. VERDICT & SUMMARY\n\n**Institutional Adoption Likelihood Score: Mixed / Bersyarat**\n\nSimulasi menunjukkan minat institusional yang nyata, tetapi belum cukup kuat untuk adopsi penuh. Pada Round 3, tidak ada lagi suara **ADOPT** atau **REJECT**; distribusi bergeser menjadi **NEGOTIATE=2, DEFER=2, PILOT=1**, dengan **Consensus Index naik dari 0.200 ke 0.360** namun **Net Confidence turun dari 0.272 ke 0.206**, menandakan konvergensi ke posisi hati-hati, bukan keyakinan tinggi. Resilience metric menyatakan skenario **Resilient**, tetapi adopsi hanya layak melalui jalur sandbox/pilot terbatas dengan tata kelola data yang sangat ketat.\n\n## 2. KEY CONCERNS\n\n- **Risiko UU PDP, consent, dan transfer data pihak ketiga**: Dugaan pengiriman nilai, aktivitas LMS, dan label “mahasiswa berisiko dropout” tanpa persetujuan eksplisit menjadi red flag utama; skor privasi tetap negatif di Round 3 (**mean=-0.39**).\n\n- **Kepercayaan mahasiswa dan dosen rendah**: Kekhawatiran surveillance-by-default, stigma akibat prediksi dropout, kurangnya hak banding, dan transparansi algoritmik menekan dimensi trust, yang memburuk dari **-0.22 ke -0.29** setelah krisis.\n\n- **Kelayakan implementasi dan biaya belum terbukti**: Integrasi LMS-SIA, biaya SaaS per mahasiswa, professional services, risiko vendor lock-in, dan kebutuhan pelatihan dosen membuat agen lebih memilih **NEGOTIATE/PILOT/DEFER** daripada rollout penuh.\n\n## 3. ONE RECOMMENDATION\n\nTambahkan ke proposal awal satu paket **“Governance-by-Design untuk UU PDP dan Kepercayaan Akademik”** yang bersifat wajib sebelum pilot: DPIA terdokumentasi, consent eksplisit, data localization Indonesia, larangan third-party analytics tanpa izin, opt-out mahasiswa, hak banding atas label risiko, explainable prediction, audit independen, faculty override, portabilitas data, dan pilot terbatas di bawah sandbox Kominfo–LLDIKTI."
+}

@@ -10,6 +10,7 @@ import { SettingsPanel } from "./components/layout/SettingsPanel";
 import { SimForm } from "./components/simulation/SimForm";
 import { SimulationLive } from "./components/simulation/SimulationLive";
 import type { SimulationConfig } from "./types";
+import type { ExampleData } from "./lib/transformMetrics";
 
 // Lazy-loaded: only needed after simulation completes or during schema gate
 const ResultsView = lazy(() => import("./components/simulation/ResultsView").then(m => ({ default: m.ResultsView })));
@@ -115,6 +116,20 @@ export default function App() {
     window.history.replaceState({}, "", window.location.pathname);
   };
 
+  const handleLoadExample = (data: ExampleData) => {
+    setShowLanding(false);
+    dispatch({
+      type: "LOAD_EXAMPLE",
+      result: data.result,
+      rounds: data.rounds,
+      agentsByRound: data.agentsByRound,
+      factionUpdates: data.factionUpdates,
+      triggersEvents: data.triggersEvents,
+      historicalPrecedents: data.historicalPrecedents,
+      adversarialResult: data.adversarialResult,
+    });
+  };
+
   const latestRound = Math.max(...Object.keys(state.agentsByRound).map(Number), 0);
   const latestAgents = state.agentsByRound[latestRound] || [];
 
@@ -126,7 +141,7 @@ export default function App() {
       <main className="mx-auto max-w-[960px] px-6 py-6 space-y-6">
         {/* Landing hero */}
         {showLanding && state.status === "idle" && (
-          <LandingHero onGetStarted={handleGetStarted} />
+          <LandingHero onGetStarted={handleGetStarted} onLoadExample={handleLoadExample} />
         )}
 
         {/* Form — hidden during running/complete */}

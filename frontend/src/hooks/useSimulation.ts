@@ -38,6 +38,7 @@ export type SimAction =
   | { type: "WS_EVENT"; event: WSEvent }
   | { type: "SCHEMA_APPROVED" }
   | { type: "LOAD_RESULT"; result: SimulationResult }
+  | { type: "LOAD_EXAMPLE"; result: SimulationResult; rounds: RoundSummary[]; agentsByRound: Record<number, AgentDecision[]>; factionUpdates: FactionUpdate[]; triggersEvents: TriggersEvent[]; historicalPrecedents: HistoricalPrecedent[]; adversarialResult: AdversarialResult | null }
   | { type: "RESET" };
 
 const initialState: SimState = {
@@ -154,6 +155,19 @@ function reducer(state: SimState, action: SimAction): SimState {
           : null;
       return { ...initialState, status: "complete", result: action.result, triggersEvents, historicalPrecedents, adversarialResult };
     }
+
+    case "LOAD_EXAMPLE":
+      return {
+        ...initialState,
+        status: "complete",
+        result: action.result,
+        rounds: action.rounds,
+        agentsByRound: action.agentsByRound,
+        factionUpdates: action.factionUpdates,
+        triggersEvents: action.triggersEvents,
+        historicalPrecedents: action.historicalPrecedents,
+        adversarialResult: action.adversarialResult,
+      };
 
     case "RESET":
       return initialState;

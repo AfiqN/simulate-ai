@@ -1,0 +1,1031 @@
+{
+  "scenario_name": "Smart Factory Defect Detection Simulation",
+  "scenario_description": "A hackathon team proposes an integrated factory quality-control system combining real-time 3D digital twin modelling of a production floor, multi-room CCTV feeds, and ML-based machine defect classification. The simulation models how technical judges, factory-domain experts, hardware engineers, and software architects react to the concept across three evaluation rounds, probing its technical feasibility, implementation risk, and competitive differentiation.",
+  "verdict_label": "Hackathon Advancement Probability",
+  "actions": [
+    "ADVANCE",
+    "ELIMINATE",
+    "REQUEST_DEMO",
+    "FLAG_RISK",
+    "SUGGEST_SCOPE_REDUCTION",
+    "SHORTLIST"
+  ],
+  "state_vocabulary": [
+    "skeptical",
+    "intrigued",
+    "overwhelmed",
+    "confident",
+    "cautious",
+    "impressed",
+    "doubtful",
+    "analytical",
+    "excited",
+    "frustrated",
+    "focused",
+    "uncertain"
+  ],
+  "crisis_event": {
+    "stress": "A competing team just revealed their submission: a working single-camera, single-defect PatchCore pipeline with measured mAP scores and a pre-recorded 3D visualization layer — the exact scoped-down MVP all four judges have been demanding — making the Smart Factory team's still-unscoped multi-room proposal look architecturally grandiose but undeliverable by comparison.",
+    "validation": "Indonesia's Ministry of Industry publicly announces that Making Indonesia 4.0 Phase 3 grants will prioritize hackathon-originated smart factory prototypes that demonstrate a single-line, single-defect computer vision pipeline as a qualifying proof-of-concept, directly removing the judges' scope-creep blocker by officially validating the narrow MVP approach as the fundable entry point."
+  },
+  "resilience_metrics": {
+    "decision_stability": 0.8,
+    "utility_drift_mean": 0.11599999999999999,
+    "terminal_share_r2": 0.0,
+    "terminal_share_r3": 0.0,
+    "terminal_share_delta": 0.0,
+    "verdict": "Resilient",
+    "rationale": "stability=0.80 (4/5 held), utility drift=+0.12, terminal share 0.00->0.00",
+    "paired_count": 5,
+    "per_dimension_drift": {
+      "defect_detection_accuracy_potential": 0.041999999999999996,
+      "demo_deliverability_within_hackathon": 0.16199999999999998,
+      "real_world_deployment_viability": 0.15800000000000003,
+      "system_integration_complexity": 0.12799999999999997,
+      "technical_feasibility": 0.072
+    }
+  },
+  "quantitative_metrics": {
+    "vote_tally": {
+      "r1": {
+        "SUGGEST_SCOPE_REDUCTION": 4,
+        "FLAG_RISK": 1
+      },
+      "r2": {
+        "SUGGEST_SCOPE_REDUCTION": 4,
+        "FLAG_RISK": 1
+      },
+      "r3": {
+        "SUGGEST_SCOPE_REDUCTION": 5
+      }
+    },
+    "dimension_stats": {
+      "r1": {
+        "defect_detection_accuracy_potential": {
+          "mean": 0.348,
+          "stdev": 0.12765578717786358,
+          "min": 0.18,
+          "max": 0.53
+        },
+        "demo_deliverability_within_hackathon": {
+          "mean": -0.526,
+          "stdev": 0.11740528097151337,
+          "min": -0.63,
+          "max": -0.35
+        },
+        "real_world_deployment_viability": {
+          "mean": 0.31799999999999995,
+          "stdev": 0.3418420687978588,
+          "min": -0.28,
+          "max": 0.72
+        },
+        "system_integration_complexity": {
+          "mean": -0.612,
+          "stdev": 0.08997777503361591,
+          "min": -0.71,
+          "max": -0.48
+        },
+        "technical_feasibility": {
+          "mean": -0.178,
+          "stdev": 0.2690278795961489,
+          "min": -0.42,
+          "max": 0.15
+        }
+      },
+      "r2": {
+        "defect_detection_accuracy_potential": {
+          "mean": 0.348,
+          "stdev": 0.12765578717786358,
+          "min": 0.18,
+          "max": 0.53
+        },
+        "demo_deliverability_within_hackathon": {
+          "mean": -0.526,
+          "stdev": 0.11740528097151337,
+          "min": -0.63,
+          "max": -0.35
+        },
+        "real_world_deployment_viability": {
+          "mean": 0.31799999999999995,
+          "stdev": 0.3418420687978588,
+          "min": -0.28,
+          "max": 0.72
+        },
+        "system_integration_complexity": {
+          "mean": -0.612,
+          "stdev": 0.08997777503361591,
+          "min": -0.71,
+          "max": -0.48
+        },
+        "technical_feasibility": {
+          "mean": -0.178,
+          "stdev": 0.2690278795961489,
+          "min": -0.42,
+          "max": 0.15
+        }
+      },
+      "r3": {
+        "defect_detection_accuracy_potential": {
+          "mean": 0.39,
+          "stdev": 0.0920869154657707,
+          "min": 0.31,
+          "max": 0.53
+        },
+        "demo_deliverability_within_hackathon": {
+          "mean": -0.364,
+          "stdev": 0.34267185469483774,
+          "min": -0.61,
+          "max": 0.31
+        },
+        "real_world_deployment_viability": {
+          "mean": 0.476,
+          "stdev": 0.14458215657542253,
+          "min": 0.28,
+          "max": 0.67
+        },
+        "system_integration_complexity": {
+          "mean": -0.484,
+          "stdev": 0.09728309205612248,
+          "min": -0.63,
+          "max": -0.38
+        },
+        "technical_feasibility": {
+          "mean": -0.10600000000000001,
+          "stdev": 0.3861398710312106,
+          "min": -0.42,
+          "max": 0.42
+        }
+      }
+    },
+    "state_transitions": {
+      "r1_to_r2": {
+        "total": 5,
+        "shifted_count": 0,
+        "top_shifts": []
+      },
+      "r2_to_r3": {
+        "total": 5,
+        "shifted_count": 5,
+        "top_shifts": [
+          {
+            "from": "cautious",
+            "to": "focused",
+            "count": 2
+          },
+          {
+            "from": "skeptical",
+            "to": "focused",
+            "count": 2
+          },
+          {
+            "from": "excited",
+            "to": "confident",
+            "count": 1
+          }
+        ]
+      }
+    },
+    "swing_analysis": {
+      "r2_to_r3": [
+        {
+          "id": "SIM-AGT-005",
+          "archetype": "bold innovation ecosystem champion",
+          "from_action": "FLAG_RISK",
+          "to_action": "SUGGEST_SCOPE_REDUCTION",
+          "utility_delta": 0.24,
+          "driver_dimension": "demo_deliverability_within_hackathon"
+        }
+      ]
+    },
+    "consensus_index": {
+      "r1": 0.6800000000000002,
+      "r2": 0.6800000000000002,
+      "r3": 1.0
+    },
+    "net_confidence": {
+      "r1": 0.18,
+      "r2": 0.18,
+      "r3": 0.188
+    },
+    "weighted_consensus_index": {
+      "r1": 0.768888888888889,
+      "r2": 0.768888888888889,
+      "r3": 1.0
+    }
+  },
+  "rag_metadata": {
+    "injections": [
+      {
+        "point": "post_architect_perspectives",
+        "queries": [
+          "factory engineers frustrations digital twin adoption",
+          "smart factory quality control defect detection market stats",
+          "ML engineers opinions real-time inference edge deployment",
+          "3D reconstruction CCTV defect classification benchmark latency 2024",
+          "hackathon judges evaluate AI hardware projects criteria",
+          "smart manufacturing startup pitch market size competition 2024",
+          "engineers frustrations industrial CCTV sensor deployment",
+          "factory 3D scanning camera network infrastructure requirements specs",
+          "accelerator mentors AI factory startup scalability challenges",
+          "smart factory digital twin startup funding investment trends 2024"
+        ],
+        "facts": [
+          "[DATA] Digital twins in manufacturing grew from $3.6 billion in 2024 and are projected to reach $42.6 billion by 2034 at a 28.1% CAGR.",
+          "[DATA] McKinsey research shows digital twins cut development times by up to 50%, reduce labor costs by 10%, increase revenue by 5%, and deliver 20% improvement in consumer promise fulfillment.",
+          "[MARKET] The global digital twin in manufacturing market was valued at USD 8.12 billion in 2025 and is projected to reach USD 139.57 billion by 2035 — a CAGR of 32.9%, representing a seventeen-fold expansion backed by government investment programs and enterprise software commitments.",
+          "[SENTIMENT] Digital twins are moving from an 'interesting pilot' to an operational capability that gets funded, maintained, and reused — signaling a shift in enterprise attitude from experimentation to strategic commitment."
+        ],
+        "citations": [
+          {
+            "url": "https://ifactoryapp.com/article/digital-twin-manufacturing-factory-simulation",
+            "title": "Digital Twin in Manufacturing: Smart Factory Simulation & Optimization"
+          },
+          {
+            "url": "https://vocal.media/futurism/digital-twin-in-manufacturing-market-from-usd-8-billion-to-usd-139-billion-what-is-driving-the-world-s-fastest-growing-factory-technology",
+            "title": "Digital Twin in Manufacturing Market: From USD 8 Billion to USD 139 Billion — What Is Driving the World's Fastest-Growing Factory Technology | Futurism"
+          },
+          {
+            "url": "https://www.anylogic.com/blog/the-future-of-smart-manufacturing-why-digital-twins-matter/",
+            "title": "The future of smart manufacturing: why digital twins matter – AnyLogic Simulation Software"
+          }
+        ]
+      },
+      {
+        "point": "pre_crisis",
+        "queries": [
+          "hackathon teams fail scope creep real-time computer vision factory defect detection 2024 2025"
+        ],
+        "facts": [
+          "[DATA] 95% of computer vision projects never reach production, failing not due to algorithm or GPU limitations but due to implementation breakdown between demo and deployment — e.g., a model with 98% test accuracy fails when lighting shifts, or an object detection system that worked in the lab struggles with real-world camera angles.",
+          "[EVENT] A semiconductor fab in Dresden running 9,200 wafers/day achieved only 87% defect-catch accuracy with human inspectors (missing ~1,196 marginal defects daily) before deploying AI computer vision in 2024, which raised accuracy to 99.2% at 4x throughput.",
+          "[DATA] The global computer vision market was valued at USD 19.82 billion in 2024 and is projected to reach USD 58.29 billion by 2030, representing a CAGR of 19.8% from 2025 to 2030.",
+          "[SENTIMENT] Real-world deployment failures in computer vision are attributed to a 'knowledge gap in implementation' rather than technology limitations — the gap between research benchmarks and real-world reliability is described as 'stubbornly wide'."
+        ],
+        "citations": [
+          {
+            "url": "https://www.2hatslogic.com/blog/computer-vision-challenges/",
+            "title": "9 Computer Vision Challenges in 2025 and the Smart Fixes"
+          },
+          {
+            "url": "https://oxmaint.com/blog/post/blog-post-computer-vision-inspection-manufacturing-cmms",
+            "title": "Computer Vision Inspection in Manufacturing: Detect Defects in Real Time"
+          },
+          {
+            "url": "https://imagevision.ai/blog/top-computer-vision-use-cases-in-2025-across-various-industries/",
+            "title": "Computer Vision Use Cases in 2025 | ImageVision.ai"
+          }
+        ]
+      }
+    ]
+  },
+  "agents": [
+    {
+      "id": "SIM-AGT-001",
+      "archetype": "pragmatic_hackathon_judge",
+      "linguistic_cluster_id": "hackathon_generalist_judge",
+      "attributes": {
+        "rationality_index": 0.75,
+        "aggressiveness": 0.4,
+        "risk_tolerance": 0.55
+      },
+      "decision_framework": "innovation potential weighed against hackathon-timeline executability; advances ideas that demonstrate a functional MVP path, not just a slide deck",
+      "knowledge_base": "5 years judging regional tech and AI hackathons across Southeast Asia; evaluates on TAIKAI's six axes — creativity, technical execution, functional MVP, problem relevance, impact potential, and pitch clarity.",
+      "constraints": [
+        "will not advance a submission that cannot demonstrate at least a partial working prototype within the hackathon window",
+        "refuses to score purely on market size slides without evidence of technical grounding"
+      ],
+      "influence_weight": 2.0,
+      "backstory": "Rina Kusuma is a product lead at a Jakarta-based industrial IoT startup who transitioned into hackathon judging after her own team won a smart-city challenge in 2021. She has watched dozens of ambitious factory-automation pitches collapse under scope creep, and she scores with a mental model of 'what can this team actually ship by Sunday.' She is genuinely excited by the AI visual inspection market trajectory but has been burned before by presentations that looked polished and delivered nothing runnable.",
+      "final_state": "focused"
+    },
+    {
+      "id": "SIM-AGT-002",
+      "archetype": "skeptical_hardware_integration_engineer",
+      "linguistic_cluster_id": "hardware_integration_specialist",
+      "attributes": {
+        "rationality_index": 0.88,
+        "aggressiveness": 0.65,
+        "risk_tolerance": 0.2
+      },
+      "decision_framework": "hardware-first realism; surfaces concrete physical and infrastructure constraints before any software architecture discussion is meaningful",
+      "knowledge_base": "12 years deploying industrial machine vision and 3D scanning systems; deeply familiar with ISO/IEC 17025 calibration requirements, Wi-Fi 6 reliability constraints on shop floors, and the resolution-to-distance tradeoffs of CMOS imagers in high-speed production environments.",
+      "constraints": [
+        "will not endorse any solution that glosses over sensor selection, calibration standards, or network infrastructure without explicit technical justification",
+        "refuses to accept 'we'll figure out the hardware later' as a viable hackathon answer when hardware is load-bearing to the entire concept"
+      ],
+      "influence_weight": 1.5,
+      "backstory": "Budi Hartono spent a decade as a field engineer for an industrial automation integrator in Surabaya, personally supervising deployments of machine vision lines in food processing and automotive stamping plants. He has seen three high-profile projects fail post-deployment because sensor specs were chosen from datasheets rather than validated on the actual shop floor. He now consults on hackathons specifically to stop teams from shipping hardware-naive concepts that will never survive contact with a real factory environment.",
+      "final_state": "focused"
+    },
+    {
+      "id": "SIM-AGT-003",
+      "archetype": "cautious_factory_operations_expert",
+      "linguistic_cluster_id": "industrial_domain_expert",
+      "attributes": {
+        "rationality_index": 0.8,
+        "aggressiveness": 0.35,
+        "risk_tolerance": 0.25
+      },
+      "decision_framework": "operational feasibility over theoretical elegance; recommends scope reductions that preserve the core value proposition while matching the team's realistic delivery capacity",
+      "knowledge_base": "20 years in manufacturing quality control across automotive and electronics sectors in East Java; has evaluated and rejected multiple digital twin pilots that underestimated data fragmentation and integration complexity on legacy production floors.",
+      "constraints": [
+        "will not endorse solutions that ignore existing production-floor data architecture constraints or assume clean, structured sensor feeds without justification",
+        "refuses to support any proposal that could disrupt live production lines without a clear rollback and containment plan"
+      ],
+      "influence_weight": 2.5,
+      "backstory": "Dewi Santoso managed quality assurance at a mid-sized automotive parts manufacturer in Malang for fifteen years before moving into industry consulting. She championed her plant's first machine vision pilot in 2019, watched it succeed narrowly after months of painful sensor re-calibration, and has been cautious about over-ambitious proposals ever since. She is not opposed to the concept — she knows the defect detection market is real and growing — but she instinctively reaches for a scalpel when she sees scope that exceeds delivery capacity.",
+      "final_state": "focused"
+    },
+    {
+      "id": "SIM-AGT-004",
+      "archetype": "demanding_cv_ml_architect",
+      "linguistic_cluster_id": "computer_vision_ml_engineer",
+      "attributes": {
+        "rationality_index": 0.92,
+        "aggressiveness": 0.7,
+        "risk_tolerance": 0.3
+      },
+      "decision_framework": "architecture validity first; demands a live or simulated demo to verify that latency, model pipeline, and 3D reconstruction claims are grounded in actual implementation rather than theoretical design",
+      "knowledge_base": "Senior ML engineer with 8 years in computer vision and industrial anomaly detection; has benchmarked sparse 3D detectors, two-stage discriminative architectures, and edge vs. cloud inference tradeoffs for manufacturing clients across Southeast Asia.",
+      "constraints": [
+        "will not credit any ML architecture claim without seeing inference latency figures, model selection rationale, and a description of the training data source",
+        "refuses to accept 3D reconstruction as 'solved' in a hackathon context without a working pipeline demonstration, even if only on a small-scale mockup"
+      ],
+      "influence_weight": 1.8,
+      "backstory": "Arif Wicaksono built the defect classification backend for a PCB inspection startup in Bandung that was later acquired by a Japanese automation firm. He has personally debugged the gap between a model that scores 97% on a curated dataset and one that survives a week on a real stamping-press line with vibration noise, inconsistent lighting, and missing labels. He attends hackathons as a technical judge because he believes the field benefits from early, honest feedback — but his honesty can be blunt, and he will not let architectural hand-waving pass without a demonstration.",
+      "final_state": "focused"
+    },
+    {
+      "id": "SIM-AGT-005",
+      "archetype": "bold_innovation_ecosystem_champion",
+      "linguistic_cluster_id": "startup_innovation_advocate",
+      "attributes": {
+        "rationality_index": 0.55,
+        "aggressiveness": 0.5,
+        "risk_tolerance": 0.8
+      },
+      "decision_framework": "long-term scalability and market boldness over short-term polish; advances ideas with transformative potential and pushes teams to frame their hackathon prototype as a beachhead for real-world deployment",
+      "knowledge_base": "Ecosystem builder and accelerator mentor with experience guiding AI and industrial IoT startups from pitch to Series A; tracks digital twin and AI visual inspection market dynamics and connects teams with enterprise pilot partners.",
+      "constraints": [
+        "will not advance a team that cannot articulate a post-hackathon deployment path, even at a high level — pure hackathon trophies with no real-world intent are not worth ecosystem investment",
+        "refuses to support solutions that ignore AI ethics and responsible deployment considerations, treating them as growth blockers rather than core design decisions"
+      ],
+      "influence_weight": 1.2,
+      "backstory": "Maya Adriana runs an innovation lab affiliated with a Jakarta-based industry association that connects manufacturing SMEs with tech startups. She has mentored fourteen teams through AI accelerator programs and placed three into enterprise pilots with factory clients. She believes Indonesia's manufacturing sector is at an inflection point where digital twin adoption will separate competitive survivors from laggards, and she sees every hackathon as a talent pipeline. She champions bold visions loudly, but she has learned to pair that enthusiasm with a hard question about the team's post-hackathon plan.",
+      "final_state": "confident"
+    }
+  ],
+  "rounds": {
+    "r1": [
+      {
+        "id": "SIM-AGT-001",
+        "archetype": "pragmatic hackathon judge",
+        "action": "SUGGEST_SCOPE_REDUCTION",
+        "utility": 0.05,
+        "utility_dimensions": {
+          "technical_feasibility": 0.15,
+          "demo_deliverability_within_hackathon": -0.35,
+          "defect_detection_accuracy_potential": 0.42,
+          "system_integration_complexity": -0.48,
+          "real_world_deployment_viability": 0.53
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "technical_feasibility",
+            "score": 0.15,
+            "reasoning": "Each component is individually achievable but combining real-time 3D twin with multi-room CCTV and live ML inference in 48 hours pushes the boundary of what a small team can realistically integrate."
+          },
+          {
+            "dimension": "demo_deliverability_within_hackathon",
+            "score": -0.35,
+            "reasoning": "Three simultaneous subsystems with live data pipelines is a classic scope-creep trap; without pre-built modules, a fully integrated demo by Sunday is unlikely."
+          },
+          {
+            "dimension": "defect_detection_accuracy_potential",
+            "score": 0.42,
+            "reasoning": "Off-the-shelf models like PatchCore or Anomalib can deliver strong AUROC on a controlled single-camera setup, which is realistic for a hackathon demo dataset."
+          },
+          {
+            "dimension": "system_integration_complexity",
+            "score": -0.48,
+            "reasoning": "Gluing 3D rendering engine, CCTV streams, and ML inference into one coherent pipeline introduces latency, data sync, and architecture complexity that routinely kills hackathon projects."
+          },
+          {
+            "dimension": "real_world_deployment_viability",
+            "score": 0.53,
+            "reasoning": "The Indonesian Industry 4.0 push and genuine market hunger for affordable factory QC solutions give this strong downstream viability if properly scoped post-hackathon."
+          }
+        ],
+        "new_state": "cautious",
+        "duration": 14.999652862548828
+      },
+      {
+        "id": "SIM-AGT-002",
+        "archetype": "skeptical hardware integration engineer",
+        "action": "SUGGEST_SCOPE_REDUCTION",
+        "utility": -0.37,
+        "utility_dimensions": {
+          "technical_feasibility": -0.42,
+          "demo_deliverability_within_hackathon": -0.63,
+          "defect_detection_accuracy_potential": 0.18,
+          "system_integration_complexity": -0.71,
+          "real_world_deployment_viability": -0.28
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "technical_feasibility",
+            "score": -0.42,
+            "reasoning": "Kombinasi real-time 3D twin + multi-room CCTV + ML classifier membutuhkan stack hardware dan software yang jauh melampaui kapabilitas tim hackathon tanpa spesifikasi sensor, network topology, dan edge compute yang jelas."
+          },
+          {
+            "dimension": "demo_deliverability_within_hackathon",
+            "score": -0.63,
+            "reasoning": "Multi-room deployment dengan 3D rendering real-time tidak realistis dalam 48 jam; bahkan kalibrasi satu kamera saja untuk industrial vision bisa memakan 4–6 jam di lapangan."
+          },
+          {
+            "dimension": "defect_detection_accuracy_potential",
+            "score": 0.18,
+            "reasoning": "Model anomaly detection seperti PatchCore sudah proven di benchmark, tapi akurasi akan drop signifikan tanpa domain-specific dataset dari fasilitas target dan pencahayaan yang dikontrol."
+          },
+          {
+            "dimension": "system_integration_complexity",
+            "score": -0.71,
+            "reasoning": "Integrasi RTSP stream, point cloud processing, game-engine renderer, dan ML inference pipeline dalam satu sistem adalah kompleksitas enterprise-grade, bukan hackathon scope."
+          },
+          {
+            "dimension": "real_world_deployment_viability",
+            "score": -0.28,
+            "reasoning": "Konsep downstream market-nya valid untuk industri 4.0 Indonesia, tapi tanpa mengatasi occlusion, EMI di factory floor, dan kalibrasi ISO/IEC 17025, produk ini tidak akan survive kontak dengan environment pabrik nyata."
+          }
+        ],
+        "new_state": "skeptical",
+        "duration": 23.459983348846436
+      },
+      {
+        "id": "SIM-AGT-003",
+        "archetype": "cautious factory operations expert",
+        "action": "SUGGEST_SCOPE_REDUCTION",
+        "utility": -0.2,
+        "utility_dimensions": {
+          "technical_feasibility": -0.42,
+          "demo_deliverability_within_hackathon": -0.61,
+          "defect_detection_accuracy_potential": 0.38,
+          "system_integration_complexity": -0.55,
+          "real_world_deployment_viability": 0.21
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "technical_feasibility",
+            "score": -0.42,
+            "reasoning": "Real-time 3D twin multi-ruangan butuh pipeline LiDAR/rendering yang jauh melampaui kapasitas hackathon weekend, bahkan untuk tim berpengalaman."
+          },
+          {
+            "dimension": "demo_deliverability_within_hackathon",
+            "score": -0.61,
+            "reasoning": "Tiga sistem terintegrasi (3D twin, multi-CCTV, ML klasifikasi) dalam 48 jam hampir mustahil menghasilkan demo yang stabil dan meyakinkan juri."
+          },
+          {
+            "dimension": "defect_detection_accuracy_potential",
+            "score": 0.38,
+            "reasoning": "ML defect detection itu proven — PatchCore dan Anomalib bisa capai >95% AUROC di benchmark, tapi butuh dataset dari fasilitas target dan fine-tuning domain-specific."
+          },
+          {
+            "dimension": "system_integration_complexity",
+            "score": -0.55,
+            "reasoning": "Integrasi 3D engine dengan live CCTV feed dan ML inference pipeline menambah tiga titik kegagalan sekaligus, dan tidak ada rollback plan yang disebutkan."
+          },
+          {
+            "dimension": "real_world_deployment_viability",
+            "score": 0.21,
+            "reasoning": "Konsep memiliki viabilitas jangka panjang kalau di-scope dengan benar, tapi tanpa bukti akurasi di data pabrik nyata, klien industri tidak akan commit."
+          }
+        ],
+        "new_state": "cautious",
+        "duration": 35.42537784576416
+      },
+      {
+        "id": "SIM-AGT-004",
+        "archetype": "demanding cv ml architect",
+        "action": "SUGGEST_SCOPE_REDUCTION",
+        "utility": -0.21,
+        "utility_dimensions": {
+          "technical_feasibility": -0.35,
+          "demo_deliverability_within_hackathon": -0.62,
+          "defect_detection_accuracy_potential": 0.23,
+          "system_integration_complexity": -0.71,
+          "real_world_deployment_viability": 0.41
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "technical_feasibility",
+            "score": -0.35,
+            "reasoning": "Real-time 3D reconstruction multi-room plus ML inference pipeline adalah beban compute yang signifikan; belum ada bukti pipeline konkret yang menunjukkan ini feasible dalam timeline hackathon."
+          },
+          {
+            "dimension": "demo_deliverability_within_hackathon",
+            "score": -0.62,
+            "reasoning": "Scope terlalu luas untuk 48 jam — dua sistem berat (digital twin rendering + defect classification) tanpa scoping yang jelas hampir pasti berakhir sebagai demo tidak lengkap."
+          },
+          {
+            "dimension": "defect_detection_accuracy_potential",
+            "score": 0.23,
+            "reasoning": "Off-the-shelf models seperti PatchCore atau FastFlow memiliki potensi >95% AUROC pada controlled benchmark, tapi tanpa domain-specific training data angka ini tidak relevan untuk production."
+          },
+          {
+            "dimension": "system_integration_complexity",
+            "score": -0.71,
+            "reasoning": "Integrasi CCTV feed, 3D rendering engine, dan ML inference pipeline ke satu sistem kohesif adalah kompleksitas arsitektur yang tinggi; tiap interface point adalah potensi bottleneck latency."
+          },
+          {
+            "dimension": "real_world_deployment_viability",
+            "score": 0.41,
+            "reasoning": "Market fit-nya nyata — Making Indonesia 4.0 dan kebutuhan smart factory di sektor manufaktur Indonesia menciptakan demand downstream yang genuine untuk solusi seperti ini."
+          }
+        ],
+        "new_state": "skeptical",
+        "duration": 44.4170618057251
+      },
+      {
+        "id": "SIM-AGT-005",
+        "archetype": "bold innovation ecosystem champion",
+        "action": "FLAG_RISK",
+        "utility": 0.07,
+        "utility_dimensions": {
+          "technical_feasibility": 0.15,
+          "demo_deliverability_within_hackathon": -0.42,
+          "defect_detection_accuracy_potential": 0.53,
+          "system_integration_complexity": -0.61,
+          "real_world_deployment_viability": 0.72
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "technical_feasibility",
+            "score": 0.15,
+            "reasoning": "Full real-time 3D multi-room + CCTV + ML pipeline is frontier-level engineering; feasible as a scoped prototype with pre-built assets and a single camera but risky at full stated scope."
+          },
+          {
+            "dimension": "demo_deliverability_within_hackathon",
+            "score": -0.42,
+            "reasoning": "Multi-room CCTV integration with live 3D digital twin is almost certainly undeliverable in 48 hours without severe scope cuts."
+          },
+          {
+            "dimension": "defect_detection_accuracy_potential",
+            "score": 0.53,
+            "reasoning": "Off-the-shelf anomaly detection (PatchCore, FastFlow) on a controlled single-machine demo can hit strong AUROC scores and impress judges if the dataset is curated well."
+          },
+          {
+            "dimension": "system_integration_complexity",
+            "score": -0.61,
+            "reasoning": "Combining a game-engine 3D renderer, multi-CCTV feeds, and an ML classifier into one coherent system is a significant integration burden that will likely become the team's bottleneck."
+          },
+          {
+            "dimension": "real_world_deployment_viability",
+            "score": 0.72,
+            "reasoning": "The underlying concept maps directly onto a proven and growing market with active government incentives in Indonesia, giving this a genuine post-hackathon deployment story if scoped correctly."
+          }
+        ],
+        "new_state": "excited",
+        "duration": 53.27430438995361
+      }
+    ],
+    "r2": [
+      {
+        "id": "SIM-AGT-001",
+        "archetype": "pragmatic hackathon judge",
+        "action": "SUGGEST_SCOPE_REDUCTION",
+        "utility": 0.05,
+        "utility_dimensions": {
+          "technical_feasibility": 0.15,
+          "demo_deliverability_within_hackathon": -0.35,
+          "defect_detection_accuracy_potential": 0.42,
+          "system_integration_complexity": -0.48,
+          "real_world_deployment_viability": 0.53
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "technical_feasibility",
+            "score": 0.15,
+            "reasoning": "Each component is individually achievable but combining real-time 3D twin with multi-room CCTV and live ML inference in 48 hours pushes the boundary of what a small team can realistically integrate."
+          },
+          {
+            "dimension": "demo_deliverability_within_hackathon",
+            "score": -0.35,
+            "reasoning": "Three simultaneous subsystems with live data pipelines is a classic scope-creep trap; without pre-built modules, a fully integrated demo by Sunday is unlikely."
+          },
+          {
+            "dimension": "defect_detection_accuracy_potential",
+            "score": 0.42,
+            "reasoning": "Off-the-shelf models like PatchCore or Anomalib can deliver strong AUROC on a controlled single-camera setup, which is realistic for a hackathon demo dataset."
+          },
+          {
+            "dimension": "system_integration_complexity",
+            "score": -0.48,
+            "reasoning": "Gluing 3D rendering engine, CCTV streams, and ML inference into one coherent pipeline introduces latency, data sync, and architecture complexity that routinely kills hackathon projects."
+          },
+          {
+            "dimension": "real_world_deployment_viability",
+            "score": 0.53,
+            "reasoning": "The Indonesian Industry 4.0 push and genuine market hunger for affordable factory QC solutions give this strong downstream viability if properly scoped post-hackathon."
+          }
+        ],
+        "new_state": "cautious",
+        "duration": 14.999652862548828
+      },
+      {
+        "id": "SIM-AGT-002",
+        "archetype": "skeptical hardware integration engineer",
+        "action": "SUGGEST_SCOPE_REDUCTION",
+        "utility": -0.37,
+        "utility_dimensions": {
+          "technical_feasibility": -0.42,
+          "demo_deliverability_within_hackathon": -0.63,
+          "defect_detection_accuracy_potential": 0.18,
+          "system_integration_complexity": -0.71,
+          "real_world_deployment_viability": -0.28
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "technical_feasibility",
+            "score": -0.42,
+            "reasoning": "Kombinasi real-time 3D twin + multi-room CCTV + ML classifier membutuhkan stack hardware dan software yang jauh melampaui kapabilitas tim hackathon tanpa spesifikasi sensor, network topology, dan edge compute yang jelas."
+          },
+          {
+            "dimension": "demo_deliverability_within_hackathon",
+            "score": -0.63,
+            "reasoning": "Multi-room deployment dengan 3D rendering real-time tidak realistis dalam 48 jam; bahkan kalibrasi satu kamera saja untuk industrial vision bisa memakan 4–6 jam di lapangan."
+          },
+          {
+            "dimension": "defect_detection_accuracy_potential",
+            "score": 0.18,
+            "reasoning": "Model anomaly detection seperti PatchCore sudah proven di benchmark, tapi akurasi akan drop signifikan tanpa domain-specific dataset dari fasilitas target dan pencahayaan yang dikontrol."
+          },
+          {
+            "dimension": "system_integration_complexity",
+            "score": -0.71,
+            "reasoning": "Integrasi RTSP stream, point cloud processing, game-engine renderer, dan ML inference pipeline dalam satu sistem adalah kompleksitas enterprise-grade, bukan hackathon scope."
+          },
+          {
+            "dimension": "real_world_deployment_viability",
+            "score": -0.28,
+            "reasoning": "Konsep downstream market-nya valid untuk industri 4.0 Indonesia, tapi tanpa mengatasi occlusion, EMI di factory floor, dan kalibrasi ISO/IEC 17025, produk ini tidak akan survive kontak dengan environment pabrik nyata."
+          }
+        ],
+        "new_state": "skeptical",
+        "duration": 23.459983348846436
+      },
+      {
+        "id": "SIM-AGT-003",
+        "archetype": "cautious factory operations expert",
+        "action": "SUGGEST_SCOPE_REDUCTION",
+        "utility": -0.2,
+        "utility_dimensions": {
+          "technical_feasibility": -0.42,
+          "demo_deliverability_within_hackathon": -0.61,
+          "defect_detection_accuracy_potential": 0.38,
+          "system_integration_complexity": -0.55,
+          "real_world_deployment_viability": 0.21
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "technical_feasibility",
+            "score": -0.42,
+            "reasoning": "Real-time 3D twin multi-ruangan butuh pipeline LiDAR/rendering yang jauh melampaui kapasitas hackathon weekend, bahkan untuk tim berpengalaman."
+          },
+          {
+            "dimension": "demo_deliverability_within_hackathon",
+            "score": -0.61,
+            "reasoning": "Tiga sistem terintegrasi (3D twin, multi-CCTV, ML klasifikasi) dalam 48 jam hampir mustahil menghasilkan demo yang stabil dan meyakinkan juri."
+          },
+          {
+            "dimension": "defect_detection_accuracy_potential",
+            "score": 0.38,
+            "reasoning": "ML defect detection itu proven — PatchCore dan Anomalib bisa capai >95% AUROC di benchmark, tapi butuh dataset dari fasilitas target dan fine-tuning domain-specific."
+          },
+          {
+            "dimension": "system_integration_complexity",
+            "score": -0.55,
+            "reasoning": "Integrasi 3D engine dengan live CCTV feed dan ML inference pipeline menambah tiga titik kegagalan sekaligus, dan tidak ada rollback plan yang disebutkan."
+          },
+          {
+            "dimension": "real_world_deployment_viability",
+            "score": 0.21,
+            "reasoning": "Konsep memiliki viabilitas jangka panjang kalau di-scope dengan benar, tapi tanpa bukti akurasi di data pabrik nyata, klien industri tidak akan commit."
+          }
+        ],
+        "new_state": "cautious",
+        "duration": 35.42537784576416
+      },
+      {
+        "id": "SIM-AGT-004",
+        "archetype": "demanding cv ml architect",
+        "action": "SUGGEST_SCOPE_REDUCTION",
+        "utility": -0.21,
+        "utility_dimensions": {
+          "technical_feasibility": -0.35,
+          "demo_deliverability_within_hackathon": -0.62,
+          "defect_detection_accuracy_potential": 0.23,
+          "system_integration_complexity": -0.71,
+          "real_world_deployment_viability": 0.41
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "technical_feasibility",
+            "score": -0.35,
+            "reasoning": "Real-time 3D reconstruction multi-room plus ML inference pipeline adalah beban compute yang signifikan; belum ada bukti pipeline konkret yang menunjukkan ini feasible dalam timeline hackathon."
+          },
+          {
+            "dimension": "demo_deliverability_within_hackathon",
+            "score": -0.62,
+            "reasoning": "Scope terlalu luas untuk 48 jam — dua sistem berat (digital twin rendering + defect classification) tanpa scoping yang jelas hampir pasti berakhir sebagai demo tidak lengkap."
+          },
+          {
+            "dimension": "defect_detection_accuracy_potential",
+            "score": 0.23,
+            "reasoning": "Off-the-shelf models seperti PatchCore atau FastFlow memiliki potensi >95% AUROC pada controlled benchmark, tapi tanpa domain-specific training data angka ini tidak relevan untuk production."
+          },
+          {
+            "dimension": "system_integration_complexity",
+            "score": -0.71,
+            "reasoning": "Integrasi CCTV feed, 3D rendering engine, dan ML inference pipeline ke satu sistem kohesif adalah kompleksitas arsitektur yang tinggi; tiap interface point adalah potensi bottleneck latency."
+          },
+          {
+            "dimension": "real_world_deployment_viability",
+            "score": 0.41,
+            "reasoning": "Market fit-nya nyata — Making Indonesia 4.0 dan kebutuhan smart factory di sektor manufaktur Indonesia menciptakan demand downstream yang genuine untuk solusi seperti ini."
+          }
+        ],
+        "new_state": "skeptical",
+        "duration": 44.4170618057251
+      },
+      {
+        "id": "SIM-AGT-005",
+        "archetype": "bold innovation ecosystem champion",
+        "action": "FLAG_RISK",
+        "utility": 0.07,
+        "utility_dimensions": {
+          "technical_feasibility": 0.15,
+          "demo_deliverability_within_hackathon": -0.42,
+          "defect_detection_accuracy_potential": 0.53,
+          "system_integration_complexity": -0.61,
+          "real_world_deployment_viability": 0.72
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "technical_feasibility",
+            "score": 0.15,
+            "reasoning": "Full real-time 3D multi-room + CCTV + ML pipeline is frontier-level engineering; feasible as a scoped prototype with pre-built assets and a single camera but risky at full stated scope."
+          },
+          {
+            "dimension": "demo_deliverability_within_hackathon",
+            "score": -0.42,
+            "reasoning": "Multi-room CCTV integration with live 3D digital twin is almost certainly undeliverable in 48 hours without severe scope cuts."
+          },
+          {
+            "dimension": "defect_detection_accuracy_potential",
+            "score": 0.53,
+            "reasoning": "Off-the-shelf anomaly detection (PatchCore, FastFlow) on a controlled single-machine demo can hit strong AUROC scores and impress judges if the dataset is curated well."
+          },
+          {
+            "dimension": "system_integration_complexity",
+            "score": -0.61,
+            "reasoning": "Combining a game-engine 3D renderer, multi-CCTV feeds, and an ML classifier into one coherent system is a significant integration burden that will likely become the team's bottleneck."
+          },
+          {
+            "dimension": "real_world_deployment_viability",
+            "score": 0.72,
+            "reasoning": "The underlying concept maps directly onto a proven and growing market with active government incentives in Indonesia, giving this a genuine post-hackathon deployment story if scoped correctly."
+          }
+        ],
+        "new_state": "excited",
+        "duration": 53.27430438995361
+      }
+    ],
+    "r3": [
+      {
+        "id": "SIM-AGT-001",
+        "archetype": "pragmatic hackathon judge",
+        "action": "SUGGEST_SCOPE_REDUCTION",
+        "utility": 0.12,
+        "utility_dimensions": {
+          "technical_feasibility": 0.31,
+          "demo_deliverability_within_hackathon": -0.42,
+          "defect_detection_accuracy_potential": 0.47,
+          "system_integration_complexity": -0.38,
+          "real_world_deployment_viability": 0.61
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "technical_feasibility",
+            "score": 0.31,
+            "reasoning": "Competing team proved the scoped approach is achievable, but this team hasn't shown equivalent technical grounding yet."
+          },
+          {
+            "dimension": "demo_deliverability_within_hackathon",
+            "score": -0.42,
+            "reasoning": "Still unscoped multi-room proposal looks worse now that a scoped competitor has a working demo in hand."
+          },
+          {
+            "dimension": "defect_detection_accuracy_potential",
+            "score": 0.47,
+            "reasoning": "Off-the-shelf PatchCore on a controlled single-defect setup can hit strong AUROC scores if the team pivots fast."
+          },
+          {
+            "dimension": "system_integration_complexity",
+            "score": -0.38,
+            "reasoning": "Multi-room CCTV plus live 3D twin remains dangerously over-engineered relative to what the competition already shipped."
+          },
+          {
+            "dimension": "real_world_deployment_viability",
+            "score": 0.61,
+            "reasoning": "Ministry grant alignment with single-line MVP directly de-risks the commercialization story and removes the funding blocker."
+          }
+        ],
+        "new_state": "focused",
+        "duration": 14.619078397750854
+      },
+      {
+        "id": "SIM-AGT-002",
+        "archetype": "skeptical hardware integration engineer",
+        "action": "SUGGEST_SCOPE_REDUCTION",
+        "utility": -0.19,
+        "utility_dimensions": {
+          "technical_feasibility": -0.42,
+          "demo_deliverability_within_hackathon": -0.61,
+          "defect_detection_accuracy_potential": 0.33,
+          "system_integration_complexity": -0.55,
+          "real_world_deployment_viability": 0.28
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "technical_feasibility",
+            "score": -0.42,
+            "reasoning": "Multi-room 3D twin proposal masih tanpa hardware spec apapun sementara competing team sudah buktikan single-camera approach feasible — gap makin jelas."
+          },
+          {
+            "dimension": "demo_deliverability_within_hackathon",
+            "score": -0.61,
+            "reasoning": "Competing team sudah deliver working pipeline dengan measured mAP; tim ini belum ada demo sama sekali, deliverability dalam sisa waktu hackathon sangat diragukan."
+          },
+          {
+            "dimension": "defect_detection_accuracy_potential",
+            "score": 0.33,
+            "reasoning": "Ministry grant validation confirms single-defect pipeline is the right target, dan PatchCore/FastFlow pada controlled single-camera setup bisa deliver angka yang kompetitif jika tim mau scope down."
+          },
+          {
+            "dimension": "system_integration_complexity",
+            "score": -0.55,
+            "reasoning": "Multi-room CCTV + real-time 3D twin integration complexity tetap tidak terjustifikasi; competing team membuktikan pre-recorded 3D layer sudah cukup untuk judges."
+          },
+          {
+            "dimension": "real_world_deployment_viability",
+            "score": 0.28,
+            "reasoning": "Phase 3 grant criteria secara eksplisit membuka funding path untuk narrow MVP, jadi long-term viability ada — tapi hanya jika tim pivot sekarang."
+          }
+        ],
+        "new_state": "focused",
+        "duration": 20.22412371635437
+      },
+      {
+        "id": "SIM-AGT-003",
+        "archetype": "cautious factory operations expert",
+        "action": "SUGGEST_SCOPE_REDUCTION",
+        "utility": -0.15,
+        "utility_dimensions": {
+          "technical_feasibility": -0.42,
+          "demo_deliverability_within_hackathon": -0.55,
+          "defect_detection_accuracy_potential": 0.31,
+          "system_integration_complexity": -0.48,
+          "real_world_deployment_viability": 0.38
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "technical_feasibility",
+            "score": -0.42,
+            "reasoning": "Multi-room real-time 3D twin tetap tidak feasible dalam hackathon timeline meski ada grant validation — narrow MVP feasible, tapi tim belum pivot ke sana."
+          },
+          {
+            "dimension": "demo_deliverability_within_hackathon",
+            "score": -0.55,
+            "reasoning": "Kompetitor sudah punya working demo dengan mAP scores; tim ini belum ada scoping decision, gap deliverability makin terbuka."
+          },
+          {
+            "dimension": "defect_detection_accuracy_potential",
+            "score": 0.31,
+            "reasoning": "PatchCore/FastFlow pada single-defect single-line bisa capai AUROC tinggi jika dataset dikurasi dengan benar — potensi ada, tapi belum dieksekusi."
+          },
+          {
+            "dimension": "system_integration_complexity",
+            "score": -0.48,
+            "reasoning": "Proposal masih multi-room yang artinya kompleksitas integrasi legacy PLC dan fragmentasi data feed belum diatasi sama sekali."
+          },
+          {
+            "dimension": "real_world_deployment_viability",
+            "score": 0.38,
+            "reasoning": "Grant Phase 3 Kemenperin secara eksplisit memvalidasi narrow MVP sebagai fundable entry point — downstream viability naik signifikan jika scope dipotong."
+          }
+        ],
+        "new_state": "focused",
+        "duration": 33.12211990356445
+      },
+      {
+        "id": "SIM-AGT-004",
+        "archetype": "demanding cv ml architect",
+        "action": "SUGGEST_SCOPE_REDUCTION",
+        "utility": -0.17,
+        "utility_dimensions": {
+          "technical_feasibility": -0.42,
+          "demo_deliverability_within_hackathon": -0.55,
+          "defect_detection_accuracy_potential": 0.31,
+          "system_integration_complexity": -0.63,
+          "real_world_deployment_viability": 0.44
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "technical_feasibility",
+            "score": -0.42,
+            "reasoning": "Multi-room CCTV plus live 3D reconstruction remains architecturally overscoped; competing team's working PatchCore demo raises the evidence bar higher, not lower."
+          },
+          {
+            "dimension": "demo_deliverability_within_hackathon",
+            "score": -0.55,
+            "reasoning": "Competing team's pre-recorded 3D plus measured mAP demo is now the reference point; this team has no equivalent artifact and hackathon clock is running."
+          },
+          {
+            "dimension": "defect_detection_accuracy_potential",
+            "score": 0.31,
+            "reasoning": "Ministry grant validates single-defect pipeline direction, and off-the-shelf PatchCore on a scoped dataset can reach credible AUROC if they act immediately."
+          },
+          {
+            "dimension": "system_integration_complexity",
+            "score": -0.63,
+            "reasoning": "Multi-room CCTV integration, synchronization across feeds, and 3D twin latency are still unresolved blockers with no demonstrated mitigation plan."
+          },
+          {
+            "dimension": "real_world_deployment_viability",
+            "score": 0.44,
+            "reasoning": "Making Indonesia 4.0 Phase 3 grant creates a concrete downstream funding path if the team lands even a minimal working single-line proof-of-concept."
+          }
+        ],
+        "new_state": "focused",
+        "duration": 39.37477159500122
+      },
+      {
+        "id": "SIM-AGT-005",
+        "archetype": "bold innovation ecosystem champion",
+        "action": "SUGGEST_SCOPE_REDUCTION",
+        "utility": 0.31,
+        "utility_dimensions": {
+          "technical_feasibility": 0.42,
+          "demo_deliverability_within_hackathon": 0.31,
+          "defect_detection_accuracy_potential": 0.53,
+          "system_integration_complexity": -0.38,
+          "real_world_deployment_viability": 0.67
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "technical_feasibility",
+            "score": 0.42,
+            "reasoning": "A scoped single-camera CV pipeline is technically proven; the Ministry announcement removes institutional resistance to the narrow MVP approach, making feasibility within hackathon constraints very realistic."
+          },
+          {
+            "dimension": "demo_deliverability_within_hackathon",
+            "score": 0.31,
+            "reasoning": "The competing team's working PatchCore demo proves this scope is deliverable in 48 hours, but this team hasn't scoped down yet — execution risk remains until they commit."
+          },
+          {
+            "dimension": "defect_detection_accuracy_potential",
+            "score": 0.53,
+            "reasoning": "Off-the-shelf anomaly detection on a single controlled setup can hit >95% AUROC benchmark; achievable with proper dataset and one defined defect class."
+          },
+          {
+            "dimension": "system_integration_complexity",
+            "score": -0.38,
+            "reasoning": "Multi-room full-stack integration is still a latent complexity risk if the team doesn't formally de-scope — that blocker hasn't been resolved yet, only the narrative framing has improved."
+          },
+          {
+            "dimension": "real_world_deployment_viability",
+            "score": 0.67,
+            "reasoning": "The Phase 3 grant announcement creates a direct, government-backed commercial pathway for exactly this scoped prototype, giving the concept genuine post-hackathon traction potential."
+          }
+        ],
+        "new_state": "confident",
+        "duration": 50.05122494697571
+      }
+    ]
+  },
+  "adversary_map": {
+    "SIM-AGT-001": "SIM-AGT-005",
+    "SIM-AGT-002": "SIM-AGT-005",
+    "SIM-AGT-003": "SIM-AGT-005",
+    "SIM-AGT-004": "SIM-AGT-005",
+    "SIM-AGT-005": "SIM-AGT-002"
+  },
+  "timings": {
+    "r1": 54.48418068885803,
+    "r2": 0.0,
+    "r3": 52.054014682769775,
+    "r4": 0.0,
+    "total": 106.53819537162781
+  },
+  "report_md": "# Laporan Diagnostik: Smart Factory Defect Detection\n\n## VERDICT & RANGKUMAN\n\n**Probabilitas Kelolosan Hackathon: Mixed (Bersyarat)**\n\nProposal ini memiliki fondasi konseptual yang kuat, tetapi seluruh panel — dengan konsensus penuh di Round 3 (HHI 1.000, naik dari 0.680) — memberikan SUGGEST_SCOPE_REDUCTION tanpa satu pun suara ADVANCE atau SHORTLIST. Utilitas rata-rata meningkat tipis (+0.12 dari R2 ke R3), didorong terutama oleh validasi hibah Kemenperin, namun demo_deliverability tetap negatif (mean −0.36) dan system_integration_complexity belum terselesaikan (mean −0.48).\n\n---\n\n## RISIKO UTAMA\n\n- **Scope terlalu luas untuk timeline hackathon.** Kombinasi real-time 3D digital twin multi-ruangan + multi-CCTV + ML classifier adalah kompleksitas enterprise-grade, bukan sprint 48 jam. Tidak ada satu pun agen yang percaya seluruh sistem dapat didemonstrasikan secara stabil sebelum submission.\n\n- **Tidak ada spesifikasi teknis yang konkret.** Tim belum memberikan angka latency inference, pilihan model (PatchCore vs. YOLO vs. FastFlow), sumber data training, resolusi kamera, atau topologi jaringan — padahal semuanya adalah prasyarat minimum untuk evaluasi teknis yang kredibel.\n\n- **Kompetitor sudah memenuhi standar yang diminta juri.** Tim lain telah mendemokan pipeline PatchCore dengan skor mAP terukur dan lapisan 3D pre-recorded — persis MVP yang telah diminta panel sejak Round 1. Proposal ini kini tampak lebih besar tetapi kurang deliverable secara perbandingan langsung.\n\n---\n\n## SATU REKOMENDASI\n\n**Pivot segera ke single-line MVP yang dapat diukur:** satu kamera tetap, satu jenis cacat, satu lini produksi, dengan pipeline PatchCore atau FastFlow yang menghasilkan angka AUROC/mAP nyata, ditambah visualisasi 3D statis sebagai overlay presentasi. Arsitektur multi-ruangan tetap ditampilkan di roadmap pitch deck — bukan di demo teknis. Langkah ini selaras langsung dengan kriteria hibah Kemenperin Phase 3 dan menempatkan tim pada posisi kompetitif yang konkret."
+}

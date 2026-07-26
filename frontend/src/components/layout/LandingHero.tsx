@@ -1,7 +1,10 @@
 import { useRevealOnScroll } from "../../hooks/useRevealOnScroll";
+import { ExampleShowcase } from "../showcase/ExampleShowcase";
+import type { ExampleData } from "../../lib/transformMetrics";
 
 interface Props {
   onGetStarted: () => void;
+  onLoadExample: (data: ExampleData) => void;
 }
 
 function RevealSection({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
@@ -71,7 +74,7 @@ function NodeGraph() {
   );
 }
 
-export function LandingHero({ onGetStarted }: Props) {
+export function LandingHero({ onGetStarted, onLoadExample }: Props) {
   return (
     <div className="py-12 sm:py-20">
       {/* Hero */}
@@ -231,6 +234,11 @@ export function LandingHero({ onGetStarted }: Props) {
             ))}
           </div>
         </div>
+      </RevealSection>
+
+      {/* Example simulations showcase */}
+      <RevealSection className="max-w-[860px] mx-auto mb-16 sm:mb-20">
+        <ExampleShowcase onLoadExample={onLoadExample} />
       </RevealSection>
 
       {/* Bottom CTA */}

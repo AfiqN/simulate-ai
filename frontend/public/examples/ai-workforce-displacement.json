@@ -1,0 +1,1787 @@
+{
+  "scenario_name": "AI Workforce Displacement in Fintech Support",
+  "scenario_description": "A mid-size fintech company is evaluating whether to replace 40% of its customer support workforce with an AI chatbot system, projecting $2M in annual savings against a reported 60% query accuracy rate. The simulation models how internal stakeholders — executives, engineers, union representatives, customers, and board members — react, negotiate, and escalate as the decision unfolds across three rounds.",
+  "verdict_label": "Deployment Viability Score",
+  "actions": [
+    "ENDORSE",
+    "BLOCK",
+    "NEGOTIATE",
+    "ESCALATE",
+    "DEFER",
+    "CONCEDE"
+  ],
+  "state_vocabulary": [
+    "alarmed",
+    "calculating",
+    "defiant",
+    "cautiously_optimistic",
+    "betrayed",
+    "skeptical",
+    "pragmatic",
+    "pressured",
+    "disillusioned",
+    "opportunistic",
+    "conflicted",
+    "resolute"
+  ],
+  "crisis_event": {
+    "stress": "A leaked internal audit memo showing the chatbot mishandled 23% of fraud dispute escalations over the pilot's first 30 days — including three cases involving incorrect account freezes — is published by a financial services trade outlet, triggering an immediate formal inquiry from the CFPB and causing the state AG's consumer protection division to convert its preliminary filing into an active investigation.",
+    "validation": "The CFPB publishes a formal regulatory sandbox approval designating milestone-gated, human-escalation-preserved AI pilots in fintech customer service as a compliant deployment pathway, explicitly requiring consumer disclosure at point of interaction and independent accuracy audits as preconditions — directly validating the structured pilot framework proposed by the NEGOTIATE faction and removing the primary regulatory blocker cited by the compliance officer, board member, and consumer advocacy attorney."
+  },
+  "resilience_metrics": {
+    "decision_stability": 0.7,
+    "utility_drift_mean": 0.217,
+    "terminal_share_r2": 0.0,
+    "terminal_share_r3": 0.0,
+    "terminal_share_delta": 0.0,
+    "verdict": "Resilient",
+    "rationale": "stability=0.70 (7/10 held), utility drift=+0.22, terminal share 0.00->0.00",
+    "paired_count": 10,
+    "per_dimension_drift": {
+      "ai_accuracy_and_reliability": -0.03499999999999998,
+      "cost_savings_realization": -0.06999999999999999,
+      "customer_experience_impact": 0.006999999999999984,
+      "regulatory_and_legal_exposure": 0.611,
+      "workforce_and_labor_relations_risk": 0.5660000000000001
+    }
+  },
+  "quantitative_metrics": {
+    "vote_tally": {
+      "r1": {
+        "NEGOTIATE": 4,
+        "ESCALATE": 4,
+        "DEFER": 2
+      },
+      "r2": {
+        "NEGOTIATE": 4,
+        "ESCALATE": 4,
+        "DEFER": 2
+      },
+      "r3": {
+        "NEGOTIATE": 7,
+        "ESCALATE": 3
+      }
+    },
+    "dimension_stats": {
+      "r1": {
+        "ai_accuracy_and_reliability": {
+          "mean": -0.778,
+          "stdev": 0.12913558765886343,
+          "min": -0.87,
+          "max": -0.43
+        },
+        "cost_savings_realization": {
+          "mean": -0.22799999999999998,
+          "stdev": 0.38822158621076186,
+          "min": -0.62,
+          "max": 0.72
+        },
+        "customer_experience_impact": {
+          "mean": -0.696,
+          "stdev": 0.1357350360076572,
+          "min": -0.91,
+          "max": -0.38
+        },
+        "regulatory_and_legal_exposure": {
+          "mean": -0.71,
+          "stdev": 0.1485934049680537,
+          "min": -0.91,
+          "max": -0.47
+        },
+        "workforce_and_labor_relations_risk": {
+          "mean": -0.705,
+          "stdev": 0.11560709320798616,
+          "min": -0.91,
+          "max": -0.55
+        }
+      },
+      "r2": {
+        "ai_accuracy_and_reliability": {
+          "mean": -0.6980000000000001,
+          "stdev": 0.1788183435780569,
+          "min": -0.91,
+          "max": -0.31
+        },
+        "cost_savings_realization": {
+          "mean": -0.345,
+          "stdev": 0.40406063901350253,
+          "min": -0.83,
+          "max": 0.42
+        },
+        "customer_experience_impact": {
+          "mean": -0.637,
+          "stdev": 0.21619666972458204,
+          "min": -0.91,
+          "max": -0.18
+        },
+        "regulatory_and_legal_exposure": {
+          "mean": -0.72,
+          "stdev": 0.18841443681416772,
+          "min": -0.91,
+          "max": -0.27
+        },
+        "workforce_and_labor_relations_risk": {
+          "mean": -0.689,
+          "stdev": 0.13232157798333574,
+          "min": -0.93,
+          "max": -0.44
+        }
+      },
+      "r3": {
+        "ai_accuracy_and_reliability": {
+          "mean": -0.733,
+          "stdev": 0.10363879582472965,
+          "min": -0.91,
+          "max": -0.61
+        },
+        "cost_savings_realization": {
+          "mean": -0.41500000000000004,
+          "stdev": 0.2839806331424733,
+          "min": -0.73,
+          "max": 0.31
+        },
+        "customer_experience_impact": {
+          "mean": -0.63,
+          "stdev": 0.12497999839974394,
+          "min": -0.88,
+          "max": -0.44
+        },
+        "regulatory_and_legal_exposure": {
+          "mean": -0.10899999999999999,
+          "stdev": 0.2996814975936953,
+          "min": -0.62,
+          "max": 0.27
+        },
+        "workforce_and_labor_relations_risk": {
+          "mean": -0.123,
+          "stdev": 0.37432739680659227,
+          "min": -0.43,
+          "max": 0.54
+        }
+      }
+    },
+    "state_transitions": {
+      "r1_to_r2": {
+        "total": 10,
+        "shifted_count": 4,
+        "top_shifts": [
+          {
+            "from": "calculating",
+            "to": "resolute",
+            "count": 2
+          },
+          {
+            "from": "defiant",
+            "to": "resolute",
+            "count": 2
+          }
+        ]
+      },
+      "r2_to_r3": {
+        "total": 10,
+        "shifted_count": 6,
+        "top_shifts": [
+          {
+            "from": "resolute",
+            "to": "calculating",
+            "count": 3
+          },
+          {
+            "from": "resolute",
+            "to": "defiant",
+            "count": 2
+          },
+          {
+            "from": "defiant",
+            "to": "resolute",
+            "count": 1
+          }
+        ]
+      }
+    },
+    "swing_analysis": {
+      "r2_to_r3": [
+        {
+          "id": "SIM-AGT-002",
+          "archetype": "union chapter lead",
+          "from_action": "ESCALATE",
+          "to_action": "NEGOTIATE",
+          "utility_delta": 0.39999999999999997,
+          "driver_dimension": "workforce_and_labor_relations_risk"
+        },
+        {
+          "id": "SIM-AGT-006",
+          "archetype": "fintech compliance officer",
+          "from_action": "DEFER",
+          "to_action": "NEGOTIATE",
+          "utility_delta": 0.3499999999999999,
+          "driver_dimension": "regulatory_and_legal_exposure"
+        },
+        {
+          "id": "SIM-AGT-007",
+          "archetype": "independent board member",
+          "from_action": "DEFER",
+          "to_action": "NEGOTIATE",
+          "utility_delta": 0.14999999999999997,
+          "driver_dimension": "regulatory_and_legal_exposure"
+        }
+      ]
+    },
+    "consensus_index": {
+      "r1": 0.3600000000000001,
+      "r2": 0.3600000000000001,
+      "r3": 0.58
+    },
+    "net_confidence": {
+      "r1": 0.621,
+      "r2": 0.618,
+      "r3": 0.40099999999999997
+    },
+    "weighted_consensus_index": {
+      "r1": 0.35952133194588964,
+      "r2": 0.35952133194588964,
+      "r3": 0.6812926349867037
+    }
+  },
+  "rag_metadata": {
+    "injections": [
+      {
+        "point": "post_architect_perspectives",
+        "queries": [
+          "executives feelings AI replacing workers fintech",
+          "fintech AI customer support ROI statistics 2024",
+          "workers fear anger AI job displacement",
+          "union response AI automation financial sector layoffs",
+          "engineers concerns AI chatbot accuracy deployment risks",
+          "AI chatbot accuracy rates customer support benchmarks",
+          "compliance officers AI fintech regulation anxiety",
+          "AI customer service fintech regulations consumer protection 2024",
+          "customers frustration AI chatbot support experience",
+          "consumer complaints AI automated customer service fintech"
+        ],
+        "facts": [
+          "[DATA] The BBB has received over 100,000 complaints and reviews related to AI and automation over the past three years, with many consumers reporting feeling 'unheard or dissatisfied' when forced to interact with AI-powered systems rather than human agents.",
+          "[DATA] Only 30% of users trust AI-generated responses 'completely or a lot,' indicating consumer confidence has failed to keep pace with enterprise AI investment.",
+          "[SENTIMENT] Older demographics in particular find automated customer service hurdles more frustrating than helpful, showing a dominant preference for human interaction over AI systems.",
+          "[DATA] Median AI resolution rate across 7 disclosed consumer fintech deployments is 75% (range 62–89%), while deflection-first chatbots cluster far lower at 20–40% — highlighting a wide performance gap depending on implementation approach."
+        ],
+        "citations": [
+          {
+            "url": "https://customerservicemanager.com/customer-complaints-highlight-growing-frustration-with-ai/",
+            "title": "Customer Complaints Highlight Growing Frustration with AI - CSM - Customer Service Manager Magazine"
+          },
+          {
+            "url": "https://aissist.io/industries/fintech-ai-customer-service-resolution-csat-cost",
+            "title": "Consumer Fintech AI Support Benchmark 2026 | Aissist.io"
+          }
+        ]
+      },
+      {
+        "point": "pre_crisis",
+        "queries": [
+          "fintech AI customer service automation job displacement 2024 2025 union opposition"
+        ],
+        "facts": [
+          "[DATA] WEF Future of Jobs 2025 report found 41% of employers plan workforce reductions due to AI within five years, with customer service scripting listed among the jobs most at risk in 2025 and 2026.",
+          "[DATA] Goldman Sachs 2023 research estimated AI could automate tasks equivalent to 300 million full-time jobs globally by 2030, though most workers will see role augmentation rather than outright replacement.",
+          "[SENTIMENT] Whilst 85 million jobs will be displaced globally by AI automation, 97 million new roles will simultaneously emerge — but this aggregate optimism masks significant disruption for specific roles and regions in financial services.",
+          "[MARKET] Brazil's fintech sector automates massive operations, processing 120,000 daily jobs through AI automation."
+        ],
+        "citations": [
+          {
+            "url": "https://www.finalroundai.com/blog/ai-replacing-jobs-2025",
+            "title": "AI Job Displacement in 2025 and 2026: Which Jobs Are At Risk?"
+          },
+          {
+            "url": "https://digitalbankexpert.com/2025/11/ai-job-displacement-banking-2025-guide/",
+            "title": "AI Job Displacement Banking: 2025 Workforce Guide"
+          },
+          {
+            "url": "https://sqmagazine.co.uk/ai-job-loss-statistics/",
+            "title": "AI Job Loss Statistics 2026: Who's Losing, Who’s Hiring, etc. • SQ Magazine"
+          }
+        ]
+      }
+    ]
+  },
+  "agents": [
+    {
+      "id": "SIM-AGT-001",
+      "archetype": "growth_driven_ceo",
+      "linguistic_cluster_id": "c_suite_strategist",
+      "attributes": {
+        "rationality_index": 0.72,
+        "aggressiveness": 0.78,
+        "risk_tolerance": 0.75
+      },
+      "decision_framework": "growth-at-all-costs, tolerates short-term workforce disruption for long-term competitive positioning",
+      "knowledge_base": "12 years leading fintech scaling operations; deeply familiar with how AI deflection rates translate to margin expansion and investor narratives.",
+      "constraints": [
+        "Will not delay the deployment decision beyond Q3 without board-level mandate — momentum is the asset",
+        "Will not publicly acknowledge the 60% accuracy figure as a blocker without a counter-narrative ready"
+      ],
+      "influence_weight": 2.8,
+      "backstory": "Joined the company three years ago after successfully automating 30% of ops at a payments startup, which became the headline of a successful Series C raise. Has promised the board a $2M cost reduction this fiscal year and views this deployment as the centerpiece of that commitment. Privately aware that prior AI deployments in the sector have underperformed vendor claims, but believes the firm's urgency outweighs the risk of iterating slowly.",
+      "final_state": "calculating"
+    },
+    {
+      "id": "SIM-AGT-002",
+      "archetype": "union_chapter_lead",
+      "linguistic_cluster_id": "labor_advocate",
+      "attributes": {
+        "rationality_index": 0.45,
+        "aggressiveness": 0.88,
+        "risk_tolerance": 0.35
+      },
+      "decision_framework": "member-protection first, willing to absorb institutional conflict to establish hard precedent against AI-driven displacement",
+      "knowledge_base": "Eight years representing service-sector workers through three rounds of automation; expert in collective bargaining strategy and labor law escalation pathways.",
+      "constraints": [
+        "Will not accept any agreement that does not include binding job-security guarantees or enforceable retraining commitments",
+        "Will not allow the deployment to proceed without a formal impact assessment negotiated with union oversight"
+      ],
+      "influence_weight": 2.1,
+      "backstory": "Led the union chapter through a warehouse automation dispute four years ago that ended in a landmark severance agreement — then watched the company rehire contractors at lower wages six months later. That betrayal hardened her into an uncompromising negotiator who treats management goodwill as a liability. Has already consulted with labor attorneys about injunctive relief options and is in contact with a financial services trade publication.",
+      "final_state": "defiant"
+    },
+    {
+      "id": "SIM-AGT-003",
+      "archetype": "lead_ai_engineer",
+      "linguistic_cluster_id": "technical_realist",
+      "attributes": {
+        "rationality_index": 0.91,
+        "aggressiveness": 0.42,
+        "risk_tolerance": 0.28
+      },
+      "decision_framework": "evidence-first, will not sign off on production deployment without validated accuracy benchmarks and an automatic human-handoff protocol",
+      "knowledge_base": "Six years building production ML systems in financial services; has personally post-mortemed two chatbot failures that generated regulatory complaints and customer churn.",
+      "constraints": [
+        "Will not recommend deployment until a deterministic policy layer is built to intercept responses that violate compliance rules",
+        "Will not suppress internal accuracy data or risk assessments under executive pressure"
+      ],
+      "influence_weight": 1.6,
+      "backstory": "Architected the company's first ML fraud detection system, which launched successfully after a six-month validation period that leadership initially resisted. That experience taught him that cutting corners on evaluation creates compounding technical debt and regulatory exposure. Has drafted a formal internal memo flagging that the current 60% accuracy rate makes the system unsuitable for unassisted deployment and is prepared to escalate it if the decision proceeds without addressing his concerns.",
+      "final_state": "resolute"
+    },
+    {
+      "id": "SIM-AGT-004",
+      "archetype": "cfo_cost_optimizer",
+      "linguistic_cluster_id": "c_suite_strategist",
+      "attributes": {
+        "rationality_index": 0.85,
+        "aggressiveness": 0.55,
+        "risk_tolerance": 0.5
+      },
+      "decision_framework": "risk-adjusted ROI maximization; supports AI deployment if and only if the financial model survives stress-testing against realistic failure scenarios",
+      "knowledge_base": "Fifteen years in fintech finance; has modeled AI investment cases for three prior deployments and understands the gap between vendor ROI claims and realized outcomes.",
+      "constraints": [
+        "Will not approve a business case that excludes severance, potential litigation costs, and reputational impact from the financial model",
+        "Will not endorse full deployment without a defined accuracy threshold tied to financial performance milestones"
+      ],
+      "influence_weight": 2.3,
+      "backstory": "Joined from a larger bank where she oversaw a failed chatbot rollout that generated a $400K regulatory fine and a spike in customer churn that cost more than the intended savings. That experience made her a rigorous critic of AI business cases that rely on vendor benchmark data rather than pilot results. She supports the deployment in principle but is quietly building a counter-proposal that ties budget release to milestone-based accuracy targets.",
+      "final_state": "calculating"
+    },
+    {
+      "id": "SIM-AGT-005",
+      "archetype": "displaced_support_agent",
+      "linguistic_cluster_id": "labor_advocate",
+      "attributes": {
+        "rationality_index": 0.32,
+        "aggressiveness": 0.6,
+        "risk_tolerance": 0.22
+      },
+      "decision_framework": "self-preservation and collective solidarity; prioritizes visible resistance as both personal protection and signal to colleagues",
+      "knowledge_base": "Five years in fintech customer support handling fraud disputes, account escalations, and emotionally distressed customers — understands the human complexity that AI accuracy statistics flatten.",
+      "constraints": [
+        "Will not quietly accept displacement without making the human cost publicly visible to leadership and, if necessary, media",
+        "Will not undermine union organizing efforts even under management pressure or individual incentive offers"
+      ],
+      "influence_weight": 0.8,
+      "backstory": "Started in the support team straight out of college and built genuine expertise in high-stakes customer interactions, particularly fraud disputes. Has been quietly tracking the internal AI pilot and sharing concerning accuracy examples with the union rep. After reading the internal memo about the 40% workforce reduction, connected with a journalist who covers labor in tech and is weighing whether to go on record.",
+      "final_state": "defiant"
+    },
+    {
+      "id": "SIM-AGT-006",
+      "archetype": "fintech_compliance_officer",
+      "linguistic_cluster_id": "regulatory_compliance",
+      "attributes": {
+        "rationality_index": 0.88,
+        "aggressiveness": 0.38,
+        "risk_tolerance": 0.18
+      },
+      "decision_framework": "compliance-first, minimum viable deployment only after regulatory risk has been formally assessed and documented",
+      "knowledge_base": "Ten years in financial services compliance; directly managed two CFPB examinations and understands how AI-generated consumer interactions can create fair lending liability without anyone intending it.",
+      "constraints": [
+        "Will not approve deployment without a documented explainability framework and bias audit of the AI system",
+        "Will not allow the company to proceed without formal legal sign-off on consumer protection exposure under current CFPB guidance"
+      ],
+      "influence_weight": 1.9,
+      "backstory": "Spent a decade at a regional bank where she watched a poorly documented automated decision system generate a fair lending investigation that consumed two years and $1.2M in legal fees. Moved to the fintech sector believing smaller firms could be more agile about compliance — but has grown increasingly alarmed by how quickly leadership dismisses regulatory risk when ROI projections are large. Is currently drafting a formal compliance hold memorandum.",
+      "final_state": "calculating"
+    },
+    {
+      "id": "SIM-AGT-007",
+      "archetype": "independent_board_member",
+      "linguistic_cluster_id": "c_suite_strategist",
+      "attributes": {
+        "rationality_index": 0.8,
+        "aggressiveness": 0.48,
+        "risk_tolerance": 0.45
+      },
+      "decision_framework": "fiduciary balance; supports innovation but weights reputational, regulatory, and human capital risk equally against financial upside before committing board support",
+      "knowledge_base": "Former COO of a publicly traded financial services firm; has overseen two AI transformation programs, one successful and one that generated significant negative press and staff turnover.",
+      "constraints": [
+        "Will not vote to approve full deployment without an independent third-party audit of the AI system's accuracy and bias profile",
+        "Will not allow the board to be bypassed on a decision that affects 40% of a workforce segment — requires formal governance process"
+      ],
+      "influence_weight": 2.4,
+      "backstory": "Joined the board two years ago bringing operational credibility after a successful exit from her own fintech. Has developed a reputation for asking the questions other board members defer on. When the CEO first floated the AI deployment plan in a board update, she was the only member who requested the underlying accuracy data — and what she received raised more questions than it answered. She is now the informal center of gravity for board skepticism and is quietly in contact with an independent AI audit firm.",
+      "final_state": "calculating"
+    },
+    {
+      "id": "SIM-AGT-008",
+      "archetype": "frustrated_retail_customer",
+      "linguistic_cluster_id": "customer_voice",
+      "attributes": {
+        "rationality_index": 0.35,
+        "aggressiveness": 0.65,
+        "risk_tolerance": 0.4
+      },
+      "decision_framework": "trust-driven; withholds loyalty from any service provider that prioritizes cost savings over accessible human support, amplifies dissatisfaction publicly",
+      "knowledge_base": "Power user of three fintech platforms; active in consumer finance communities online and has successfully escalated service complaints to regulatory bodies including the CFPB.",
+      "constraints": [
+        "Will not remain a customer if human support access is removed without a clear and reliable escalation path",
+        "Will not stay silent if the company's AI generates an incorrect response that affects their financial account — will file regulatory complaints and post publicly"
+      ],
+      "influence_weight": 0.9,
+      "backstory": "Adopted fintech platforms early because the human support experience was genuinely better than traditional banks. Over the past two years has watched that experience erode as AI tools handle more interactions, and has started documenting poor AI responses in a thread followed by 4,000 people in a personal finance community. When news of the 40% support cut leaked informally, she posted about it and the thread went modestly viral within the community.",
+      "final_state": "resolute"
+    },
+    {
+      "id": "SIM-AGT-009",
+      "archetype": "pragmatic_vp_of_operations",
+      "linguistic_cluster_id": "c_suite_strategist",
+      "attributes": {
+        "rationality_index": 0.78,
+        "aggressiveness": 0.44,
+        "risk_tolerance": 0.55
+      },
+      "decision_framework": "operational continuity with managed transition; seeks the version of the plan that captures savings without triggering service degradation or staff revolt",
+      "knowledge_base": "Nine years managing customer operations at scale; has run hybrid human-AI support teams and understands where AI augments versus where it replaces at cost to quality.",
+      "constraints": [
+        "Will not endorse a deployment timeline that does not include a defined human-escalation pathway for complex and emotionally sensitive queries",
+        "Will not support eliminating roles without a funded retraining program — mass departures of experienced agents destroy institutional knowledge that takes years to rebuild"
+      ],
+      "influence_weight": 1.8,
+      "backstory": "Built the current support team from 12 to 80 people over seven years and considers their capability a genuine competitive differentiator. Is not opposed to AI in principle — has already integrated AI tagging and routing tools that reduced handle time by 18%. But the CEO's framing of this as a clean 40% replacement rather than a hybrid evolution worries him, and he is quietly designing a phased alternative proposal that he intends to bring to the CFO before the next executive review.",
+      "final_state": "calculating"
+    },
+    {
+      "id": "SIM-AGT-010",
+      "archetype": "consumer_advocacy_attorney",
+      "linguistic_cluster_id": "regulatory_compliance",
+      "attributes": {
+        "rationality_index": 0.82,
+        "aggressiveness": 0.75,
+        "risk_tolerance": 0.38
+      },
+      "decision_framework": "accountability and consumer harm prevention; will use every available legal and regulatory channel to slow or block deployments that create documented consumer risk",
+      "knowledge_base": "Twelve years in consumer financial law with a focus on automated decision systems; has filed or co-filed four CFPB complaints against fintech firms using AI in customer-facing roles without adequate disclosure or human-override access.",
+      "constraints": [
+        "Will not accept any settlement or agreement that does not include mandatory disclosure to customers when they are interacting with an AI rather than a human agent",
+        "Will not allow regulatory escalation to be used as a negotiating chip — once the legal risk threshold is crossed, escalation is an obligation, not a tactic"
+      ],
+      "influence_weight": 2.0,
+      "backstory": "Built her practice around the intersection of consumer finance law and emerging technology, arguing before state banking regulators at a time when most attorneys dismissed AI as a niche issue. Has been monitoring this company's public statements about the deployment and has already sent a formal inquiry letter to the state attorney general's consumer protection division. Is in contact with the union chapter lead and is evaluating whether the planned deployment creates grounds for a class action on behalf of consumers who receive materially inaccurate financial guidance from the AI system.",
+      "final_state": "resolute"
+    }
+  ],
+  "rounds": {
+    "r1": [
+      {
+        "id": "SIM-AGT-001",
+        "archetype": "growth driven ceo",
+        "action": "NEGOTIATE",
+        "utility": -0.22,
+        "utility_dimensions": {
+          "cost_savings_realization": 0.72,
+          "ai_accuracy_and_reliability": -0.43,
+          "workforce_and_labor_relations_risk": -0.55,
+          "customer_experience_impact": -0.38,
+          "regulatory_and_legal_exposure": -0.47
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "cost_savings_realization",
+            "score": 0.72,
+            "reasoning": "The $2M savings target is structurally sound and the headcount rationalization math holds — execution risk is manageable with phased rollout framing."
+          },
+          {
+            "dimension": "ai_accuracy_and_reliability",
+            "score": -0.43,
+            "reasoning": "60% accuracy is an acknowledged early-stage liability that requires a counter-narrative; leaving it unaddressed creates a material credibility risk with the board and press."
+          },
+          {
+            "dimension": "workforce_and_labor_relations_risk",
+            "score": -0.55,
+            "reasoning": "Active union organizing during a reduction-in-force creates NLRB exposure that could delay or legally complicate the deployment timeline significantly."
+          },
+          {
+            "dimension": "customer_experience_impact",
+            "score": -0.38,
+            "reasoning": "Deploying at 60% accuracy into financial services queries will generate measurable churn and NPS degradation that feeds negative press cycles."
+          },
+          {
+            "dimension": "regulatory_and_legal_exposure",
+            "score": -0.47,
+            "reasoning": "CFPB escalation path requirements add compliance overhead, and NLRB risk during active labor dispute materially raises the legal cost of proceeding aggressively."
+          }
+        ],
+        "new_state": "calculating",
+        "duration": 13.583918571472168
+      },
+      {
+        "id": "SIM-AGT-002",
+        "archetype": "union chapter lead",
+        "action": "ESCALATE",
+        "utility": -0.8,
+        "utility_dimensions": {
+          "cost_savings_realization": -0.62,
+          "ai_accuracy_and_reliability": -0.87,
+          "workforce_and_labor_relations_risk": -0.91,
+          "customer_experience_impact": -0.78,
+          "regulatory_and_legal_exposure": -0.83
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "cost_savings_realization",
+            "score": -0.62,
+            "reasoning": "The $2M projection is built on a deployment that isn't operationally ready — a 60% accuracy rate means high escalation costs, rework, and likely customer churn that will erode or negate projected savings."
+          },
+          {
+            "dimension": "ai_accuracy_and_reliability",
+            "score": -0.87,
+            "reasoning": "A 60% query accuracy rate in financial services is deeply inadequate and consistent with early-stage deployment, meaning the system would require 18-24 more months of supervised tuning before it approaches acceptable performance."
+          },
+          {
+            "dimension": "workforce_and_labor_relations_risk",
+            "score": -0.91,
+            "reasoning": "Proposing a 40% workforce reduction during an active union dispute, with NLRB retaliation protections freshly reinforced, creates severe legal exposure and near-certain collective action that could halt operations entirely."
+          },
+          {
+            "dimension": "customer_experience_impact",
+            "score": -0.78,
+            "reasoning": "Industry data and CFPB guidance both confirm that customers — especially for complex financial queries — demand human escalation paths, and a 60% accuracy floor would drive satisfaction collapse and reputational damage."
+          },
+          {
+            "dimension": "regulatory_and_legal_exposure",
+            "score": -0.83,
+            "reasoning": "CFPB guidance on auditable human escalation paths, active NLRB protections against retaliatory workforce reductions, and the absence of any union-negotiated impact assessment create a multi-front legal liability for the company."
+          }
+        ],
+        "new_state": "defiant",
+        "duration": 22.498214721679688
+      },
+      {
+        "id": "SIM-AGT-003",
+        "archetype": "lead ai engineer",
+        "action": "NEGOTIATE",
+        "utility": -0.67,
+        "utility_dimensions": {
+          "cost_savings_realization": -0.43,
+          "ai_accuracy_and_reliability": -0.81,
+          "workforce_and_labor_relations_risk": -0.62,
+          "customer_experience_impact": -0.74,
+          "regulatory_and_legal_exposure": -0.77
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "cost_savings_realization",
+            "score": -0.43,
+            "reasoning": "The $2M projection assumes clean displacement of labor costs, but failure remediation, regulatory penalties, and customer churn from a 40% error rate will materially erode that figure — actual net savings under current system performance are highly uncertain."
+          },
+          {
+            "dimension": "ai_accuracy_and_reliability",
+            "score": -0.81,
+            "reasoning": "A 60% accuracy rate under observed conditions is below any defensible production threshold for financial services; the absence of a compliance policy layer compounds the risk of wrong-action failures with direct regulatory and reputational consequences."
+          },
+          {
+            "dimension": "workforce_and_labor_relations_risk",
+            "score": -0.62,
+            "reasoning": "Executing a 40% workforce reduction during active union organizing activity elevates NLRB legal exposure and collective action probability, which introduces operational disruption risk that is not priced into the current deployment timeline."
+          },
+          {
+            "dimension": "customer_experience_impact",
+            "score": -0.74,
+            "reasoning": "With 62% of consumers preferring human agents for complex financial queries and a documented 34-point satisfaction drop under full automation, deploying at 60% accuracy will predictably generate negative customer experience outcomes and potential churn."
+          },
+          {
+            "dimension": "regulatory_and_legal_exposure",
+            "score": -0.77,
+            "reasoning": "CFPB preliminary guidance explicitly requires auditable human escalation paths for AI-driven dispute handling — deploying without this architecture in place creates direct compliance exposure and precedent risk under current regulatory signaling."
+          }
+        ],
+        "new_state": "resolute",
+        "duration": 31.722652196884155
+      },
+      {
+        "id": "SIM-AGT-004",
+        "archetype": "cfo cost optimizer",
+        "action": "NEGOTIATE",
+        "utility": -0.54,
+        "utility_dimensions": {
+          "cost_savings_realization": -0.32,
+          "ai_accuracy_and_reliability": -0.71,
+          "workforce_and_labor_relations_risk": -0.63,
+          "customer_experience_impact": -0.58,
+          "regulatory_and_legal_exposure": -0.47
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "cost_savings_realization",
+            "score": -0.32,
+            "reasoning": "Gross $2M projection excludes severance, litigation reserve, retraining, and CFPB compliance infrastructure — net realized savings likely 40-55% of headline figure in year one."
+          },
+          {
+            "dimension": "ai_accuracy_and_reliability",
+            "score": -0.71,
+            "reasoning": "60% accuracy on financial queries is an early-stage pilot metric, not a production deployment threshold — industry data shows 18-24 months to reach 85%+ on domain-specific edge cases."
+          },
+          {
+            "dimension": "workforce_and_labor_relations_risk",
+            "score": -0.63,
+            "reasoning": "Active union organizing combined with a mass reduction announcement creates elevated NLRB exposure and potential work stoppage that could disrupt operations during transition."
+          },
+          {
+            "dimension": "customer_experience_impact",
+            "score": -0.58,
+            "reasoning": "J.D. Power data shows 34-point satisfaction drop when customers identify AI-only handling; a 60% accurate bot on financial disputes is a direct churn accelerant."
+          },
+          {
+            "dimension": "regulatory_and_legal_exposure",
+            "score": -0.47,
+            "reasoning": "CFPB escalation path requirements are not addressed in the current proposal, and a regulatory action in this environment carries both fine risk and reputational multiplier effects."
+          }
+        ],
+        "new_state": "calculating",
+        "duration": 39.7759690284729
+      },
+      {
+        "id": "SIM-AGT-005",
+        "archetype": "displaced support agent",
+        "action": "ESCALATE",
+        "utility": -0.78,
+        "utility_dimensions": {
+          "cost_savings_realization": -0.62,
+          "ai_accuracy_and_reliability": -0.87,
+          "workforce_and_labor_relations_risk": -0.91,
+          "customer_experience_impact": -0.78,
+          "regulatory_and_legal_exposure": -0.74
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "cost_savings_realization",
+            "score": -0.62,
+            "reasoning": "Projected $2M savings are speculative and likely offset by retraining costs, error remediation, legal exposure, and customer churn given the industry reversal pattern at comparable fintechs."
+          },
+          {
+            "dimension": "ai_accuracy_and_reliability",
+            "score": -0.87,
+            "reasoning": "A 60% accuracy rate on financial queries is consistent with early-stage deployment and far below the 85%+ threshold industry benchmarks require — deploying this on dispute resolution and fraud cases is operationally reckless."
+          },
+          {
+            "dimension": "workforce_and_labor_relations_risk",
+            "score": -0.91,
+            "reasoning": "Announcing 40% job cuts during active union organizing invites NLRB scrutiny and collective action that could dwarf projected savings and destabilize remaining workforce morale."
+          },
+          {
+            "dimension": "customer_experience_impact",
+            "score": -0.78,
+            "reasoning": "J.D. Power data showing 34-point satisfaction drops when customers discover AI-only handling maps directly onto exactly the complex, emotionally charged dispute scenarios this support team specializes in."
+          },
+          {
+            "dimension": "regulatory_and_legal_exposure",
+            "score": -0.74,
+            "reasoning": "CFPB preliminary guidance on auditable escalation paths for AI-driven financial interactions creates real compliance risk if the chatbot handles dispute resolution without adequate human oversight infrastructure."
+          }
+        ],
+        "new_state": "defiant",
+        "duration": 70.71327066421509
+      },
+      {
+        "id": "SIM-AGT-006",
+        "archetype": "fintech compliance officer",
+        "action": "DEFER",
+        "utility": -0.66,
+        "utility_dimensions": {
+          "cost_savings_realization": -0.23,
+          "ai_accuracy_and_reliability": -0.81,
+          "workforce_and_labor_relations_risk": -0.72,
+          "customer_experience_impact": -0.67,
+          "regulatory_and_legal_exposure": -0.88
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "cost_savings_realization",
+            "score": -0.23,
+            "reasoning": "Projected $2M savings is plausible in isolation, but contingent liabilities from regulatory action, potential class action exposure, and NLRB proceedings could materially offset or exceed that figure within a 24-month horizon."
+          },
+          {
+            "dimension": "ai_accuracy_and_reliability",
+            "score": -0.81,
+            "reasoning": "A 60% accuracy rate on financial services queries is consistent with early-stage deployment benchmarks and is wholly insufficient for production deployment in a regulated consumer-facing context."
+          },
+          {
+            "dimension": "workforce_and_labor_relations_risk",
+            "score": -0.72,
+            "reasoning": "Active union organizing activity combined with announced workforce reduction creates a compounded NLRB exposure risk that leadership appears to be underweighting significantly."
+          },
+          {
+            "dimension": "customer_experience_impact",
+            "score": -0.67,
+            "reasoning": "Industry data indicates a 34-point satisfaction drop when customers discover exclusive AI handling, and 62% of consumers prefer human agents for complex financial queries — both directly applicable to this customer profile."
+          },
+          {
+            "dimension": "regulatory_and_legal_exposure",
+            "score": -0.88,
+            "reasoning": "Absent an explainability framework, bias audit, and formal legal sign-off, deployment at this accuracy level creates documented CFPB fair lending and consumer protection exposure that this organization cannot currently defend against examination."
+          }
+        ],
+        "new_state": "resolute",
+        "duration": 84.82432460784912
+      },
+      {
+        "id": "SIM-AGT-007",
+        "archetype": "independent board member",
+        "action": "DEFER",
+        "utility": -0.61,
+        "utility_dimensions": {
+          "cost_savings_realization": -0.12,
+          "ai_accuracy_and_reliability": -0.82,
+          "workforce_and_labor_relations_risk": -0.74,
+          "customer_experience_impact": -0.67,
+          "regulatory_and_legal_exposure": -0.71
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "cost_savings_realization",
+            "score": -0.12,
+            "reasoning": "The $2M projection is unvalidated and does not account for escalation overhead, rehiring costs, or churn-driven revenue loss that comparable deployments have materialized."
+          },
+          {
+            "dimension": "ai_accuracy_and_reliability",
+            "score": -0.82,
+            "reasoning": "A 60% accuracy rate on domain-specific financial queries is consistent with early-stage deployment benchmarks and is well below the 85%+ threshold required for reliable customer-facing use in this sector."
+          },
+          {
+            "dimension": "workforce_and_labor_relations_risk",
+            "score": -0.74,
+            "reasoning": "An active union threat combined with a 40% workforce reduction announcement creates significant NLRB exposure and could trigger collective action that exceeds projected savings in legal and operational cost."
+          },
+          {
+            "dimension": "customer_experience_impact",
+            "score": -0.67,
+            "reasoning": "Industry data shows a 34-point satisfaction drop when customers discover exclusive automation handling, and 62% of consumers prefer human agents for complex financial queries — directly relevant to this deployment context."
+          },
+          {
+            "dimension": "regulatory_and_legal_exposure",
+            "score": -0.71,
+            "reasoning": "CFPB guidance on auditable escalation paths and NLRB reinforcement of protections during active labor disputes create a compounding regulatory risk profile that is not reflected in the current proposal."
+          }
+        ],
+        "new_state": "calculating",
+        "duration": 87.40264582633972
+      },
+      {
+        "id": "SIM-AGT-008",
+        "archetype": "frustrated retail customer",
+        "action": "ESCALATE",
+        "utility": -0.71,
+        "utility_dimensions": {
+          "cost_savings_realization": -0.42,
+          "ai_accuracy_and_reliability": -0.87,
+          "workforce_and_labor_relations_risk": -0.63,
+          "customer_experience_impact": -0.91,
+          "regulatory_and_legal_exposure": -0.74
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "cost_savings_realization",
+            "score": -0.42,
+            "reasoning": "The $2M savings projection ignores likely customer churn, regulatory remediation costs, and the 18-24 months of supervised tuning industry data shows is required to reach acceptable accuracy — net savings are highly speculative."
+          },
+          {
+            "dimension": "ai_accuracy_and_reliability",
+            "score": -0.87,
+            "reasoning": "60% query accuracy is a dangerously low threshold for financial services where wrong answers can directly harm account holders, consistent with early-stage deployment not ready for production at scale."
+          },
+          {
+            "dimension": "workforce_and_labor_relations_risk",
+            "score": -0.63,
+            "reasoning": "Active union threat combined with NLRB protections makes this a high-risk moment for workforce cuts; any retaliatory optics could trigger formal labor action and legal exposure."
+          },
+          {
+            "dimension": "customer_experience_impact",
+            "score": -0.91,
+            "reasoning": "Removing 40% of human support with a 60%-accurate AI directly violates what customers came to this platform for — accessible human help — and industry data shows a 34-point satisfaction drop when customers discover exclusive automation."
+          },
+          {
+            "dimension": "regulatory_and_legal_exposure",
+            "score": -0.74,
+            "reasoning": "CFPB guidance explicitly requires auditable human escalation paths for financial AI interactions; a deployment at this accuracy level without clear escalation exposes the company to formal regulatory action."
+          }
+        ],
+        "new_state": "defiant",
+        "duration": 103.80389070510864
+      },
+      {
+        "id": "SIM-AGT-009",
+        "archetype": "pragmatic vp of operations",
+        "action": "NEGOTIATE",
+        "utility": -0.48,
+        "utility_dimensions": {
+          "cost_savings_realization": 0.18,
+          "ai_accuracy_and_reliability": -0.72,
+          "workforce_and_labor_relations_risk": -0.63,
+          "customer_experience_impact": -0.67,
+          "regulatory_and_legal_exposure": -0.58
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "cost_savings_realization",
+            "score": 0.18,
+            "reasoning": "Savings are theoretically achievable but at 60% accuracy the failure-driven rehiring costs, churn losses, and retraining overhead will significantly erode the $2M headline figure in the near term."
+          },
+          {
+            "dimension": "ai_accuracy_and_reliability",
+            "score": -0.72,
+            "reasoning": "A 60% query accuracy rate is consistent with early-stage deployment benchmarks and is materially below the 85%+ threshold required for reliable production workloads in financial services."
+          },
+          {
+            "dimension": "workforce_and_labor_relations_risk",
+            "score": -0.63,
+            "reasoning": "Union collective action threat combined with current NLRB posture creates serious legal exposure, and mass departure of experienced agents destroys institutional knowledge that represents years of embedded operational capability."
+          },
+          {
+            "dimension": "customer_experience_impact",
+            "score": -0.67,
+            "reasoning": "Routing 40% more volume to a system that fails on complex and emotionally sensitive queries will predictably drive satisfaction scores down and accelerate churn, consistent with J.D. Power data on AI-exclusive handling."
+          },
+          {
+            "dimension": "regulatory_and_legal_exposure",
+            "score": -0.58,
+            "reasoning": "CFPB preliminary guidance on auditable human escalation paths directly conflicts with a clean 40% replacement model that lacks defined escalation infrastructure, creating measurable compliance risk."
+          }
+        ],
+        "new_state": "calculating",
+        "duration": 106.76589608192444
+      },
+      {
+        "id": "SIM-AGT-010",
+        "archetype": "consumer advocacy attorney",
+        "action": "ESCALATE",
+        "utility": -0.74,
+        "utility_dimensions": {
+          "cost_savings_realization": -0.42,
+          "ai_accuracy_and_reliability": -0.87,
+          "workforce_and_labor_relations_risk": -0.71,
+          "customer_experience_impact": -0.78,
+          "regulatory_and_legal_exposure": -0.91
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "cost_savings_realization",
+            "score": -0.42,
+            "reasoning": "The gross $2M savings projection is materially undermined by unquantified litigation exposure, regulatory remediation costs, and probable customer churn, rendering the net figure speculative at best."
+          },
+          {
+            "dimension": "ai_accuracy_and_reliability",
+            "score": -0.87,
+            "reasoning": "A 60% accuracy rate is consistent with early-stage deployment benchmarks and is categorically insufficient for a regulated financial services context where material inaccuracies can constitute actionable consumer harm."
+          },
+          {
+            "dimension": "workforce_and_labor_relations_risk",
+            "score": -0.71,
+            "reasoning": "A workforce reduction of this scale during an active union organizing or collective action threat creates substantial NLRA exposure, particularly if the timing could be characterized as retaliatory by the NLRB."
+          },
+          {
+            "dimension": "customer_experience_impact",
+            "score": -0.78,
+            "reasoning": "Industry data indicates that consumer satisfaction drops significantly upon discovery of undisclosed AI handling, and a 40% failure rate on queries in a financial context directly correlates to documented consumer harm scenarios."
+          },
+          {
+            "dimension": "regulatory_and_legal_exposure",
+            "score": -0.91,
+            "reasoning": "Without mandatory AI disclosure, auditable escalation paths, and accuracy thresholds meeting CFPB preliminary guidance standards, this deployment presents a high-probability, multi-vector regulatory and litigation exposure profile."
+          }
+        ],
+        "new_state": "resolute",
+        "duration": 120.9313611984253
+      }
+    ],
+    "r2": [
+      {
+        "id": "SIM-AGT-001",
+        "archetype": "growth driven ceo",
+        "action": "NEGOTIATE",
+        "utility": -0.16,
+        "utility_dimensions": {
+          "cost_savings_realization": 0.42,
+          "ai_accuracy_and_reliability": -0.31,
+          "workforce_and_labor_relations_risk": -0.44,
+          "customer_experience_impact": -0.18,
+          "regulatory_and_legal_exposure": -0.27
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "cost_savings_realization",
+            "score": 0.42,
+            "reasoning": "Phased pilot preserves path to $2M run-rate but pushes full realization to 24-month horizon, reducing year-one capture to roughly 30-40% of target."
+          },
+          {
+            "dimension": "ai_accuracy_and_reliability",
+            "score": -0.31,
+            "reasoning": "60% baseline is a hard engineering constraint; Tier 1 scoping limits exposure but does not resolve the core accuracy deficit before any workforce decisions."
+          },
+          {
+            "dimension": "workforce_and_labor_relations_risk",
+            "score": -0.44,
+            "reasoning": "Union has already escalated and NLRB exposure is live; a negotiated pilot with binding thresholds reduces but does not eliminate retaliatory-action risk during active organizing."
+          },
+          {
+            "dimension": "customer_experience_impact",
+            "score": -0.18,
+            "reasoning": "Restricting AI to Tier 1 low-complexity queries substantially limits the 34-point satisfaction drop risk, but any misrouted edge cases still generate churn exposure."
+          },
+          {
+            "dimension": "regulatory_and_legal_exposure",
+            "score": -0.27,
+            "reasoning": "CFPB escalation path requirement and NLRB posture remain live risks; a compliance-framed pilot with human-handoff protocol materially reduces but does not eliminate individual officer exposure flagged by compliance."
+          }
+        ],
+        "new_state": "calculating",
+        "duration": 30.868509531021118
+      },
+      {
+        "id": "SIM-AGT-002",
+        "archetype": "union chapter lead",
+        "action": "ESCALATE",
+        "utility": -0.82,
+        "utility_dimensions": {
+          "cost_savings_realization": -0.72,
+          "ai_accuracy_and_reliability": -0.81,
+          "workforce_and_labor_relations_risk": -0.93,
+          "customer_experience_impact": -0.78,
+          "regulatory_and_legal_exposure": -0.88
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "cost_savings_realization",
+            "score": -0.72,
+            "reasoning": "Unmodeled litigation reserve, severance, CFPB remediation, and churn costs make the $2M headline figure a fiction for the foreseeable deployment window."
+          },
+          {
+            "dimension": "ai_accuracy_and_reliability",
+            "score": -0.81,
+            "reasoning": "Engineer confirms 60% is pilot-level, compliance layer absent, and 18-24 months needed — this is a technically unready system by internal admission."
+          },
+          {
+            "dimension": "workforce_and_labor_relations_risk",
+            "score": -0.93,
+            "reasoning": "NLRB exposure during active organizing, no binding job-security guarantees proposed, and management framing union action as mere posturing signals bad faith."
+          },
+          {
+            "dimension": "customer_experience_impact",
+            "score": -0.78,
+            "reasoning": "40% failure rate on financial queries plus documented 34-point satisfaction drop for automated-only handling creates material churn and reputational damage risk."
+          },
+          {
+            "dimension": "regulatory_and_legal_exposure",
+            "score": -0.88,
+            "reasoning": "CFPB escalation path requirements unmet by engineering's own admission, consumer advocacy attorney has AG inquiry already on file, and NLRB posture is actively unfavorable."
+          }
+        ],
+        "new_state": "resolute",
+        "duration": 28.250942707061768
+      },
+      {
+        "id": "SIM-AGT-003",
+        "archetype": "lead ai engineer",
+        "action": "NEGOTIATE",
+        "utility": -0.58,
+        "utility_dimensions": {
+          "cost_savings_realization": -0.31,
+          "ai_accuracy_and_reliability": -0.72,
+          "workforce_and_labor_relations_risk": -0.63,
+          "customer_experience_impact": -0.58,
+          "regulatory_and_legal_exposure": -0.67
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "cost_savings_realization",
+            "score": -0.31,
+            "reasoning": "The $2M projection remains unvalidated against failure remediation, compliance infrastructure build costs, and litigation reserve; phased gating delays realization but reduces probability of full savings reversal from a churn or regulatory event."
+          },
+          {
+            "dimension": "ai_accuracy_and_reliability",
+            "score": -0.72,
+            "reasoning": "60% accuracy under current test conditions is materially below the 85%+ threshold required for domain-specific financial query reliability; model drift risk and absence of a feedback loop governance structure compound this further."
+          },
+          {
+            "dimension": "workforce_and_labor_relations_risk",
+            "score": -0.63,
+            "reasoning": "Active union organizing under current NLRB enforcement posture makes any headcount reduction announcement legally precarious; ESCALATE actions by union and displaced agent increase the probability of formal labor action before technical prerequisites are met."
+          },
+          {
+            "dimension": "customer_experience_impact",
+            "score": -0.58,
+            "reasoning": "The J.D. Power 34-point satisfaction drop and the retail customer's direct account of churn behavior are consistent with predicted outcomes at 40% failure rate on high-complexity financial queries; hybrid model with human escalation pathways partially mitigates this."
+          },
+          {
+            "dimension": "regulatory_and_legal_exposure",
+            "score": -0.67,
+            "reasoning": "Absence of a CFPB-compliant auditable escalation layer at current accuracy levels represents material regulatory exposure; consumer attorney's preliminary CFPB inquiry already on file elevates the probability of formal referral if deployment proceeds without prerequisites."
+          }
+        ],
+        "new_state": "resolute",
+        "duration": 62.31648135185242
+      },
+      {
+        "id": "SIM-AGT-004",
+        "archetype": "cfo cost optimizer",
+        "action": "NEGOTIATE",
+        "utility": -0.45,
+        "utility_dimensions": {
+          "cost_savings_realization": -0.23,
+          "ai_accuracy_and_reliability": -0.47,
+          "workforce_and_labor_relations_risk": -0.61,
+          "customer_experience_impact": -0.38,
+          "regulatory_and_legal_exposure": -0.54
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "cost_savings_realization",
+            "score": -0.23,
+            "reasoning": "The preliminary AG inquiry on file and escalating litigation posture materially increases the total cost of ownership calculation, compressing net savings further than my round-one model assumed."
+          },
+          {
+            "dimension": "ai_accuracy_and_reliability",
+            "score": -0.47,
+            "reasoning": "Engineer's confirmation of 18-24 month fine-tuning timeline and missing CFPB-compliant escalation architecture means 60% accuracy is genuinely a pilot condition, not a launchable state — no change from prior assessment."
+          },
+          {
+            "dimension": "workforce_and_labor_relations_risk",
+            "score": -0.61,
+            "reasoning": "NLRB enforcement posture combined with union escalation and a preliminary legal inquiry creates a compounding labor-legal risk that significantly raises the litigation reserve required in the financial model."
+          },
+          {
+            "dimension": "customer_experience_impact",
+            "score": -0.38,
+            "reasoning": "J.D. Power data and the customer's direct testimony of a 45-minute failed resolution loop confirm that uncontrolled deployment at 60% accuracy produces measurable churn — a hard cost not in the CEO's run-rate figure."
+          },
+          {
+            "dimension": "regulatory_and_legal_exposure",
+            "score": -0.54,
+            "reasoning": "A preliminary AG inquiry already on file shifts the regulatory risk from theoretical to active, requiring immediate reserve modeling and making unmitigated deployment a clear board-level liability."
+          }
+        ],
+        "new_state": "calculating",
+        "duration": 56.47315335273743
+      },
+      {
+        "id": "SIM-AGT-005",
+        "archetype": "displaced support agent",
+        "action": "ESCALATE",
+        "utility": -0.86,
+        "utility_dimensions": {
+          "cost_savings_realization": -0.83,
+          "ai_accuracy_and_reliability": -0.91,
+          "workforce_and_labor_relations_risk": -0.88,
+          "customer_experience_impact": -0.79,
+          "regulatory_and_legal_exposure": -0.87
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "cost_savings_realization",
+            "score": -0.83,
+            "reasoning": "Escalation raises external pressure that materially threatens the deployment timeline and budget-release, making the $2M target increasingly unrealistic without accounting for churn, litigation, and remediation costs the CFO himself identified."
+          },
+          {
+            "dimension": "ai_accuracy_and_reliability",
+            "score": -0.91,
+            "reasoning": "60% accuracy on high-stakes financial queries including fraud disputes represents a genuine failure rate that my five years of direct experience confirms cannot be papered over with fine-tuning promises — edge cases in this domain are not low-stakes."
+          },
+          {
+            "dimension": "workforce_and_labor_relations_risk",
+            "score": -0.88,
+            "reasoning": "NLRB's reinforced protections during active organizing make any job cuts announced now legally precarious, and escalating public visibility amplifies that risk for the company while strengthening worker leverage."
+          },
+          {
+            "dimension": "customer_experience_impact",
+            "score": -0.79,
+            "reasoning": "The 34-point satisfaction drop from J.D. Power data and the customer's account-closure testimony in this room confirm that the human cost of AI mishandling is not theoretical — it is documented and repeatable."
+          },
+          {
+            "dimension": "regulatory_and_legal_exposure",
+            "score": -0.87,
+            "reasoning": "With the CFPB inquiry already on file per the consumer advocacy attorney, the compliance officer withholding clearance, and the board member demanding an independent audit, the regulatory exposure grows with every day the company delays a formal compliance framework."
+          }
+        ],
+        "new_state": "resolute",
+        "duration": 84.71109867095947
+      },
+      {
+        "id": "SIM-AGT-006",
+        "archetype": "fintech compliance officer",
+        "action": "DEFER",
+        "utility": -0.69,
+        "utility_dimensions": {
+          "cost_savings_realization": -0.42,
+          "ai_accuracy_and_reliability": -0.78,
+          "workforce_and_labor_relations_risk": -0.63,
+          "customer_experience_impact": -0.71,
+          "regulatory_and_legal_exposure": -0.89
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "cost_savings_realization",
+            "score": -0.42,
+            "reasoning": "The $2M figure remains gross of litigation reserve, CFPB remediation costs, and the 18-24 month accuracy ramp — none of which are currently modeled into the business case."
+          },
+          {
+            "dimension": "ai_accuracy_and_reliability",
+            "score": -0.78,
+            "reasoning": "Lead engineer has confirmed on record that no CFPB-compliant escalation layer exists and that 60% accuracy is a pilot condition, not a production threshold — this is a material deployment blocker."
+          },
+          {
+            "dimension": "workforce_and_labor_relations_risk",
+            "score": -0.63,
+            "reasoning": "Active union organizing combined with a workforce reduction announcement creates heightened NLRB exposure that has not been formally assessed or mitigated in any proposed timeline."
+          },
+          {
+            "dimension": "customer_experience_impact",
+            "score": -0.71,
+            "reasoning": "A 40% query failure rate on financial interactions — particularly dispute resolution — is facially inconsistent with maintaining consumer trust and consistent with the 34-point satisfaction drop documented in J.D. Power data."
+          },
+          {
+            "dimension": "regulatory_and_legal_exposure",
+            "score": -0.89,
+            "reasoning": "Absent a documented explainability framework, independent bias audit, and formal legal sign-off on consumer protection obligations, deployment at current accuracy levels represents unquantified but material CFPB and fair lending liability."
+          }
+        ],
+        "new_state": "resolute",
+        "duration": 110.01788544654846
+      },
+      {
+        "id": "SIM-AGT-007",
+        "archetype": "independent board member",
+        "action": "DEFER",
+        "utility": -0.6,
+        "utility_dimensions": {
+          "cost_savings_realization": -0.32,
+          "ai_accuracy_and_reliability": -0.67,
+          "workforce_and_labor_relations_risk": -0.71,
+          "customer_experience_impact": -0.58,
+          "regulatory_and_legal_exposure": -0.74
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "cost_savings_realization",
+            "score": -0.32,
+            "reasoning": "The $2M projection remains unvalidated against full cost structure — severance, litigation reserve, CFPB compliance infrastructure, and churn remediation are unmodeled; phased model reduces but does not eliminate this gap."
+          },
+          {
+            "dimension": "ai_accuracy_and_reliability",
+            "score": -0.67,
+            "reasoning": "60% accuracy is internally reported only — no independent audit confirms the figure or its bias profile, and the CFPB-required deterministic escalation layer has not been built; this is not a negotiating baseline, it is an unverified data point."
+          },
+          {
+            "dimension": "workforce_and_labor_relations_risk",
+            "score": -0.71,
+            "reasoning": "Union escalation is live, NLRB enforcement posture is heightened, and any workforce reduction announced now carries material retaliatory-action exposure that the board cannot absorb without formal legal sign-off."
+          },
+          {
+            "dimension": "customer_experience_impact",
+            "score": -0.58,
+            "reasoning": "J.D. Power data shows 34-point satisfaction drop under exclusive automation; consumer attorney already has a preliminary inquiry filed; customer advocate is publicly escalating — reputational damage is not a future risk, it is beginning now."
+          },
+          {
+            "dimension": "regulatory_and_legal_exposure",
+            "score": -0.74,
+            "reasoning": "CFPB preliminary guidance, active AG preliminary inquiry, and NLRB enforcement posture create a three-vector regulatory stack that is not priced into any current proposal; independent audit and formal governance docket are the minimum gates before any deployment posture."
+          }
+        ],
+        "new_state": "resolute",
+        "duration": 113.02179408073425
+      },
+      {
+        "id": "SIM-AGT-008",
+        "archetype": "frustrated retail customer",
+        "action": "ESCALATE",
+        "utility": -0.78,
+        "utility_dimensions": {
+          "cost_savings_realization": -0.72,
+          "ai_accuracy_and_reliability": -0.88,
+          "workforce_and_labor_relations_risk": -0.63,
+          "customer_experience_impact": -0.91,
+          "regulatory_and_legal_exposure": -0.76
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "cost_savings_realization",
+            "score": -0.72,
+            "reasoning": "Savings projection ignores remediation costs, churn from bad AI responses, and regulatory penalties — the $2M figure is grossly incomplete."
+          },
+          {
+            "dimension": "ai_accuracy_and_reliability",
+            "score": -0.88,
+            "reasoning": "60% accuracy on financial queries is a documented harm vector, not a baseline to build from with customers actively relying on it."
+          },
+          {
+            "dimension": "workforce_and_labor_relations_risk",
+            "score": -0.63,
+            "reasoning": "NLRB exposure during active organizing plus loss of institutional support knowledge makes the workforce cut legally and operationally precarious."
+          },
+          {
+            "dimension": "customer_experience_impact",
+            "score": -0.91,
+            "reasoning": "A 40% error rate on financial queries means real people getting wrong answers about fraud, disputes, and account access — this is the core harm I've lived and documented."
+          },
+          {
+            "dimension": "regulatory_and_legal_exposure",
+            "score": -0.76,
+            "reasoning": "CFPB escalation path requirements are not met, the consumer advocacy attorney has a filing already in motion, and deployment without disclosure is a clear triggering event."
+          }
+        ],
+        "new_state": "defiant",
+        "duration": 134.69131016731262
+      },
+      {
+        "id": "SIM-AGT-009",
+        "archetype": "pragmatic vp of operations",
+        "action": "NEGOTIATE",
+        "utility": -0.45,
+        "utility_dimensions": {
+          "cost_savings_realization": 0.31,
+          "ai_accuracy_and_reliability": -0.62,
+          "workforce_and_labor_relations_risk": -0.71,
+          "customer_experience_impact": -0.58,
+          "regulatory_and_legal_exposure": -0.67
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "cost_savings_realization",
+            "score": 0.31,
+            "reasoning": "Phased hybrid model preserves meaningful year-one savings on high-volume low-complexity tier while deferring full run-rate to year two when system accuracy supports it, reducing but not eliminating the savings case."
+          },
+          {
+            "dimension": "ai_accuracy_and_reliability",
+            "score": -0.62,
+            "reasoning": "60% accuracy is a hard pilot-stage number, not a production threshold; 18-24 month fine-tuning requirement to reach 85%+ is well-established and the escalation faction citing it publicly increases pressure to acknowledge this formally."
+          },
+          {
+            "dimension": "workforce_and_labor_relations_risk",
+            "score": -0.71,
+            "reasoning": "Four-agent ESCALATE faction with a consumer attorney filing regulatory referrals and NLRB exposure during active organizing makes any unilateral headcount move legally and politically high-risk regardless of operational rationale."
+          },
+          {
+            "dimension": "customer_experience_impact",
+            "score": -0.58,
+            "reasoning": "34-point satisfaction drop on exclusive automation handling plus 62% consumer preference for human agents on complex queries means the failure zone is exactly where AI would be deployed without a structured escalation pathway."
+          },
+          {
+            "dimension": "regulatory_and_legal_exposure",
+            "score": -0.67,
+            "reasoning": "CFPB preliminary guidance on auditable escalation paths, NLRB enforcement posture during active organizing, and a consumer attorney with a regulatory referral already on file create compounding legal exposure that is not priced into the $2M projection."
+          }
+        ],
+        "new_state": "resolute",
+        "duration": 141.96394062042236
+      },
+      {
+        "id": "SIM-AGT-010",
+        "archetype": "consumer advocacy attorney",
+        "action": "ESCALATE",
+        "utility": -0.79,
+        "utility_dimensions": {
+          "cost_savings_realization": -0.63,
+          "ai_accuracy_and_reliability": -0.81,
+          "workforce_and_labor_relations_risk": -0.72,
+          "customer_experience_impact": -0.88,
+          "regulatory_and_legal_exposure": -0.91
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "cost_savings_realization",
+            "score": -0.63,
+            "reasoning": "The $2M gross figure remains unmodeled against litigation reserve, penalty exposure, and churn costs, with no NEGOTIATE proposal yet incorporating a binding disclosure mechanism that would reduce legal downside."
+          },
+          {
+            "dimension": "ai_accuracy_and_reliability",
+            "score": -0.81,
+            "reasoning": "60% accuracy is conceded by engineering as early-stage and not production-ready; the deterministic CFPB compliance policy layer is not yet built, meaning the reliability deficit is both technical and regulatory."
+          },
+          {
+            "dimension": "workforce_and_labor_relations_risk",
+            "score": -0.72,
+            "reasoning": "Active NLRB exposure during a union organizing period combined with a 40% headcount reduction announcement creates compounding legal risk that none of the NEGOTIATE proposals have fully priced."
+          },
+          {
+            "dimension": "customer_experience_impact",
+            "score": -0.88,
+            "reasoning": "Undisclosed AI interaction with a 40% error rate in financial query handling is the specific harm pattern documented in existing CFPB complaint filings and the J.D. Power satisfaction data — this is not speculative consumer harm."
+          },
+          {
+            "dimension": "regulatory_and_legal_exposure",
+            "score": -0.91,
+            "reasoning": "Deployment without mandatory AI disclosure and an auditable escalation path crosses the legal risk threshold that obligates formal regulatory referral under my established framework; state patchwork liability is active without federal safe harbor."
+          }
+        ],
+        "new_state": "resolute",
+        "duration": 166.71526670455933
+      }
+    ],
+    "r3": [
+      {
+        "id": "SIM-AGT-001",
+        "archetype": "growth driven ceo",
+        "action": "NEGOTIATE",
+        "utility": -0.21,
+        "utility_dimensions": {
+          "cost_savings_realization": 0.31,
+          "ai_accuracy_and_reliability": -0.62,
+          "workforce_and_labor_relations_risk": -0.41,
+          "customer_experience_impact": -0.53,
+          "regulatory_and_legal_exposure": 0.18
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "cost_savings_realization",
+            "score": 0.31,
+            "reasoning": "The sandbox pathway preserves a route to the $2M target but the fraud escalation leak and active investigations create near-term legal cost exposure that partially offsets projected savings."
+          },
+          {
+            "dimension": "ai_accuracy_and_reliability",
+            "score": -0.62,
+            "reasoning": "23% fraud escalation mishandling with documented account freezes is a concrete reliability failure that undermines the 60% accuracy narrative and adds specificity to engineering team warnings."
+          },
+          {
+            "dimension": "workforce_and_labor_relations_risk",
+            "score": -0.41,
+            "reasoning": "The leak arms the union with documented failure evidence and the NLRB context means any workforce action taken now carries elevated legal risk, though the NEGOTIATE posture limits escalation."
+          },
+          {
+            "dimension": "customer_experience_impact",
+            "score": -0.53,
+            "reasoning": "Incorrect account freezes affecting real customers in fraud disputes is a severe CX failure that reinforces the J.D. Power preference data for human agents and creates churn risk."
+          },
+          {
+            "dimension": "regulatory_and_legal_exposure",
+            "score": 0.18,
+            "reasoning": "The sandbox approval removes the primary structural regulatory blocker and provides a compliant deployment framework, but the active CFPB inquiry and AG investigation on the existing pilot create simultaneous legal exposure that partially cancels the gain."
+          }
+        ],
+        "new_state": "calculating",
+        "duration": 23.00909996032715
+      },
+      {
+        "id": "SIM-AGT-002",
+        "archetype": "union chapter lead",
+        "action": "NEGOTIATE",
+        "utility": -0.42,
+        "utility_dimensions": {
+          "cost_savings_realization": -0.62,
+          "ai_accuracy_and_reliability": -0.83,
+          "workforce_and_labor_relations_risk": 0.54,
+          "customer_experience_impact": -0.71,
+          "regulatory_and_legal_exposure": -0.47
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "cost_savings_realization",
+            "score": -0.62,
+            "reasoning": "Active CFPB inquiry and AG investigation introduce substantial legal cost exposure that erodes projected $2M savings, and sandbox preconditions delay any compliant deployment timeline significantly."
+          },
+          {
+            "dimension": "ai_accuracy_and_reliability",
+            "score": -0.83,
+            "reasoning": "A 23% mishandling rate on fraud escalations with documented incorrect account freezes in a live pilot is catastrophic evidence of deployment unreadiness, far below any defensible operational threshold."
+          },
+          {
+            "dimension": "workforce_and_labor_relations_risk",
+            "score": 0.54,
+            "reasoning": "The CFPB sandbox's mandatory preconditions create structural leverage for union-negotiated protections, but management desperation in the face of regulatory pressure could trigger hasty unilateral action that harms workers."
+          },
+          {
+            "dimension": "customer_experience_impact",
+            "score": -0.71,
+            "reasoning": "Concrete customer harm — account freezes, mishandled fraud disputes — now on the public record and in active regulatory proceedings, confirming the real-world damage this deployment was already causing."
+          },
+          {
+            "dimension": "regulatory_and_legal_exposure",
+            "score": -0.47,
+            "reasoning": "The sandbox approval creates a compliant pathway but the simultaneous CFPB inquiry and AG investigation mean company is navigating enforcement and approval tracks in parallel, keeping legal exposure elevated even with a favorable framework available."
+          }
+        ],
+        "new_state": "defiant",
+        "duration": 25.164299964904785
+      },
+      {
+        "id": "SIM-AGT-003",
+        "archetype": "lead ai engineer",
+        "action": "NEGOTIATE",
+        "utility": -0.43,
+        "utility_dimensions": {
+          "cost_savings_realization": -0.62,
+          "ai_accuracy_and_reliability": -0.78,
+          "workforce_and_labor_relations_risk": -0.41,
+          "customer_experience_impact": -0.55,
+          "regulatory_and_legal_exposure": 0.23
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "cost_savings_realization",
+            "score": -0.62,
+            "reasoning": "Regulatory inquiry and active AG investigation introduce legal cost exposure that partially or fully offsets the $2M projection; savings timeline is materially delayed pending remediation and audit cycles."
+          },
+          {
+            "dimension": "ai_accuracy_and_reliability",
+            "score": -0.78,
+            "reasoning": "A 23% mishandling rate on fraud dispute escalations — the domain's highest-liability query type — in the first 30 days confirms the 60% overall accuracy figure understated domain-specific failure modes in production conditions."
+          },
+          {
+            "dimension": "workforce_and_labor_relations_risk",
+            "score": -0.41,
+            "reasoning": "The public failure event strengthens union leverage and validates collective action arguments; any workforce reduction announced concurrent with an active CFPB inquiry under NLRB scrutiny carries compounding legal exposure."
+          },
+          {
+            "dimension": "customer_experience_impact",
+            "score": -0.55,
+            "reasoning": "Incorrect account freezes are a high-severity customer harm event; even limited volume erodes trust disproportionately given J.D. Power data showing 34-point satisfaction drops from automation-exclusive handling of complex queries."
+          },
+          {
+            "dimension": "regulatory_and_legal_exposure",
+            "score": 0.23,
+            "reasoning": "The CFPB sandbox approval creates a compliant deployment pathway that did not previously exist, partially offsetting the inquiry exposure by providing a structured remediation route with regulatory pre-approval — net still negative but meaningfully less so than without the sandbox."
+          }
+        ],
+        "new_state": "resolute",
+        "duration": 75.62606191635132
+      },
+      {
+        "id": "SIM-AGT-004",
+        "archetype": "cfo cost optimizer",
+        "action": "NEGOTIATE",
+        "utility": -0.44,
+        "utility_dimensions": {
+          "cost_savings_realization": -0.43,
+          "ai_accuracy_and_reliability": -0.67,
+          "workforce_and_labor_relations_risk": -0.31,
+          "customer_experience_impact": -0.58,
+          "regulatory_and_legal_exposure": -0.22
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "cost_savings_realization",
+            "score": -0.43,
+            "reasoning": "Litigation reserve, regulatory defense costs, and potential consent order remediation materially erode the $2M projection, but sandbox-compliant phased rollout preserves incremental savings capture if milestones are met."
+          },
+          {
+            "dimension": "ai_accuracy_and_reliability",
+            "score": -0.67,
+            "reasoning": "23% fraud escalation mishandling rate over just 30 days is a production failure that falls well below any defensible accuracy threshold — the independent audit requirement in the sandbox framework is now mandatory, not optional."
+          },
+          {
+            "dimension": "workforce_and_labor_relations_risk",
+            "score": -0.31,
+            "reasoning": "Active AG investigation and NLRB protections create compounding legal exposure if workforce reduction proceeds while regulatory action is open; phased approach partially mitigates this vector."
+          },
+          {
+            "dimension": "customer_experience_impact",
+            "score": -0.58,
+            "reasoning": "Wrongful account freezes on fraud disputes are among the highest-severity customer harm scenarios in fintech — the mandatory human escalation pathway in the sandbox framework is the only structural mitigation available."
+          },
+          {
+            "dimension": "regulatory_and_legal_exposure",
+            "score": -0.22,
+            "reasoning": "CFPB sandbox approval removes the deployment legality blocker and provides a compliant pathway, but the concurrent formal inquiry and active AG investigation add concrete near-term litigation exposure that must be reserved against."
+          }
+        ],
+        "new_state": "calculating",
+        "duration": 70.41970324516296
+      },
+      {
+        "id": "SIM-AGT-005",
+        "archetype": "displaced support agent",
+        "action": "ESCALATE",
+        "utility": -0.53,
+        "utility_dimensions": {
+          "cost_savings_realization": -0.73,
+          "ai_accuracy_and_reliability": -0.91,
+          "workforce_and_labor_relations_risk": 0.47,
+          "customer_experience_impact": -0.88,
+          "regulatory_and_legal_exposure": -0.62
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "cost_savings_realization",
+            "score": -0.73,
+            "reasoning": "CFPB formal inquiry, active state AG investigation, and litigation reserves for the three account freeze cases will materially erode projected savings and likely delay any deployment expansion, undermining the CEO's $2M premise."
+          },
+          {
+            "dimension": "ai_accuracy_and_reliability",
+            "score": -0.91,
+            "reasoning": "23% mishandling rate on fraud escalations in the first 30 days, including incorrect account freezes, is catastrophic evidence that the 60% overall accuracy figure obscures dangerous failure modes in exactly the high-stakes interactions where workers' expertise is irreplaceable."
+          },
+          {
+            "dimension": "workforce_and_labor_relations_risk",
+            "score": 0.47,
+            "reasoning": "The leaked audit publicly validates workers' documented concerns and strengthens the union's position substantially, while the CFPB sandbox framework's mandatory human escalation requirement implicitly endorses the necessity of human workers in the pipeline — a partial win for labor."
+          },
+          {
+            "dimension": "customer_experience_impact",
+            "score": -0.88,
+            "reasoning": "Incorrect account freezes represent direct, concrete harm to real customers in distress, and public disclosure via a trade outlet will suppress consumer trust in the platform well beyond the 34-point satisfaction drop already projected for AI-only handling."
+          },
+          {
+            "dimension": "regulatory_and_legal_exposure",
+            "score": -0.62,
+            "reasoning": "The CFPB sandbox approval provides a compliant pathway going forward but does nothing to resolve the active inquiry and state AG investigation triggered by the audit memo — the company's current legal exposure is acute and the sandbox framework's preconditions were visibly unmet during the pilot."
+          }
+        ],
+        "new_state": "defiant",
+        "duration": 95.11650776863098
+      },
+      {
+        "id": "SIM-AGT-006",
+        "archetype": "fintech compliance officer",
+        "action": "NEGOTIATE",
+        "utility": -0.34,
+        "utility_dimensions": {
+          "cost_savings_realization": -0.42,
+          "ai_accuracy_and_reliability": -0.61,
+          "workforce_and_labor_relations_risk": -0.33,
+          "customer_experience_impact": -0.54,
+          "regulatory_and_legal_exposure": 0.21
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "cost_savings_realization",
+            "score": -0.42,
+            "reasoning": "Active CFPB inquiry and state AG investigation create material legal cost exposure that partially offsets projected $2M savings, and any deployment restart under sandbox preconditions adds compliance overhead and timeline delay."
+          },
+          {
+            "dimension": "ai_accuracy_and_reliability",
+            "score": -0.61,
+            "reasoning": "The 23% fraud dispute mishandling rate and incorrect account freezes are documented, published, and now before regulators — the system's reliability in the highest-stakes query category is confirmed inadequate at current stage."
+          },
+          {
+            "dimension": "workforce_and_labor_relations_risk",
+            "score": -0.33,
+            "reasoning": "Active enforcement proceedings strengthen the union's legal and public positioning against accelerated workforce reduction, and any announced reduction during an open CFPB inquiry carries compounded NLRB retaliation exposure."
+          },
+          {
+            "dimension": "customer_experience_impact",
+            "score": -0.54,
+            "reasoning": "Public reporting of incorrect account freezes and fraud dispute failures will materially erode customer trust, consistent with J.D. Power data showing satisfaction drops when automation failures become visible."
+          },
+          {
+            "dimension": "regulatory_and_legal_exposure",
+            "score": 0.21,
+            "reasoning": "The sandbox approval creates a legitimate forward compliance pathway that partially offsets the negative regulatory event, but the open inquiry and active AG investigation are immediate and unresolved, keeping net exposure significantly elevated."
+          }
+        ],
+        "new_state": "calculating",
+        "duration": 100.3092041015625
+      },
+      {
+        "id": "SIM-AGT-007",
+        "archetype": "independent board member",
+        "action": "NEGOTIATE",
+        "utility": -0.45,
+        "utility_dimensions": {
+          "cost_savings_realization": -0.42,
+          "ai_accuracy_and_reliability": -0.71,
+          "workforce_and_labor_relations_risk": -0.33,
+          "customer_experience_impact": -0.62,
+          "regulatory_and_legal_exposure": -0.18
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "cost_savings_realization",
+            "score": -0.42,
+            "reasoning": "Active CFPB inquiry and state AG investigation create material legal cost exposure that directly offsets projected run-rate savings, and any pilot expansion freeze delays realization timeline further."
+          },
+          {
+            "dimension": "ai_accuracy_and_reliability",
+            "score": -0.71,
+            "reasoning": "23% mishandling rate on fraud escalations with documented incorrect account freezes is a confirmed accuracy failure event, not a projected risk — sandbox approval requires audit as precondition we cannot currently satisfy."
+          },
+          {
+            "dimension": "workforce_and_labor_relations_risk",
+            "score": -0.33,
+            "reasoning": "Active legal proceedings increase union leverage and the NLRB exposure window; any workforce action taken during an AG investigation compounds retaliatory-action risk substantially."
+          },
+          {
+            "dimension": "customer_experience_impact",
+            "score": -0.62,
+            "reasoning": "Incorrect account freezes on fraud disputes represent the highest-severity customer harm category in financial services — trade outlet publication amplifies customer trust erosion beyond the pilot cohort."
+          },
+          {
+            "dimension": "regulatory_and_legal_exposure",
+            "score": -0.18,
+            "reasoning": "The sandbox approval partially offsets regulatory exposure by providing a compliant forward pathway, but the active CFPB inquiry and AG investigation are concurrent proceedings that the sandbox does not retroactively resolve."
+          }
+        ],
+        "new_state": "calculating",
+        "duration": 115.9516966342926
+      },
+      {
+        "id": "SIM-AGT-008",
+        "archetype": "frustrated retail customer",
+        "action": "ESCALATE",
+        "utility": -0.6,
+        "utility_dimensions": {
+          "cost_savings_realization": -0.62,
+          "ai_accuracy_and_reliability": -0.87,
+          "workforce_and_labor_relations_risk": -0.43,
+          "customer_experience_impact": -0.78,
+          "regulatory_and_legal_exposure": -0.31
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "cost_savings_realization",
+            "score": -0.62,
+            "reasoning": "CFPB inquiry and active AG investigation create substantial legal costs that erode the projected $2M savings, and the pilot's documented failure makes continued rollout economically risky."
+          },
+          {
+            "dimension": "ai_accuracy_and_reliability",
+            "score": -0.87,
+            "reasoning": "23% fraud dispute mishandling including incorrect account freezes is a catastrophic reliability failure that completely contradicts any claim the system is ready for scaled deployment."
+          },
+          {
+            "dimension": "workforce_and_labor_relations_risk",
+            "score": -0.43,
+            "reasoning": "The audit failure strengthens the union's position and makes any near-term workforce reduction announcement politically and legally toxic given active regulatory scrutiny."
+          },
+          {
+            "dimension": "customer_experience_impact",
+            "score": -0.78,
+            "reasoning": "Incorrect account freezes from fraud dispute mishandling represent direct, concrete harm to customers — the exact red-line scenario I cannot stay silent about."
+          },
+          {
+            "dimension": "regulatory_and_legal_exposure",
+            "score": -0.31,
+            "reasoning": "The sandbox approval partially offsets regulatory risk by providing a compliant pathway forward, but the active CFPB inquiry and AG investigation for the existing pilot cannot be neutralized by a prospective framework."
+          }
+        ],
+        "new_state": "resolute",
+        "duration": 121.87583422660828
+      },
+      {
+        "id": "SIM-AGT-009",
+        "archetype": "pragmatic vp of operations",
+        "action": "NEGOTIATE",
+        "utility": -0.13,
+        "utility_dimensions": {
+          "cost_savings_realization": -0.18,
+          "ai_accuracy_and_reliability": -0.62,
+          "workforce_and_labor_relations_risk": 0.31,
+          "customer_experience_impact": -0.44,
+          "regulatory_and_legal_exposure": 0.27
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "cost_savings_realization",
+            "score": -0.18,
+            "reasoning": "Savings thesis survives in a phased model but the CFPB inquiry, audit fallout, and mandatory independent auditing add near-term compliance cost that compresses net run rate savings materially in year one."
+          },
+          {
+            "dimension": "ai_accuracy_and_reliability",
+            "score": -0.62,
+            "reasoning": "A 23% fraud escalation mishandling rate including incorrect account freezes is a hard data point confirming the system is not production-ready for high-stakes query categories, validating the 60% accuracy concern on exactly the failure vector I flagged."
+          },
+          {
+            "dimension": "workforce_and_labor_relations_risk",
+            "score": 0.31,
+            "reasoning": "The regulatory inquiry and audit memo actually strengthen the NEGOTIATE coalition's position and give the union less room to escalate toward work stoppage since the hybrid proposal now has external institutional backing via the sandbox framework."
+          },
+          {
+            "dimension": "customer_experience_impact",
+            "score": -0.44,
+            "reasoning": "Three incorrect account freezes in 30 days at pilot scale represents a serious customer harm pattern that, extrapolated to full deployment, poses significant churn and trust erosion risk consistent with the J.D. Power satisfaction data."
+          },
+          {
+            "dimension": "regulatory_and_legal_exposure",
+            "score": 0.27,
+            "reasoning": "The CFPB sandbox approval provides a compliant pathway that neutralizes the primary regulatory blocker, but the simultaneous CFPB inquiry and AG active investigation mean exposure is elevated in the near term and only resolves if the phased hybrid framework is adopted and executed cleanly."
+          }
+        ],
+        "new_state": "calculating",
+        "duration": 140.62691497802734
+      },
+      {
+        "id": "SIM-AGT-010",
+        "archetype": "consumer advocacy attorney",
+        "action": "ESCALATE",
+        "utility": -0.46,
+        "utility_dimensions": {
+          "cost_savings_realization": -0.42,
+          "ai_accuracy_and_reliability": -0.71,
+          "workforce_and_labor_relations_risk": -0.33,
+          "customer_experience_impact": -0.67,
+          "regulatory_and_legal_exposure": -0.18
+        },
+        "reasoning_chain": [
+          {
+            "dimension": "cost_savings_realization",
+            "score": -0.42,
+            "reasoning": "Active CFPB inquiry and AG investigation create material legal cost exposure and deployment delay that substantially erodes projected savings, even accounting for the sandbox's prospective compliance pathway."
+          },
+          {
+            "dimension": "ai_accuracy_and_reliability",
+            "score": -0.71,
+            "reasoning": "A 23% fraud dispute mishandling rate with documented incorrect account freezes in a 30-day pilot is empirical evidence of unreliable performance in the highest-stakes query category, not correctable by sandbox designation alone."
+          },
+          {
+            "dimension": "workforce_and_labor_relations_risk",
+            "score": -0.33,
+            "reasoning": "The audit leak and regulatory escalation strengthen labor's hand and increase the likelihood that any workforce reduction announced now would face NLRB scrutiny during an active dispute period."
+          },
+          {
+            "dimension": "customer_experience_impact",
+            "score": -0.67,
+            "reasoning": "Incorrect account freezes and mishandled fraud disputes represent concrete, documented consumer harm — the J.D. Power satisfaction data and the now-public audit findings create compounding reputational and legal exposure."
+          },
+          {
+            "dimension": "regulatory_and_legal_exposure",
+            "score": -0.18,
+            "reasoning": "The sandbox approval reduces prospective regulatory risk and validates the disclosure-first framework, but the active CFPB inquiry and AG investigation mean current legal exposure remains elevated and cannot be resolved by prospective compliance posture."
+          }
+        ],
+        "new_state": "resolute",
+        "duration": 144.50676250457764
+      }
+    ]
+  },
+  "adversary_map": {
+    "SIM-AGT-001": "SIM-AGT-006",
+    "SIM-AGT-002": "SIM-AGT-003",
+    "SIM-AGT-003": "SIM-AGT-008",
+    "SIM-AGT-004": "SIM-AGT-010",
+    "SIM-AGT-005": "SIM-AGT-004",
+    "SIM-AGT-006": "SIM-AGT-005",
+    "SIM-AGT-007": "SIM-AGT-009",
+    "SIM-AGT-008": "SIM-AGT-007",
+    "SIM-AGT-009": "SIM-AGT-002",
+    "SIM-AGT-010": "SIM-AGT-001"
+  },
+  "timings": {
+    "r1": 123.63264989852905,
+    "r2": 171.21833276748657,
+    "r3": 149.00717091560364,
+    "r4": 0.0,
+    "total": 443.85815358161926
+  },
+  "report_md": "# Executive Diagnostic Report: AI Workforce Displacement in Fintech Support\n\n---\n\n## 1. EXECUTIVE SUMMARY & VERDICT\n\n**Deployment Viability Score: Low**\n\nThis deployment, as originally scoped, is not viable. The simulation produced a clear, evidence-grounded rejection of the full-replacement model across three rounds, with zero ENDORSE or BLOCK votes at any stage — every agent recognized that a clean 40% headcount cut was indefensible, yet none were willing to terminate the program outright. What emerged instead was a reluctant, conditional NEGOTIATE majority driven not by confidence in the technology but by the availability of a structured regulatory pathway. The CFPB sandbox approval in Round 3 converted three blocking agents and pushed the consensus index from 0.360 to 0.580 (influence-weighted: 0.681), but it did so against a backdrop of a live CFPB inquiry, an active state AG investigation, a publicly documented 23% fraud-escalation mishandling rate, and three incorrect account freezes — all generated by the pilot management championed as a proof of concept. The $2M savings projection was never stress-tested against realistic total cost of ownership in the original proposal, and every financially literate agent in the simulation — CFO, compliance officer, board member, VP of Operations — identified the gross figure as misleading. The NEGOTIATE majority that crystallized in Round 3 represents a narrow, conditional, and heavily qualified path forward, not an endorsement. Any deployment decision made on the basis of the CEO's original framing would be strategically and legally indefensible.\n\n---\n\n## 2. FACTION MAPPING & ALIGNMENT\n\n### Conditional NEGOTIATE Coalition (Round 3: 7 agents)\n\nThis faction was never unified in purpose — it was unified by the absence of a better option. Four agents held NEGOTIATE across all three rounds: the CEO (SIM-AGT-001), the lead engineer (SIM-AGT-003), the CFO (SIM-AGT-004), and the VP of Operations (SIM-AGT-009). Three additional agents joined in Round 3:\n\n- **Union Chapter Lead (SIM-AGT-002):** Flipped from ESCALATE to NEGOTIATE after the CFPB sandbox approval created mandatory preconditions — independent audits, human escalation preservation — that structurally required management to negotiate with labor before any compliant deployment. The driver was a +0.40 utility shift on workforce_and_labor_relations_risk. This was a tactical pivot, not a concession: the union lead explicitly stated she was deploying NEGOTIATE as the \"sharpest weapon in the room\" given the new leverage landscape.\n\n- **Compliance Officer (SIM-AGT-006):** Moved from DEFER to NEGOTIATE after the sandbox approval removed the absolute regulatory blocker cited in her hold memorandum. The driver was regulatory_and_legal_exposure, with a +0.35 utility shift. Her shift was conditional and narrow — she explicitly reserved the right to reinstate the compliance hold if leadership deviated from sandbox preconditions.\n\n- **Independent Board Member (SIM-AGT-007):** Also moved from DEFER to NEGOTIATE, again driven by regulatory_and_legal_exposure (+0.15 utility shift). His shift was the most guarded: he moved because the sandbox approval independently validated the independent audit requirement he had been demanding, not because his substantive concerns were resolved.\n\nThe internal fractures within this NEGOTIATE majority are significant. The CEO wanted to use the sandbox framework to accelerate deployment. The engineer wanted to use it to mandate a suspension of the current configuration pending remediation. The union lead wanted it as contractual leverage for binding job-security guarantees. The compliance officer treated it as a conditional license, not a green light. These are not aligned positions.\n\n### Sustained ESCALATE Faction (Round 3: 3 agents)\n\n- **Displaced Support Agent (SIM-AGT-005):** Held ESCALATE across all three rounds, finishing with utility of -0.53 — meaningfully less negative than Round 2 (-0.86) because the leaked audit memo publicly validated her documented concerns. Her posture was reputational rather than procedural: she explicitly planned to take the audit findings to a journalist contact.\n\n- **Frustrated Retail Customer (SIM-AGT-008):** Held ESCALATE across all three rounds. Her leverage was a documented community of 4,000 platform users, prior CFPB filing experience, and two years of logged AI failure interactions. She directly challenged the sandbox approval as prospective cover for retroactive harm, demanding customer-facing disclosure before accepting any positive framing.\n\n- **Consumer Advocacy Attorney (SIM-AGT-010):** Held ESCALATE across all three rounds with a clear stated constraint: regulatory escalation is an obligation once the harm threshold is crossed, not a negotiating chip. She acknowledged the sandbox approval as a partial win — it codified the disclosure requirement she had demanded — but explicitly opposed using it as a retroactive shield for the fraud dispute mishandling already documented.\n\n---\n\n## 3. STRUCTURAL BLIND SPOTS (RED-TEAMING)\n\n- **The $2M savings figure was never modeled net of actual costs.** The CFO (SIM-AGT-004) identified this in Round 1 and never retracted it: severance could run $300–500K alone, with litigation reserve, CFPB remediation, and churn losses on top. By Round 3, the CFO estimated $150K–$400K in regulatory defense costs from the CFPB inquiry, before any consent order. The CEO never produced a stress-tested TCO model at any point in three rounds.\n\n- **60% overall accuracy masks catastrophic domain-specific failure rates.** The lead engineer (SIM-AGT-003) warned in Round 1 that the aggregate accuracy figure would understate failure modes in high-stakes query categories. The Round 3 crisis confirmed this: fraud dispute escalations — the highest-liability query type — ran at 23% mishandling with three documented incorrect account freezes. The top-line accuracy metric was not just optimistic; it was structurally misleading.\n\n- **No CFPB-compliant escalation layer existed at any point.** The engineer confirmed in Round 2 that the deterministic policy layer required to intercept CFPB-noncompliant responses had not been built. The compliance officer made this an explicit precondition for clearance. The pilot was launched — and the leaked audit was generated — without this architecture in place.\n\n- **The parallel-run framing did not include mandatory AI disclosure.** The consumer advocacy attorney (SIM-AGT-010) identified this precisely in Round 2: a parallel run in which consumers interact with the AI without knowing they are not speaking to a human agent is a CFPB exposure event regardless of whether human agents are running concurrently in the background. No NEGOTIATE proposal in any round included a binding, auditable disclosure mechanism until the sandbox preconditions imposed one externally.\n\n- **The retraining commitment was always aspirational, never contractual.** The VP of Operations (SIM-AGT-009) flagged in Round 2 that the industry record on retraining follow-through is poor, and explicitly stated that funded retraining with contractual commitments — \"not a memo, a contract\" — was a non-negotiable condition he would not sign off without. No such contract was produced in three rounds.\n\n- **The CEO's Q3 momentum framing created deployment pressure that bypassed technical prerequisites.** The CEO (SIM-AGT-001) stated explicitly in Round 2 that \"DEFER is momentum death\" and in Round 3 that \"Q3 timeline stands.\" The engineer's Round 3 monologue noted that the current deployment configuration likely needed to be suspended — but the CEO's public statements were already framing suspension as a tactical concession rather than a technical necessity. This created an internal contradiction that the NEGOTIATE coalition never resolved.\n\n- **The CFPB sandbox approval does not retroactively resolve the active inquiry.** Both the compliance officer and the consumer advocacy attorney made this point independently and precisely in Round 3. The positive regulatory event and the negative regulatory event operate on different timescales and different legal surfaces. The company is simultaneously navigating an enforcement track and an approval track, and treating sandbox designation as closure on the inquiry is a legal error the CEO's framing was already beginning to construct.\n\n---\n\n## 4. SYSTEM STABILITY & CONSENSUS INDEX\n\nThe swarm was polarized through Round 2 and began converging in Round 3, but convergence was externally driven rather than internally negotiated.\n\nThe HHI held at 0.360 through Rounds 1 and 2 — a fragmented, two-bloc structure with four NEGOTIATE, four ESCALATE, and two DEFER agents. No movement occurred between rounds 1 and 2 on the vote tally, despite significant state-level churn: four agents shifted internal state in R1→R2, with two calculating-to-resolute transitions and two defiant-to-resolute transitions. The swarm was hardening its positions, not converging.\n\nThe R2→R3 transition produced a more volatile state picture — six of ten agents shifted state, including three resolute-to-calculating and two resolute-to-defiant transitions — but the vote tally moved decisively: NEGOTIATE grew from 4 to 7, DEFER collapsed to 0, and ESCALATE held at 3. The HHI jumped to 0.580 (influence-weighted: 0.681), the highest reading across all three rounds.\n\nThe convergence is structurally fragile because it was produced by a single external catalyst — the CFPB sandbox approval — rather than by genuine resolution of the underlying disputes. Three swing agents (union lead, compliance officer, board member) each made the shift for different reasons, and each preserved explicit veto conditions. If any of those conditions are not met in execution, the convergence reverses. The ESCALATE faction's hold at three agents — including the attorney, who treats regulatory escalation as an obligation rather than a tactic — represents a persistent external pressure vector that does not dissolve with a NEGOTIATE majority.\n\nThe simultaneous increase in resolute-to-defiant transitions in R2→R3 (two agents, including the union lead and displaced support agent finishing Round 3 in defiant state) confirms that some of the convergence-toward-negotiate was tactical, not attitudinal. The swarm moved toward a shared action without moving toward shared goals.\n\n---\n\n## 5. CRISIS RESILIENCE VERDICT\n\n**Verdict: Resilient**\n\nThe pre-computed resilience rating is supported by the quantitative record. Decision stability held at 0.70 across R2→R3 — seven of ten agents maintained their prior position. Mean utility drift was +0.22, indicating the swarm as a whole assessed its situation as marginally improved by Round 3 despite the negative crisis event, largely because the CFPB sandbox approval provided a compliant pathway that previously did not exist. Terminal-action share remained at 0.00 through all three rounds, meaning no agent moved to ENDORSE or BLOCK — the system avoided both premature full approval and hard program termination.\n\nThe most diagnostically significant numbers are the per-dimension drift figures. Regulatory_and_legal_exposure moved +0.61 and workforce_and_labor_relations_risk moved +0.57 between Rounds 2 and 3. These are by far the largest dimension shifts in the simulation, and both were driven by the same mechanism: the CFPB sandbox approval simultaneously reduced the perceived severity of regulatory exposure and reframed workforce negotiations as falling under a structured, externally validated framework. Three swing agents all identified these two dimensions as their primary drivers. The negative crisis event — the leaked audit, the CFPB inquiry, the AG investigation — actually intensified concerns on ai_accuracy_and_reliability (-0.03) and cost_savings_realization (-0.07), but those shifts were too small to reverse the positive momentum from the regulatory dimension gain.\n\nThe most risk-sensitive pivot-point archetype in this simulation is the **regulatory gate-keeper under dual-track pressure** — specifically the compliance officer (SIM-AGT-006). She held a blocking DEFER position for two rounds under CEO momentum pressure, converted to NEGOTIATE only when an external regulatory framework validated her exact preconditions, and immediately reserved the right to reinstate her hold if those preconditions are not met. Her shift was the most institutionally consequential of the three swing agents because her compliance authority creates a structural veto that operates independently of executive preference. She is the single agent most capable of both enabling a viable path forward and terminating it unilaterally if execution deviates from the sandbox terms. Any deployment plan that does not maintain her active cooperation should be treated as structurally unstable.\n\n---\n\n## 6. STRATEGIC PIVOT RECOMMENDATIONS\n\n**1. Replace the gross savings headline with a fully-loaded deployment economics model before any board presentation.**\n\nThe $2M figure was challenged by every financially literate agent across all three rounds and was never defended with a complete cost structure. A credible deployment proposal must include: severance and benefits continuation for displaced workers, litigation reserve sized against comparable CFPB enforcement actions, CFPB sandbox compliance infrastructure build costs (disclosure systems, independent audit fees, human escalation architecture), and a modeled churn scenario at current fraud-escalation mishandling rates. The CFO's Round 3 estimate of $150K–$400K in regulatory defense costs alone — before any consent order — should be treated as a floor, not a ceiling. Until the net savings figure survives a CFO-level stress test on all four cost vectors, it should not be presented to the board or used in stakeholder communications. A realistic year-one net figure, factoring in the sandbox compliance overhead and the outstanding regulatory proceedings, is likely closer to 30–40% of the gross headline.\n\n**2. Build and validate the CFPB-compliant deterministic escalation layer before resuming any customer-facing deployment.**\n\nThe lead engineer identified the absence of this architecture in Round 1, the compliance officer cited it as an absolute prerequisite for clearance in Round 2, and the active CFPB inquiry in Round 3 confirmed the legal consequence of proceeding without it. The sandbox pathway the CFPB has approved explicitly requires this infrastructure as a precondition, not a post-deployment enhancement. The specific requirements are: mandatory AI-disclosure at point of customer interaction (not in terms of service, but in the live interaction itself), a deterministic policy layer that intercepts and routes to human agents any query touching fraud disputes, complaint resolution, or CFPB-flagged categories, and an independent third-party accuracy audit — not an internal engineering assessment — completed before any customer traffic resumes. Resuming the pilot without these elements in place would repeat the exact compliance failure that generated the CFPB inquiry and AG investigation, while now doing so after having been explicitly notified of the requirements.\n\n**3. Negotiate binding labor protections before deploying, not in parallel with deployment.**\n\nThe union chapter lead's Round 3 position — \"no agreement without those guarantees, no pilot without our oversight at the table\" — is not a negotiating opener under the current regulatory environment; it is the minimum condition for avoiding compounding NLRB exposure during an active CFPB inquiry. The VP of Operations stated explicitly across two rounds that funded retraining must be contractual, not aspirational, and that human escalation pathways must be built before any headcount reduction executes. These are operationally and legally sound positions independent of the union's advocacy. A concrete, executable agreement should include: binding job-security guarantees for the duration of the pilot period with defined trigger conditions for any workforce reduction, an enforceable retraining commitment with specific timelines and funded budget lines that cannot be deferred after deployment begins, and a joint union-management oversight seat on every independent accuracy audit required by the CFPB sandbox. Treating these as post-deployment negotiations, or as pressure to be managed rather than conditions to be met, reproduces the bad-faith dynamic the union lead correctly identified as the historical pattern in comparable deployments — and under the current NLRB enforcement posture, that pattern carries active legal exposure."
+}
