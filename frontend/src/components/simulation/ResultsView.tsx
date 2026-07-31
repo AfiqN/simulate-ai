@@ -2,6 +2,7 @@ import { useState, useRef, useCallback } from "react";
 import { generateReport } from "../../lib/pdfReport";
 import { InfoTip } from "@/components/ui/infotip";
 import { ShareCard } from "../share/ShareCard";
+import { AskPanel } from "../ask/AskPanel";
 import { ReportSection } from "./ReportSection";
 import { RoundTimeline } from "./RoundTimeline";
 import { AdversarialResultPanel } from "./AdversarialResultPanel";
@@ -292,6 +293,9 @@ export function ResultsView({ result, rounds, agentsByRound, schema, factionUpda
           </div>
         </CollapsibleSection>
       )}
+
+      {/* Ask about this simulation */}
+      <AskPanel result={result} runId={runId} />
 
       {/* What if... refine */}
       {onRefine && (

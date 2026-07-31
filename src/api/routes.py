@@ -201,3 +201,55 @@ async def websocket_simulate(websocket: WebSocket, run_id: str):
         pass
     finally:
         event_bus.unsubscribe(run_id, queue)
+
+
+@router.post("/runs/{run_id}/ask")
+async def ask_about_run(run_id: str, request: Request):
+    """Ask a follow-up question about a completed simulation run."""
+    from src.llm.client import UnifiedLLMClient
+
+    body = await request.json()
+    question = body.get("question", "").strip()
+    context_md = body.get("context_md", "").strip()
+
+    if not question:
+        raise HTTPException(status_code=400, detail="Question is required.")
+
+    # If no context provided, try to load from disk
+    if not context_md:
+        db = request.app.state.db
+        row = await get_run(db, run_id)
+        if row and row.get("run_dir"):
+            report_path = Path(row["run_dir"]) / "report.md"
+            if report_path.exists():
+                context_md = report_path.read_text(encoding="utf-8")[:8000]
+
+    if not context_md:
+        raise HTTPException(status_code=404, detail="No simulation context available for this run.")
+
+    # Use user's API key if provided
+    api_key = request.headers.get("x-api-key")
+    client = UnifiedLLMClient(api_key=api_key)
+
+    system_prompt = (
+        "You are an analyst reviewing the results of a multi-agent decision simulation. "
+        "The simulation tested a decision by having AI personas debate it across multiple rounds. "
+        "Answer the user's question based on the simulation report below. "
+        "Be specific, cite agent names or data points when relevant. "
+        "Keep your answer concise (2-4 sentences unless the question requires more detail).\n\n"
+        f"--- SIMULATION REPORT ---\n{context_md[:6000]}\n--- END REPORT ---"
+    )
+
+    try:
+        response = await client.chat(
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": question},
+            ]
+        )
+        await client.aclose()
+        return {"answer": response}
+    except Exception as e:
+        await client.aclose()
+        raise HTTPException(status_code=500, detail=f"Failed to generate answer: {str(e)}")
+
