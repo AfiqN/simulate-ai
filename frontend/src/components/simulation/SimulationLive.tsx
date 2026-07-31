@@ -211,11 +211,11 @@ export function SimulationLive({ currentStage, progress, agents, latestAgents, l
             <div className="h-[2px] bg-[#2A2A2A] rounded-full overflow-hidden">
               <div
                 className="h-full bg-white rounded-full transition-[width] duration-700 ease-out"
-                style={{ width: `${progress}%` }}
+                style={{ width: `${progress || 0}%` }}
               />
             </div>
             <div className="flex justify-between text-[11px] text-[#505050] font-['JetBrains_Mono']">
-              <span>{Math.round(progress)}%</span>
+              <span>{Math.round(progress || 0)}%</span>
               {isRoundStage && agents.length > 0 && (
                 <span>{latestAgents.length}/{agents.length} agents complete</span>
               )}
