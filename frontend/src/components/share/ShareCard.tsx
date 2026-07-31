@@ -107,7 +107,7 @@ export function ShareCard({ result, scenarioName, stimulus }: Props) {
               }} />
 
               {/* Main content — compact, no wasted space */}
-              <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "44px 56px 32px" }}>
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "44px 56px 44px" }}>
                 {/* Top: logo + verdict + scenario */}
                 <div>
                   {/* Header row */}
