@@ -97,6 +97,24 @@ export function ShareCard({ result, scenarioName, stimulus }: Props) {
               {/* Top accent bar */}
               <div style={{ height: "4px", background: verdictStyle.color }} />
 
+              {/* Background elements */}
+              <div style={{
+                position: "absolute",
+                inset: 0,
+                opacity: 0.06,
+                backgroundImage: "radial-gradient(circle at 1px 1px, #ffffff 1px, transparent 0)",
+                backgroundSize: "32px 32px",
+              }} />
+              <div style={{
+                position: "absolute",
+                bottom: "-100px",
+                right: "-100px",
+                width: "400px",
+                height: "400px",
+                borderRadius: "50%",
+                background: `radial-gradient(circle, ${verdictStyle.color}15 0%, transparent 70%)`,
+              }} />
+
               {/* Main content — compact, no wasted space */}
               <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "44px 56px 32px" }}>
                 {/* Top: logo + verdict + scenario */}
