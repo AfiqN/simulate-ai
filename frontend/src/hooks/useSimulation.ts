@@ -217,10 +217,11 @@ export function useSimulation() {
   const [state, dispatch] = useReducer(reducer, initialState);
 
   // Persist run to localStorage on start, clear on completion/error/reset
+  // Do NOT clear on "idle" — that's the initial state before recovery runs
   useEffect(() => {
     if (state.status === "running" && state.runId) {
       persistRun({ runId: state.runId, startedAt: Date.now() });
-    } else if (state.status === "complete" || state.status === "error" || state.status === "idle") {
+    } else if (state.status === "complete" || state.status === "error") {
       clearPersistedRun();
     }
   }, [state.status, state.runId]);

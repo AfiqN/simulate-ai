@@ -114,6 +114,8 @@ export default function App() {
     setShowLanding(true);
     setSubmitError(null);
     window.history.replaceState({}, "", window.location.pathname);
+    // Clear persisted run so refresh doesn't try to recover
+    try { localStorage.removeItem("simulate-ai-active-run"); } catch {}
   };
 
   const handleLoadExample = (data: ExampleData) => {
