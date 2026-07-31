@@ -140,14 +140,20 @@ export function ResultsView({ result, rounds, agentsByRound, schema, factionUpda
           </div>
         </div>
 
-        {/* Share card (toggle) */}
+        {/* Share card modal */}
         {showShareCard && (
-          <div className="mt-4">
-            <ShareCard
-              result={result}
-              scenarioName={schema?.scenario_name || result.scenario_name || "Simulation"}
-              stimulus={schema?.scenario_name || result.scenario_name}
-            />
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowShareCard(false)}>
+            <div className="bg-white rounded-[12px] p-6 max-w-[660px] w-full mx-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-[15px] font-medium text-[#0F0F0F]">Share as image</h3>
+                <button onClick={() => setShowShareCard(false)} className="text-[#8B8B8B] hover:text-[#0F0F0F] text-[18px]">&times;</button>
+              </div>
+              <ShareCard
+                result={result}
+                scenarioName={schema?.scenario_name || result.scenario_name || "Simulation"}
+                stimulus={schema?.scenario_name || result.scenario_name}
+              />
+            </div>
           </div>
         )}
 
