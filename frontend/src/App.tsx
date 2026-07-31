@@ -11,6 +11,8 @@ import { LandingHero } from "./components/layout/LandingHero";
 import { SimForm } from "./components/simulation/SimForm";
 import { SimulationLive } from "./components/simulation/SimulationLive";
 import { TemplateGallery } from "./components/templates/TemplateGallery";
+import { HistoryPage } from "./components/history/HistoryPage";
+import { saveToHistory } from "./lib/history";
 import type { SimulationConfig } from "./types";
 import type { ExampleData } from "./lib/transformMetrics";
 
@@ -55,10 +57,22 @@ export default function App() {
     }
   }, []);
 
-  // Notify on completion
+  // Notify on completion + save to history
   useEffect(() => {
     if (state.status === "complete" && state.result) {
       notify("Simulation complete", `Verdict: ${state.result.verdict || "Done"}`);
+      // Save to localStorage history
+      if (state.runId && state.runId !== "example") {
+        saveToHistory({
+          runId: state.runId,
+          scenarioName: state.result.scenario_name || lastStimulus.slice(0, 80) || "Simulation",
+          verdict: state.result.resilience_metrics?.verdict || state.result.verdict || "Unknown",
+          agents: state.rounds?.[0]?.decisions?.length || 5,
+          depth: lastDepth,
+          duration: state.result.timings?.total,
+          timestamp: Date.now(),
+        });
+      }
     } else if (state.status === "error") {
       notify("Simulation failed", state.error || "An error occurred");
     }
@@ -151,7 +165,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen">
-      <Header onOpenSettings={() => setShowSettings(true)} onLogoClick={handleReset} />
+      <Header onOpenSettings={() => setShowSettings(true)} onLogoClick={handleReset} onHistoryClick={() => navigate("/history")} />
       <SettingsPanel open={showSettings} onClose={() => setShowSettings(false)} />
 
       <main className="mx-auto max-w-[960px] px-6 py-6 space-y-6">
@@ -171,6 +185,11 @@ export default function App() {
               onSelect={handleSelectTemplate}
               onBack={() => navigate("/")}
             />
+          } />
+
+          {/* History */}
+          <Route path="/history" element={
+            <HistoryPage onBack={() => navigate("/")} />
           } />
 
           {/* Simulate form */}

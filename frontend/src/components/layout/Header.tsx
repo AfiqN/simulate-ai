@@ -1,9 +1,10 @@
 interface Props {
   onOpenSettings: () => void;
   onLogoClick?: () => void;
+  onHistoryClick?: () => void;
 }
 
-export function Header({ onOpenSettings, onLogoClick }: Props) {
+export function Header({ onOpenSettings, onLogoClick, onHistoryClick }: Props) {
   return (
     <header className="px-6 py-4 flex items-center justify-between max-w-[960px] mx-auto">
       <button
@@ -15,12 +16,20 @@ export function Header({ onOpenSettings, onLogoClick }: Props) {
           SimulateAI
         </span>
       </button>
-      <button
-        onClick={onOpenSettings}
-        className="px-3 py-1.5 text-[13px] rounded-[6px] text-[#8B8B8B] hover:text-[#0F0F0F] transition-colors duration-150"
-      >
-        Settings
-      </button>
+      <div className="flex items-center gap-4">
+        <button
+          onClick={onHistoryClick}
+          className="text-[13px] text-[#8B8B8B] hover:text-[#0F0F0F] transition-colors duration-150"
+        >
+          History
+        </button>
+        <button
+          onClick={onOpenSettings}
+          className="text-[13px] text-[#8B8B8B] hover:text-[#0F0F0F] transition-colors duration-150"
+        >
+          Settings
+        </button>
+      </div>
     </header>
   );
 }
