@@ -15,7 +15,6 @@ import type { SimulationConfig } from "./types";
 import type { ExampleData } from "./lib/transformMetrics";
 
 const ResultsView = lazy(() => import("./components/simulation/ResultsView").then(m => ({ default: m.ResultsView })));
-const SchemaApproval = lazy(() => import("./components/simulation/SchemaApproval").then(m => ({ default: m.SchemaApproval })));
 
 export default function App() {
   const [showSettings, setShowSettings] = useState(false);
@@ -91,15 +90,16 @@ export default function App() {
     }
   };
 
-  const handleApproveSchema = async () => {
-    if (!state.runId) return;
-    try {
-      await approveSchema(state.runId);
-      dispatch({ type: "SCHEMA_APPROVED" });
-    } catch (err) {
-      console.error("Failed to approve schema:", err);
+  // Auto-approve schema — no manual gate needed
+  useEffect(() => {
+    if (state.status === "schema_pending" && state.runId) {
+      approveSchema(state.runId).then(() => {
+        dispatch({ type: "SCHEMA_APPROVED" });
+      }).catch((err) => {
+        console.error("Auto-approve schema failed:", err);
+      });
     }
-  };
+  }, [state.status, state.runId]);
 
   const handleCancel = async () => {
     if (!state.runId) return;
@@ -200,11 +200,6 @@ export default function App() {
                   </div>
                   <button onClick={() => setSubmitError(null)} className="text-[#8B1A1A]/60 hover:text-[#8B1A1A] text-[18px]">&times;</button>
                 </div>
-              )}
-              {state.status === "schema_pending" && state.schema && (
-                <Suspense fallback={<div className="py-10 text-center text-[13px] text-[#8B8B8B]">Loading...</div>}>
-                  <SchemaApproval schema={state.schema} onApprove={handleApproveSchema} />
-                </Suspense>
               )}
             </>
           } />
