@@ -233,9 +233,9 @@ export function ResultsView({ result, rounds, agentsByRound, schema, factionUpda
       {/* Metrics — collapsible */}
       <CollapsibleSection title="Metrics & Charts" defaultOpen={true}>
         <div className="space-y-4">
-          <VoteTally rounds={rounds} />
+          <VoteTally rounds={rounds} agentsByRound={agentsByRound} />
           {result.quantitative_metrics?.dimension_stats && (
-            <DimensionChart stats={result.quantitative_metrics.dimension_stats} />
+            <DimensionChart stats={result.quantitative_metrics.dimension_stats} agentsByRound={agentsByRound} />
           )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <ConsensusGauge
