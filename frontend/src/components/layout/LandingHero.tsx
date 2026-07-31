@@ -5,6 +5,7 @@ import type { ExampleData } from "../../lib/transformMetrics";
 interface Props {
   onGetStarted: () => void;
   onLoadExample: (data: ExampleData) => void;
+  onShowTemplates: () => void;
 }
 
 function RevealSection({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
@@ -74,7 +75,7 @@ function NodeGraph() {
   );
 }
 
-export function LandingHero({ onGetStarted, onLoadExample }: Props) {
+export function LandingHero({ onGetStarted, onLoadExample, onShowTemplates }: Props) {
   return (
     <div className="py-12 sm:py-20">
       {/* Hero */}
@@ -96,13 +97,19 @@ export function LandingHero({ onGetStarted, onLoadExample }: Props) {
           AI personas debate your idea from every angle — surfacing blind spots,
           coalition risks, and failure modes in minutes.
         </p>
-        <div className="animate-reveal" style={{ animationDelay: "240ms" }}>
+        <div className="animate-reveal flex flex-wrap items-center justify-center gap-3" style={{ animationDelay: "240ms" }}>
           <button
             onClick={onGetStarted}
             className="group px-7 py-3 text-[15px] font-medium bg-[#0F0F0F] text-white rounded-[8px] hover:bg-[#2A2A2A] transition-all duration-150 hover:shadow-[0_4px_12px_rgba(0,0,0,0.15)]"
           >
             Run a simulation
             <span className="inline-block ml-1.5 transition-transform duration-150 group-hover:translate-x-0.5">→</span>
+          </button>
+          <button
+            onClick={onShowTemplates}
+            className="px-7 py-3 text-[15px] font-medium text-[#6B6B6B] border border-[#E5E5E5] rounded-[8px] hover:border-[#0F0F0F]/30 hover:text-[#0F0F0F] transition-all duration-150"
+          >
+            Browse templates
           </button>
         </div>
 

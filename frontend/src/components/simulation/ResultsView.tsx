@@ -31,6 +31,7 @@ interface Props {
   adversarialResult?: AdversarialResult | null;
   runId?: string;
   onReset: () => void;
+  onRefine?: (originalStimulus: string, previousVerdict: string, scenarioName: string, depth: string, agents: number) => void;
 }
 
 function computeHHI(voteTally: Record<string, number>, totalAgents: number): number {
@@ -62,7 +63,7 @@ function CollapsibleSection({ title, children, defaultOpen = false }: { title: s
 }
 
 
-export function ResultsView({ result, rounds, agentsByRound, schema, factionUpdates, triggersEvents, historicalPrecedents, adversarialResult, runId, onReset }: Props) {
+export function ResultsView({ result, rounds, agentsByRound, schema, factionUpdates, triggersEvents, historicalPrecedents, adversarialResult, runId, onReset, onRefine }: Props) {
   const [exporting, setExporting] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
@@ -265,6 +266,30 @@ export function ResultsView({ result, rounds, agentsByRound, schema, factionUpda
             )}
           </div>
         </CollapsibleSection>
+      )}
+
+      {/* What if... refine */}
+      {onRefine && (
+        <div className="border border-[#E5E5E5] rounded-[10px] p-5 bg-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-[15px] font-medium text-[#0F0F0F]">What if...?</h3>
+              <p className="text-[13px] text-[#6B6B6B] mt-0.5">Test a variation of this scenario with different assumptions.</p>
+            </div>
+            <button
+              onClick={() => onRefine(
+                result.scenario_name || schema?.scenario_name || "",
+                verdict,
+                schema?.scenario_name || result.scenario_name || "Simulation",
+                "standard",
+                totalAgents || 5
+              )}
+              className="px-5 py-2.5 text-[13px] font-medium bg-[#0F0F0F] text-white rounded-[8px] hover:bg-[#2A2A2A] transition-colors shrink-0"
+            >
+              Refine →
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Export row + back */}
