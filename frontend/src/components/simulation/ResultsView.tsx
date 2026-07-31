@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import { generateReport } from "../../lib/pdfReport";
 import { InfoTip } from "@/components/ui/infotip";
+import { ShareCard } from "../share/ShareCard";
 import { ReportSection } from "./ReportSection";
 import { RoundTimeline } from "./RoundTimeline";
 import { AdversarialResultPanel } from "./AdversarialResultPanel";
@@ -66,6 +67,7 @@ function CollapsibleSection({ title, children, defaultOpen = false }: { title: s
 export function ResultsView({ result, rounds, agentsByRound, schema, factionUpdates, triggersEvents, historicalPrecedents, adversarialResult, runId, onReset, onRefine }: Props) {
   const [exporting, setExporting] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+  const [showShareCard, setShowShareCard] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
 
   const handleShare = useCallback(() => {
@@ -114,12 +116,18 @@ export function ResultsView({ result, rounds, agentsByRound, schema, factionUpda
             </h1>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowShareCard(!showShareCard)}
+              className="px-3 py-1.5 text-[12px] text-[#8B8B8B] border border-[#3A3A3A] rounded-[6px] hover:border-[#6B6B6B] hover:text-white transition-colors"
+            >
+              {showShareCard ? "Hide card" : "Share image"}
+            </button>
             {runId && (
               <button
                 onClick={handleShare}
                 className="px-3 py-1.5 text-[12px] text-[#8B8B8B] border border-[#3A3A3A] rounded-[6px] hover:border-[#6B6B6B] hover:text-white transition-colors"
               >
-                {shareCopied ? "Copied!" : "Share"}
+                {shareCopied ? "Copied!" : "Share link"}
               </button>
             )}
             <button
@@ -131,6 +139,17 @@ export function ResultsView({ result, rounds, agentsByRound, schema, factionUpda
             </button>
           </div>
         </div>
+
+        {/* Share card (toggle) */}
+        {showShareCard && (
+          <div className="mt-4">
+            <ShareCard
+              result={result}
+              scenarioName={schema?.scenario_name || result.scenario_name || "Simulation"}
+              stimulus={schema?.scenario_name || result.scenario_name}
+            />
+          </div>
+        )}
 
         {/* Verdict + key metrics */}
         <div className="flex flex-wrap items-end gap-8">
