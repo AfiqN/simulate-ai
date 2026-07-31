@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { generateReport } from "../../lib/pdfReport";
+import { InfoTip } from "@/components/ui/infotip";
 import { ReportSection } from "./ReportSection";
 import { RoundTimeline } from "./RoundTimeline";
 import { AdversarialResultPanel } from "./AdversarialResultPanel";
@@ -60,12 +61,6 @@ function CollapsibleSection({ title, children, defaultOpen = false }: { title: s
   );
 }
 
-function getVerdictColor(verdict: string) {
-  const v = verdict.toLowerCase();
-  if (v.includes("resilient")) return "text-[#16653A]";
-  if (v.includes("fragile") || v.includes("rejected")) return "text-[#8B1A1A]";
-  return "text-[#5B21B6]";
-}
 
 export function ResultsView({ result, rounds, agentsByRound, schema, factionUpdates, triggersEvents, historicalPrecedents, adversarialResult, runId, onReset }: Props) {
   const [exporting, setExporting] = useState(false);
@@ -139,14 +134,25 @@ export function ResultsView({ result, rounds, agentsByRound, schema, factionUpda
         {/* Verdict + key metrics */}
         <div className="flex flex-wrap items-end gap-8">
           <div>
-            <p className="text-[10px] text-[#6B6B6B] uppercase tracking-wider mb-1">Verdict</p>
-            <p className={`text-[28px] sm:text-[32px] font-semibold tracking-[-0.02em] ${getVerdictColor(verdict).replace("text-", "text-")} ${verdict.toLowerCase().includes("resilient") ? "text-[#4ADE80]" : verdict.toLowerCase().includes("fragile") ? "text-[#EF4444]" : "text-[#C4B5FD]"}`}>
+            <p className="text-[10px] text-[#6B6B6B] uppercase tracking-wider mb-1">
+              <InfoTip term="Verdict">
+                <strong>Resilient:</strong> Decision survives crisis — majority hold position.<br/>
+                <strong>Moderate:</strong> Some agents flip under pressure — viable but risky.<br/>
+                <strong>Fragile:</strong> Coalition fractures under stress — needs rethinking.<br/>
+                <strong>Indeterminate:</strong> Not enough data to conclude.
+              </InfoTip>
+            </p>
+            <p className={`text-[28px] sm:text-[32px] font-semibold tracking-[-0.02em] ${verdict.toLowerCase().includes("resilient") ? "text-[#4ADE80]" : verdict.toLowerCase().includes("fragile") ? "text-[#EF4444]" : "text-[#C4B5FD]"}`}>
               {verdict}
             </p>
           </div>
           {stability !== undefined && (
             <div>
-              <p className="text-[10px] text-[#6B6B6B] uppercase tracking-wider mb-1">Stability</p>
+              <p className="text-[10px] text-[#6B6B6B] uppercase tracking-wider mb-1">
+                <InfoTip term="Stability">
+                  Percentage of agents who maintained their position after the crisis event. Higher = more stable decision.
+                </InfoTip>
+              </p>
               <p className="text-[20px] font-['JetBrains_Mono'] font-medium text-white tabular-nums">
                 {(stability * 100).toFixed(0)}%
               </p>
@@ -154,7 +160,11 @@ export function ResultsView({ result, rounds, agentsByRound, schema, factionUpda
           )}
           {drift !== undefined && (
             <div>
-              <p className="text-[10px] text-[#6B6B6B] uppercase tracking-wider mb-1">Utility Drift</p>
+              <p className="text-[10px] text-[#6B6B6B] uppercase tracking-wider mb-1">
+                <InfoTip term="Utility Drift">
+                  Average shift in agent confidence between rounds. Positive = agents became more supportive. Negative = lost confidence.
+                </InfoTip>
+              </p>
               <p className="text-[20px] font-['JetBrains_Mono'] font-medium text-white tabular-nums">
                 {drift >= 0 ? "+" : ""}{drift.toFixed(3)}
               </p>

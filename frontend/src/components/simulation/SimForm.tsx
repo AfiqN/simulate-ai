@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { InfoTip } from "@/components/ui/infotip";
 import { StakeholderPanel } from "./StakeholderPanel";
 import { PrecedentPanel } from "./PrecedentPanel";
 import type { SimulationConfig, CustomStakeholder, HistoricalPrecedent } from "../../types";
@@ -97,7 +98,11 @@ export function SimForm({ onSubmit, disabled }: Props) {
 
         {/* Depth */}
         <div className="flex items-center gap-2 px-3 py-2 bg-[#FAFAFA] border border-[#F0F0F0] rounded-[8px]">
-          <span className="text-[11px] text-[#8B8B8B] uppercase tracking-wide">Depth</span>
+          <InfoTip term="Depth">
+            <strong>Quick:</strong> 1 round, faster but less thorough.<br/>
+            <strong>Standard:</strong> 3 rounds (perception → debate → crisis).<br/>
+            <strong>Deep:</strong> 4 rounds with extra stabilization phase.
+          </InfoTip>
           <select
             value={depth}
             onChange={(e) => setDepth(e.target.value as "quick" | "standard" | "deep")}
@@ -112,7 +117,10 @@ export function SimForm({ onSubmit, disabled }: Props) {
 
         {/* Mode */}
         <div className="flex items-center gap-2 px-3 py-2 bg-[#FAFAFA] border border-[#F0F0F0] rounded-[8px]">
-          <span className="text-[11px] text-[#8B8B8B] uppercase tracking-wide">Mode</span>
+          <InfoTip term="Mode">
+            <strong>Collaborative:</strong> Agents seek consensus through debate.<br/>
+            <strong>Adversarial:</strong> Agents are assigned to challenge every claim with counter-evidence.
+          </InfoTip>
           <select
             value={mode}
             onChange={(e) => setMode(e.target.value as "collaborative" | "adversarial")}
