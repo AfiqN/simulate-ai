@@ -97,37 +97,38 @@ export function ShareCard({ result, scenarioName, stimulus }: Props) {
               {/* Top accent bar */}
               <div style={{ height: "4px", background: verdictStyle.color }} />
 
-              {/* Main content — vertically centered */}
-              <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: "0 56px" }}>
-                {/* Header row: logo + verdict badge */}
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "32px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <img src="/logo-mark.svg" style={{ height: "22px", filter: "brightness(0) invert(1)" }} />
-                    <span style={{ fontSize: "15px", fontWeight: 500, color: "#9CA3AF" }}>SimulateAI</span>
+              {/* Main content — compact, no wasted space */}
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "44px 56px 32px" }}>
+                {/* Top: logo + verdict + scenario */}
+                <div>
+                  {/* Header row */}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "32px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <img src="/logo-mark.svg" style={{ height: "22px", filter: "brightness(0) invert(1)" }} />
+                      <span style={{ fontSize: "15px", fontWeight: 500, color: "#9CA3AF" }}>SimulateAI</span>
+                    </div>
+                    <div style={{
+                      padding: "6px 14px",
+                      borderRadius: "6px",
+                      backgroundColor: verdictStyle.color + "18",
+                      border: `1px solid ${verdictStyle.color}40`,
+                    }}>
+                      <span style={{ fontSize: "13px", fontWeight: 700, color: verdictStyle.color, letterSpacing: "0.05em", textTransform: "uppercase" }}>
+                        {verdictStyle.label}
+                        {stability !== undefined && ` · ${(stability * 100).toFixed(0)}%`}
+                      </span>
+                    </div>
                   </div>
-                  <div style={{
-                    padding: "6px 14px",
-                    borderRadius: "6px",
-                    backgroundColor: verdictStyle.color + "18",
-                    border: `1px solid ${verdictStyle.color}40`,
-                  }}>
-                    <span style={{ fontSize: "13px", fontWeight: 700, color: verdictStyle.color, letterSpacing: "0.05em", textTransform: "uppercase" }}>
-                      {verdictStyle.label}
-                      {stability !== undefined && ` · ${(stability * 100).toFixed(0)}%`}
-                    </span>
-                  </div>
-                </div>
 
-                {/* Scenario title */}
-                <div style={{ marginBottom: "32px" }}>
+                  {/* Scenario */}
                   <span style={{ fontSize: "11px", color: "#6B7280", letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 500 }}>
                     Scenario tested
                   </span>
                   <p style={{
-                    fontSize: "36px",
+                    fontSize: "42px",
                     fontWeight: 700,
                     color: "#ffffff",
-                    lineHeight: 1.25,
+                    lineHeight: 1.2,
                     letterSpacing: "-0.025em",
                     maxWidth: "950px",
                     marginTop: "10px",
@@ -136,30 +137,29 @@ export function ShareCard({ result, scenarioName, stimulus }: Props) {
                   </p>
                 </div>
 
-                {/* Recommendation */}
-                {recommendation && (
-                  <div style={{ borderTop: "1px solid #1F2937", paddingTop: "24px" }}>
-                    <span style={{ fontSize: "11px", color: "#6B7280", letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 500 }}>
-                      Key recommendation
-                    </span>
-                    <p style={{
-                      fontSize: "20px",
-                      color: "#D1D5DB",
-                      lineHeight: 1.5,
-                      marginTop: "8px",
-                      maxWidth: "900px",
-                    }}>
-                      {recommendation}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* Footer URL */}
-              <div style={{ padding: "0 56px 28px", display: "flex", justifyContent: "flex-end" }}>
-                <span style={{ fontSize: "12px", color: "#374151", fontFamily: "'JetBrains Mono', monospace" }}>
-                  simulate-ai-production.up.railway.app
-                </span>
+                {/* Bottom: recommendation + URL */}
+                <div style={{ borderTop: "1px solid #1F2937", paddingTop: "20px", display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
+                  {recommendation ? (
+                    <div style={{ maxWidth: "850px" }}>
+                      <span style={{ fontSize: "11px", color: "#6B7280", letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 500 }}>
+                        Key recommendation
+                      </span>
+                      <p style={{
+                        fontSize: "20px",
+                        color: "#D1D5DB",
+                        lineHeight: 1.45,
+                        marginTop: "6px",
+                      }}>
+                        {recommendation}
+                      </p>
+                    </div>
+                  ) : (
+                    <div />
+                  )}
+                  <span style={{ fontSize: "12px", color: "#374151", fontFamily: "'JetBrains Mono', monospace", flexShrink: 0 }}>
+                    simulate-ai-production.up.railway.app
+                  </span>
+                </div>
               </div>
             </div>
           </div>
