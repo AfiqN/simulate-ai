@@ -25,16 +25,6 @@ export function ShareCard({ result, scenarioName, stimulus }: Props) {
   const verdictStyle = getVerdictStyle(verdict);
   const stability = result.resilience_metrics?.decision_stability;
   const recommendation = extractRecommendation(result.report_md);
-  const duration = result.timings?.total;
-
-  // Try to get agent count from report or metrics
-  const agentCount = (() => {
-    if (result.quantitative_metrics?.vote_tally) {
-      const firstRound = Object.values(result.quantitative_metrics.vote_tally)[0];
-      if (firstRound) return Object.values(firstRound).reduce((a, b) => a + b, 0);
-    }
-    return null;
-  })();
 
   // Display question — prefer short stimulus, fallback to scenario name
   const displayQuestion = stimulus && stimulus.length < 120 ? stimulus : scenarioName;
@@ -95,80 +85,79 @@ export function ShareCard({ result, scenarioName, stimulus }: Props) {
               style={{
                 width: "1200px",
                 height: "630px",
-                padding: "64px",
+                padding: "0",
                 backgroundColor: "#0A0A0A",
                 display: "flex",
                 flexDirection: "column",
-                justifyContent: "space-between",
                 fontFamily: "'Inter', system-ui, sans-serif",
                 position: "relative",
                 overflow: "hidden",
               }}
             >
-              {/* Subtle grid */}
-              <div style={{
-                position: "absolute",
-                inset: 0,
-                opacity: 0.04,
-                backgroundImage: "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)",
-                backgroundSize: "60px 60px",
-              }} />
+              {/* Top accent bar */}
+              <div style={{ height: "4px", background: verdictStyle.color }} />
 
-              {/* Content */}
-              <div style={{ position: "relative", zIndex: 1 }}>
-                {/* Logo */}
-                <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "48px" }}>
-                  <img src="/logo-mark.svg" style={{ height: "28px", filter: "brightness(0) invert(1)" }} />
-                  <span style={{ fontSize: "18px", fontWeight: 500, color: "#ffffff", letterSpacing: "-0.01em" }}>SimulateAI</span>
-                </div>
-
-                {/* Question */}
-                <p style={{
-                  fontSize: "32px",
-                  fontWeight: 600,
-                  color: "#ffffff",
-                  lineHeight: 1.3,
-                  letterSpacing: "-0.02em",
-                  maxWidth: "900px",
-                  marginBottom: "28px",
-                }}>
-                  {displayQuestion}
-                </p>
-
-                {/* Recommendation */}
-                {recommendation && (
-                  <p style={{
-                    fontSize: "20px",
-                    color: "#9CA3AF",
-                    lineHeight: 1.5,
-                    maxWidth: "850px",
+              {/* Main content — vertically centered */}
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: "0 56px" }}>
+                {/* Header row: logo + verdict badge */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "32px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <img src="/logo-mark.svg" style={{ height: "22px", filter: "brightness(0) invert(1)" }} />
+                    <span style={{ fontSize: "15px", fontWeight: 500, color: "#9CA3AF" }}>SimulateAI</span>
+                  </div>
+                  <div style={{
+                    padding: "6px 14px",
+                    borderRadius: "6px",
+                    backgroundColor: verdictStyle.color + "18",
+                    border: `1px solid ${verdictStyle.color}40`,
                   }}>
-                    {recommendation}
-                  </p>
-                )}
-              </div>
-
-              {/* Bottom row */}
-              <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
-                {/* Verdict + metrics */}
-                <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
-                  <span style={{
-                    fontSize: "28px",
-                    fontWeight: 700,
-                    color: verdictStyle.color,
-                    letterSpacing: "-0.01em",
-                  }}>
-                    {verdictStyle.label}
-                  </span>
-                  <div style={{ display: "flex", alignItems: "center", gap: "16px", color: "#6B7280", fontSize: "16px", fontFamily: "'JetBrains Mono', monospace" }}>
-                    {stability !== undefined && <span>{(stability * 100).toFixed(0)}% stability</span>}
-                    {agentCount && <span>{agentCount} agents</span>}
-                    {duration && <span>{Math.round(duration)}s</span>}
+                    <span style={{ fontSize: "13px", fontWeight: 700, color: verdictStyle.color, letterSpacing: "0.05em", textTransform: "uppercase" }}>
+                      {verdictStyle.label}
+                      {stability !== undefined && ` · ${(stability * 100).toFixed(0)}%`}
+                    </span>
                   </div>
                 </div>
 
-                {/* URL */}
-                <span style={{ fontSize: "14px", color: "#4B5563", fontFamily: "'JetBrains Mono', monospace" }}>
+                {/* Scenario title */}
+                <div style={{ marginBottom: "32px" }}>
+                  <span style={{ fontSize: "11px", color: "#6B7280", letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 500 }}>
+                    Scenario tested
+                  </span>
+                  <p style={{
+                    fontSize: "36px",
+                    fontWeight: 700,
+                    color: "#ffffff",
+                    lineHeight: 1.25,
+                    letterSpacing: "-0.025em",
+                    maxWidth: "950px",
+                    marginTop: "10px",
+                  }}>
+                    {displayQuestion}
+                  </p>
+                </div>
+
+                {/* Recommendation */}
+                {recommendation && (
+                  <div style={{ borderTop: "1px solid #1F2937", paddingTop: "24px" }}>
+                    <span style={{ fontSize: "11px", color: "#6B7280", letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 500 }}>
+                      Key recommendation
+                    </span>
+                    <p style={{
+                      fontSize: "20px",
+                      color: "#D1D5DB",
+                      lineHeight: 1.5,
+                      marginTop: "8px",
+                      maxWidth: "900px",
+                    }}>
+                      {recommendation}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer URL */}
+              <div style={{ padding: "0 56px 28px", display: "flex", justifyContent: "flex-end" }}>
+                <span style={{ fontSize: "12px", color: "#374151", fontFamily: "'JetBrains Mono', monospace" }}>
                   simulate-ai-production.up.railway.app
                 </span>
               </div>
