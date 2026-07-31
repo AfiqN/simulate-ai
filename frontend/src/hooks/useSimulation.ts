@@ -35,6 +35,7 @@ export interface SimState {
 
 export type SimAction =
   | { type: "START"; runId: string }
+  | { type: "RECOVER"; runId: string; progress?: number; stage?: string }
   | { type: "WS_EVENT"; event: WSEvent }
   | { type: "SCHEMA_APPROVED" }
   | { type: "LOAD_RESULT"; result: SimulationResult }
@@ -65,6 +66,9 @@ function reducer(state: SimState, action: SimAction): SimState {
   switch (action.type) {
     case "START":
       return { ...initialState, status: "running", runId: action.runId };
+
+    case "RECOVER":
+      return { ...initialState, status: "running", runId: action.runId, progress: action.progress ?? 0, currentStage: (action.stage as PipelineStage) ?? null };
 
     case "WS_EVENT": {
       const ev = action.event;
@@ -183,6 +187,7 @@ interface PersistedRun {
   runId: string;
   startedAt: number;
   depth?: string;
+  stimulus?: string;
 }
 
 function persistRun(run: PersistedRun) {
@@ -220,7 +225,11 @@ export function useSimulation() {
   // Do NOT clear on "idle" — that's the initial state before recovery runs
   useEffect(() => {
     if (state.status === "running" && state.runId) {
-      persistRun({ runId: state.runId, startedAt: Date.now() });
+      // Only persist if not already stored (avoid overwriting startedAt on recovery)
+      const existing = getPersistedRun();
+      if (!existing || existing.runId !== state.runId) {
+        persistRun({ runId: state.runId, startedAt: Date.now() });
+      }
     } else if (state.status === "complete" || state.status === "error") {
       clearPersistedRun();
     }

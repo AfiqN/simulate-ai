@@ -22,6 +22,7 @@ export default function App() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [lastStimulus, setLastStimulus] = useState("");
   const [lastDepth, setLastDepth] = useState<string>("standard");
+  const [startedAt, setStartedAt] = useState<number | undefined>(undefined);
   const { state, dispatch } = useSimulation();
   const { events, status: wsStatus } = useWebSocket(state.runId);
   const { notify } = useNotification();
@@ -52,12 +53,16 @@ export default function App() {
         if (data.status === "completed" && data.result) {
           dispatch({ type: "LOAD_RESULT", result: data.result });
         } else if (data.status === "running" || data.status === "queued") {
-          // Reconnect to the live simulation
-          dispatch({ type: "START", runId: persisted.runId });
+          // Reconnect with progress from backend
+          dispatch({ type: "RECOVER", runId: persisted.runId, progress: data.progress ?? 0, stage: data.stage });
+          setLastDepth(persisted.depth || "standard");
+          setStartedAt(persisted.startedAt);
+          if (persisted.stimulus) setLastStimulus(persisted.stimulus);
         }
       }).catch(() => {
         // Run not found — clear stale entry
         dispatch({ type: "RESET" });
+        try { localStorage.removeItem("simulate-ai-active-run"); } catch {}
       });
     }
   }, []);
@@ -81,9 +86,17 @@ export default function App() {
     setSubmitError(null);
     setLastStimulus(config.stimulus);
     setLastDepth(config.depth);
+    setStartedAt(Date.now());
     try {
       const { id } = await startSimulation(config);
       dispatch({ type: "START", runId: id });
+      // Persist with depth and stimulus for recovery
+      localStorage.setItem("simulate-ai-active-run", JSON.stringify({
+        runId: id,
+        startedAt: Date.now(),
+        depth: config.depth,
+        stimulus: config.stimulus,
+      }));
     } catch (err: any) {
       setSubmitError(err.message || "Failed to start simulation");
     }
@@ -192,6 +205,7 @@ export default function App() {
             latestRound={latestRound}
             stimulus={lastStimulus}
             depth={lastDepth}
+            startedAt={startedAt}
             wsConnected={wsStatus === "connected"}
             onCancel={handleCancel}
           />

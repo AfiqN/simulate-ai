@@ -10,6 +10,7 @@ interface Props {
   latestRound: number;
   stimulus?: string;
   depth?: string;
+  startedAt?: number;
   wsConnected: boolean;
   onCancel: () => void;
 }
@@ -111,8 +112,11 @@ function formatEstimate(seconds: number): string {
   return `~${m} min left`;
 }
 
-export function SimulationLive({ currentStage, progress, agents, latestAgents, latestRound, stimulus, depth, wsConnected, onCancel }: Props) {
-  const [elapsed, setElapsed] = useState(0);
+export function SimulationLive({ currentStage, progress, agents, latestAgents, latestRound, stimulus, depth, startedAt, wsConnected, onCancel }: Props) {
+  const [elapsed, setElapsed] = useState(() => {
+    if (startedAt) return Math.floor((Date.now() - startedAt) / 1000);
+    return 0;
+  });
   const [activityLog, setActivityLog] = useState<string[]>([]);
   const logEndRef = useRef<HTMLDivElement>(null);
   const prevStageRef = useRef<PipelineStage | null>(null);
