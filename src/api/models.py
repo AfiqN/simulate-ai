@@ -14,29 +14,40 @@ class CustomStakeholder(BaseModel):
 
 class SimulationRequest(BaseModel):
     """Request body for POST /api/simulate."""
-    stimulus: str = Field(..., min_length=1, description="The scenario stimulus text.")
-    agent_count: int = Field(default=5, ge=1, le=100, description="Number of agents (1-100).")
+    stimulus: str = Field(..., min_length=1, max_length=20_000, description="The scenario stimulus text.")
+    agent_count: int = Field(default=5, ge=1, le=20, description="Number of agents (1-20).")
     concurrency: int = Field(default=2, ge=1, le=5, description="Max concurrent LLM calls.")
-    model: Optional[str] = Field(default=None, description="Override LLM model name.")
-    provider: Optional[str] = Field(default=None, description="Override LLM provider (gemini/ollama/openai).")
-    crisis_override: Optional[str] = Field(default=None, description="Custom crisis event for Round 3.")
-    rag_enabled: Optional[bool] = Field(default=None, description="Override RAG. None=use config default, True=force on, False=force off.")
-    depth: Literal["quick", "standard", "deep"] = Field(default="quick", description="Analysis depth: quick (2 rounds, concise), standard (full), deep (verbose + minority report).")
-    mode: Literal["collaborative", "adversarial"] = Field(default="collaborative", description="Debate mode: collaborative (consensus-seeking) or adversarial (argument survival through challenge).")
-    custom_stakeholders: Optional[list[CustomStakeholder]] = Field(default=None, max_length=10, description="User-defined stakeholder personas to inject (max 10).")
-    historical_precedents: Optional[list[dict[str, Any]]] = Field(default=None, max_length=5, description="User-supplied historical precedents (title, year, summary, outcome, relevance, domain).")
+    model: Optional[str] = Field(default=None, max_length=200, description="Override LLM model name.")
+    provider: Optional[Literal["gemini", "ollama", "openai"]] = Field(default=None, description="Override LLM provider.")
+    crisis_override: Optional[str] = Field(default=None, max_length=5_000, description="Custom crisis event for Round 3.")
+    rag_enabled: Optional[bool] = Field(default=None, description="Override RAG. None=use config default.")
+    depth: Literal["quick", "standard", "deep"] = Field(default="quick", description="Analysis depth.")
+    mode: Literal["collaborative", "adversarial"] = Field(default="collaborative", description="Debate mode.")
+    schema_approval: Literal["auto", "manual"] = Field(default="auto", description="Whether generated schemas require manual approval.")
+    custom_stakeholders: Optional[list[CustomStakeholder]] = Field(default=None, max_length=10)
+    historical_precedents: Optional[list[dict[str, Any]]] = Field(default=None, max_length=5)
+
+
+class SimulationStartResponse(BaseModel):
+    id: str
+    status: str
+    access_token: str
 
 
 class SimulationStatus(BaseModel):
     """Response for GET /api/simulate/{run_id}."""
     id: str
-    status: str  # queued | running | completed | failed
+    status: str  # queued | running | schema_pending | completed | failed | cancelled
     scenario_name: Optional[str] = None
     verdict: Optional[str] = None
     elapsed_s: Optional[float] = None
     error: Optional[str] = None
     result: Optional[dict[str, Any]] = None
-    progress: Optional[str] = None  # current phase description
+    progress: Optional[str] = None  # human-readable current phase
+    progress_percent: int = 0
+    stage: Optional[str] = None
+    schema_pending: bool = False
+    latest_seq: int = 0
 
 
 class RunSummary(BaseModel):

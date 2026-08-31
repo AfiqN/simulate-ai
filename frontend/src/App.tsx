@@ -44,7 +44,7 @@ export default function App() {
           dispatch({ type: "LOAD_RESULT", result: data.result });
           navigate(`/run/${persisted.runId}`, { replace: true });
         } else if (data.status === "running" || data.status === "queued") {
-          dispatch({ type: "RECOVER", runId: persisted.runId, progress: data.progress ?? 0, stage: data.stage });
+          dispatch({ type: "RECOVER", runId: persisted.runId, progress: data.progress_percent ?? 0, stage: data.stage });
           setLastDepth(persisted.depth || "standard");
           setStartedAt(persisted.startedAt);
           if (persisted.stimulus) setLastStimulus(persisted.stimulus);
@@ -145,6 +145,7 @@ export default function App() {
     dispatch({
       type: "LOAD_EXAMPLE",
       result: data.result,
+      schema: data.schema,
       rounds: data.rounds,
       agentsByRound: data.agentsByRound,
       factionUpdates: data.factionUpdates,
@@ -257,7 +258,7 @@ function RunView({ state, latestAgents, latestRound, lastStimulus, lastDepth, st
         if (data.status === "completed" && data.result) {
           dispatch({ type: "LOAD_RESULT", result: data.result });
         } else if (data.status === "running" || data.status === "queued") {
-          dispatch({ type: "RECOVER", runId: id, progress: data.progress ?? 0, stage: data.stage });
+          dispatch({ type: "RECOVER", runId: id, progress: data.progress_percent ?? 0, stage: data.stage });
         }
       }).catch(() => {
         navigate("/", { replace: true });

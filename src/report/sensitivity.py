@@ -206,7 +206,7 @@ def format_sensitivity_block(analysis: dict[str, Any]) -> str:
     # Flip margins
     margins = analysis.get("flip_margins", [])
     fragile = [m for m in margins if m.get("fragile")]
-    lines.append(f"### Decision Stability")
+    lines.append("### Decision Stability")
     lines.append(f"- Agents on the edge (utility < 0.25): {len(fragile)}/{len(margins)}")
     if fragile:
         for m in fragile[:3]:
@@ -216,7 +216,7 @@ def format_sensitivity_block(analysis: dict[str, Any]) -> str:
     # Coalition fragility
     cf = analysis.get("coalition_fragility", {})
     if cf.get("majority_action"):
-        lines.append(f"### Coalition Fragility")
+        lines.append("### Coalition Fragility")
         lines.append(f"- Majority: {cf['majority_action']} ({cf['majority_count']} agents)")
         if cf.get("runner_up_action"):
             lines.append(f"- Runner-up: {cf['runner_up_action']} ({cf['runner_up_count']} agents)")
@@ -226,7 +226,7 @@ def format_sensitivity_block(analysis: dict[str, Any]) -> str:
     # Dimension leverage
     dims = analysis.get("dimension_leverage", {})
     if dims:
-        lines.append(f"### Dimension Leverage (drives action divergence)")
+        lines.append("### Dimension Leverage (drives action divergence)")
         sorted_dims = sorted(dims.items(), key=lambda x: abs(x[1].get("action_separation", 0)), reverse=True)
         for dim, stats in sorted_dims[:5]:
             sep = stats.get("action_separation", 0)
@@ -238,7 +238,7 @@ def format_sensitivity_block(analysis: dict[str, Any]) -> str:
     inf = analysis.get("influence_sensitivity", {})
     if inf.get("dominant_agent"):
         da = inf["dominant_agent"]
-        lines.append(f"### Influence Sensitivity")
+        lines.append("### Influence Sensitivity")
         if inf["dominated"]:
             lines.append(f"- ⚠️ OUTCOME DOMINATED: removing {da['archetype']} (weight {da['influence_weight']:.1f}x) flips result from {inf['original_outcome']} → {inf['outcome_without_dominant']}")
         else:

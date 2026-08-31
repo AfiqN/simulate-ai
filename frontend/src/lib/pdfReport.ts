@@ -223,7 +223,6 @@ class PdfBuilder {
       },
       tableWidth: "auto",
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     this.y = (this.pdf as any).lastAutoTable.finalY + 8;
   }
 

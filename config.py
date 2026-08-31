@@ -31,7 +31,7 @@ GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemma-4-26b-a4b-it")
 
 # --- OpenAI-compatible API Settings ---
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-OPENAI_MODEL = os.getenv("OPENAI_MODEL", "claude-sonnet-4.6")
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
 OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
 
 # --- Default Model (derived from provider) ---
@@ -44,6 +44,14 @@ DEFAULT_MODEL = (
 # --- Concurrency & Timeout ---
 REQUEST_TIMEOUT = float(os.getenv("REQUEST_TIMEOUT", "120.0"))
 MAX_CONCURRENCY = int(os.getenv("MAX_CONCURRENCY", "5"))
+
+# --- Public demo security ---
+ADMIN_API_KEY = os.getenv("ADMIN_API_KEY", "")
+RATE_LIMIT_SALT = os.getenv("RATE_LIMIT_SALT", "simulateai-local-dev")
+TRUST_PROXY_HEADERS = os.getenv("TRUST_PROXY_HEADERS", "false").lower() in ("true", "1", "yes")
+WEBHOOKS_ENABLED = os.getenv("WEBHOOKS_ENABLED", "false").lower() in ("true", "1", "yes")
+RUN_RETENTION_DAYS = int(os.getenv("RUN_RETENTION_DAYS", "7"))
+JOB_RETENTION_SECONDS = int(os.getenv("JOB_RETENTION_SECONDS", "900"))
 
 # --- RAG Settings ---
 RAG_ENABLED = os.getenv("RAG_ENABLED", "true").lower() in ("true", "1", "yes")

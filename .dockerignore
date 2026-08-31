@@ -1,33 +1,21 @@
-# Git
 .git
-.gitignore
-
-# Python
-__pycache__
-*.py[cod]
-.pytest_cache
+.github
+.env
 .venv
 venv
 env
-
-# Node (not needed - static/dist is pre-built)
-frontend
-
-# Runtime data
-tests/runs
+__pycache__
+*.py[cod]
+.pytest_cache
+.ruff_cache
+frontend/node_modules
+frontend/tsconfig.tsbuildinfo
+static/dist
+tests/runs/*
 data/*.db
 *.db
-
-# IDE / OS
-.vscode
-.idea
+graphify-out
+.playwright-mcp
+docs/superpowers
 .DS_Store
 Thumbs.db
-
-# Docs / non-essential
-graphify-out
-docs
-.claude
-.claude-kiro
-*.md
-!requirements.txt

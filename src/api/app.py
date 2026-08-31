@@ -1,11 +1,10 @@
 """FastAPI application factory for SimulateAI."""
 
-import time
-from collections import defaultdict
+import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -17,36 +16,26 @@ from src.persistence.db import init_db
 
 STATIC_DIR = Path(__file__).resolve().parent.parent.parent / "static" / "dist"
 
-RATE_LIMIT_MAX = 3
-RATE_LIMIT_WINDOW = 86400  # 24 hours in seconds
-_rate_store: dict[str, list[float]] = defaultdict(list)
-
-
-def _get_client_ip(request: Request) -> str:
-    forwarded = request.headers.get("x-forwarded-for")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
-    return request.client.host if request.client else "unknown"
-
-
-def _is_rate_limited(ip: str) -> bool:
-    now = time.time()
-    timestamps = _rate_store[ip]
-    _rate_store[ip] = [t for t in timestamps if now - t < RATE_LIMIT_WINDOW]
-    return len(_rate_store[ip]) >= RATE_LIMIT_MAX
-
-
-def _record_usage(ip: str):
-    _rate_store[ip].append(time.time())
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Manage application lifecycle: DB init on startup, cleanup on shutdown."""
+    """Initialize local services and shut them down in dependency order."""
+    from src.api.maintenance import maintenance_loop, run_maintenance
+    from src.api.queue import shutdown_jobs
+    from src.api.webhooks import shutdown_webhooks
+
     db = await init_db()
     app.state.db = db
-    yield
-    await db.close()
+    await run_maintenance(db)
+    maintenance_task = asyncio.create_task(maintenance_loop(db))
+    try:
+        yield
+    finally:
+        maintenance_task.cancel()
+        await asyncio.gather(maintenance_task, return_exceptions=True)
+        await shutdown_jobs()
+        await shutdown_webhooks()
+        await db.close()
 
 
 def create_app() -> FastAPI:
@@ -68,24 +57,33 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # Rate limiter middleware for POST /api/simulate
+    # Durable limiter for the costly create-run endpoint. BYOK receives a
+    # higher quota but never bypasses abuse protection entirely.
     @app.middleware("http")
     async def rate_limit_middleware(request: Request, call_next):
+        identity = None
+        limit = None
         if request.method == "POST" and request.url.path == "/api/simulate":
-            has_own_key = request.headers.get("x-api-key")
-            if not has_own_key:
-                ip = _get_client_ip(request)
-                if _is_rate_limited(ip):
-                    return JSONResponse(
-                        status_code=429,
-                        content={
-                            "detail": "Demo limit reached (3 runs/day). Add your own API key for unlimited access.",
-                            "limit": RATE_LIMIT_MAX,
-                            "window": "24h",
-                        },
-                    )
-                _record_usage(ip)
+            from src.api.rate_limit import RATE_LIMIT_WINDOW, quota_state
+
+            identity, count, limit = await quota_state(request)
+            if count >= limit:
+                return JSONResponse(
+                    status_code=429,
+                    headers={"Retry-After": str(RATE_LIMIT_WINDOW)},
+                    content={
+                        "detail": "Daily simulation limit reached.",
+                        "limit": limit,
+                        "window": "24h",
+                    },
+                )
         response = await call_next(request)
+        if identity and response.status_code < 400:
+            from src.api.rate_limit import consume
+
+            await consume(request, identity)
+        if limit is not None:
+            response.headers["X-RateLimit-Limit"] = str(limit)
         return response
 
     app.include_router(router)

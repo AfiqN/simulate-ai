@@ -1,4 +1,5 @@
-import { useReducer, useEffect } from "react";
+import { useReducer, useEffect, useRef } from "react";
+import { transformMetrics } from "../lib/transformMetrics";
 import type {
   AdversarialResult,
   AgentDecision,
@@ -39,7 +40,7 @@ export type SimAction =
   | { type: "WS_EVENT"; event: WSEvent }
   | { type: "SCHEMA_APPROVED" }
   | { type: "LOAD_RESULT"; result: SimulationResult }
-  | { type: "LOAD_EXAMPLE"; result: SimulationResult; rounds: RoundSummary[]; agentsByRound: Record<number, AgentDecision[]>; factionUpdates: FactionUpdate[]; triggersEvents: TriggersEvent[]; historicalPrecedents: HistoricalPrecedent[]; adversarialResult: AdversarialResult | null }
+  | { type: "LOAD_EXAMPLE"; result: SimulationResult; schema: SchemaData | null; rounds: RoundSummary[]; agentsByRound: Record<number, AgentDecision[]>; factionUpdates: FactionUpdate[]; triggersEvents: TriggersEvent[]; historicalPrecedents: HistoricalPrecedent[]; adversarialResult: AdversarialResult | null }
   | { type: "RESET" };
 
 const initialState: SimState = {
@@ -108,20 +109,38 @@ function reducer(state: SimState, action: SimAction): SimState {
         case "historical_context":
           return { ...state, historicalPrecedents: ev.precedents || [] };
         case "adversarial_result":
+          // A summary event may arrive before the complete result. Preserve any
+          // detailed claims already received instead of replacing them with [].
           return {
             ...state,
             adversarialResult: {
-              claims: ev.claims || [],
-              survival_rate: ev.survival_rate ?? 0,
-              surviving_count: ev.surviving_count ?? 0,
-              defeated_count: ev.defeated_count ?? 0,
-              key_defeats: ev.key_defeats || [],
+              claims: ev.claims || state.adversarialResult?.claims || [],
+              survival_rate: ev.survival_rate ?? state.adversarialResult?.survival_rate ?? 0,
+              surviving_count: ev.surviving_count ?? ev.survived ?? state.adversarialResult?.surviving_count ?? 0,
+              defeated_count: ev.defeated_count ?? ev.defeated ?? state.adversarialResult?.defeated_count ?? 0,
+              key_defeats: ev.key_defeats || state.adversarialResult?.key_defeats || [],
             },
           };
-        case "complete":
-          return { ...state, status: "complete", result: ev.result, progress: 100 };
+        case "complete": {
+          const hydrated = transformMetrics(ev.result);
+          return {
+            ...state,
+            status: "complete",
+            result: hydrated.result,
+            schema: hydrated.schema,
+            rounds: hydrated.rounds,
+            agentsByRound: hydrated.agentsByRound,
+            factionUpdates: hydrated.factionUpdates,
+            triggersEvents: hydrated.triggersEvents,
+            historicalPrecedents: hydrated.historicalPrecedents,
+            adversarialResult: hydrated.adversarialResult,
+            progress: 100,
+          };
+        }
         case "error":
           return { ...state, status: "error", error: ev.message };
+        case "cancelled":
+          return { ...state, status: "error", error: ev.message || "Simulation cancelled." };
         default:
           return state;
       }
@@ -131,33 +150,21 @@ function reducer(state: SimState, action: SimAction): SimState {
       return { ...state, schemaPending: false, status: "running" };
 
     case "LOAD_RESULT": {
-      // Hydrate dynamics data from persisted result
-      const triggersEvents: TriggersEvent[] = [];
-      if (action.result.conditional_dynamics) {
-        const byRound: Record<number, TriggersEvent["triggers"]> = {};
-        for (const d of action.result.conditional_dynamics) {
-          const r = d.round ?? 0;
-          if (!byRound[r]) byRound[r] = [];
-          byRound[r].push({ rule: d.rule_name, effect: d.effect, context: d.context });
-        }
-        for (const [round, triggers] of Object.entries(byRound)) {
-          triggersEvents.push({ round: Number(round), triggers });
-        }
-      }
-      const historicalPrecedents: HistoricalPrecedent[] =
-        action.result.historical_context?.precedents ?? [];
-      // Hydrate adversarial result if present
-      const adversarialResult: AdversarialResult | null =
-        action.result.adversarial_result
-          ? {
-              claims: action.result.adversarial_result.claims,
-              survival_rate: action.result.adversarial_result.survival_rate,
-              surviving_count: action.result.adversarial_result.surviving_count,
-              defeated_count: action.result.adversarial_result.defeated_count,
-              key_defeats: action.result.adversarial_result.key_defeats,
-            }
-          : null;
-      return { ...initialState, status: "complete", result: action.result, triggersEvents, historicalPrecedents, adversarialResult };
+      const hydrated = transformMetrics(action.result);
+      return {
+        ...initialState,
+        status: "complete",
+        runId: action.result.id || null,
+        result: hydrated.result,
+        schema: hydrated.schema,
+        rounds: hydrated.rounds,
+        agentsByRound: hydrated.agentsByRound,
+        factionUpdates: hydrated.factionUpdates,
+        triggersEvents: hydrated.triggersEvents,
+        historicalPrecedents: hydrated.historicalPrecedents,
+        adversarialResult: hydrated.adversarialResult,
+        progress: 100,
+      };
     }
 
     case "LOAD_EXAMPLE":
@@ -165,6 +172,7 @@ function reducer(state: SimState, action: SimAction): SimState {
         ...initialState,
         status: "complete",
         result: action.result,
+        schema: action.schema,
         rounds: action.rounds,
         agentsByRound: action.agentsByRound,
         factionUpdates: action.factionUpdates,
@@ -242,9 +250,12 @@ export function useSimulationEvents(
   dispatch: React.Dispatch<SimAction>,
   events: WSEvent[]
 ) {
+  const processedRef = useRef(0);
   useEffect(() => {
-    if (events.length === 0) return;
-    const latest = events[events.length - 1];
-    dispatch({ type: "WS_EVENT", event: latest });
+    if (events.length < processedRef.current) processedRef.current = 0;
+    for (let index = processedRef.current; index < events.length; index += 1) {
+      dispatch({ type: "WS_EVENT", event: events[index] });
+    }
+    processedRef.current = events.length;
   }, [events, dispatch]);
 }

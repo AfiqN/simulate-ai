@@ -1,39 +1,59 @@
-"""FastAPI route definitions for SimulateAI API."""
+"""FastAPI routes for simulation lifecycle, sharing, and follow-up analysis."""
 
-import json
+from __future__ import annotations
+
 import uuid
 from datetime import datetime
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request, WebSocket, WebSocketDisconnect
 
-from src.api.models import RunListResponse, RunSummary, SimulationRequest, SimulationStatus, SchemaApprovalRequest
-from src.api.queue import SimulationJob, enqueue_simulation, get_job, cancel_job
+from src.api.models import (
+    RunListResponse,
+    RunSummary,
+    SchemaApprovalRequest,
+    SimulationRequest,
+    SimulationStartResponse,
+    SimulationStatus,
+)
+from src.api.queue import SimulationJob, cancel_job, enqueue_simulation, get_job
+from src.api.security import (
+    generate_token,
+    hash_token,
+    require_owner,
+    require_read_access,
+    websocket_has_access,
+)
 from src.api.websocket import event_bus
-from src.persistence.db import get_run, insert_run, list_runs
-
+from src.export.serialization import load_canonical_result
+from src.persistence.db import disable_share, get_run, insert_run, list_runs, update_run
 
 router = APIRouter(prefix="/api")
-
-RUNS_DIR = Path(__file__).resolve().parent.parent.parent / "tests" / "runs"
 
 
 @router.get("/health")
 async def health_check():
-    """Health check — verifies the API is up and returns basic status."""
-    from config import LLM_PROVIDER, DEFAULT_MODEL
-    return {
-        "status": "ok",
-        "provider": LLM_PROVIDER,
-        "model": DEFAULT_MODEL,
-    }
+    from config import DEFAULT_MODEL, LLM_PROVIDER
+
+    return {"status": "ok", "provider": LLM_PROVIDER, "model": DEFAULT_MODEL}
 
 
-@router.post("/simulate", response_model=SimulationStatus)
+@router.get("/readiness")
+async def readiness_check(request: Request):
+    """Check local dependencies without calling a paid model provider."""
+    try:
+        await (await request.app.state.db.execute("SELECT 1")).fetchone()
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Database is not ready.") from exc
+    return {"status": "ready", "database": "ok", "storage": "ok"}
+
+
+@router.post("/simulate", response_model=SimulationStartResponse)
 async def start_simulation(req: SimulationRequest, request: Request):
-    """Start a new simulation run. Returns immediately with a run ID to poll."""
+    """Create a background simulation and return its owner capability token."""
     db = request.app.state.db
     run_id = str(uuid.uuid4())
+    access_token = generate_token()
     created_at = datetime.now().isoformat()
 
     job = SimulationJob(
@@ -50,8 +70,8 @@ async def start_simulation(req: SimulationRequest, request: Request):
         custom_stakeholders=[s.model_dump() for s in req.custom_stakeholders] if req.custom_stakeholders else None,
         historical_precedents=req.historical_precedents,
         api_key=request.headers.get("x-api-key"),
+        schema_approval=req.schema_approval,
     )
-
     await insert_run(
         db,
         run_id=run_id,
@@ -62,43 +82,39 @@ async def start_simulation(req: SimulationRequest, request: Request):
         provider=req.provider,
         model=req.model,
         created_at=created_at,
+        owner_token_hash=hash_token(access_token),
     )
-
     await enqueue_simulation(job, db)
-
-    return SimulationStatus(id=run_id, status="queued")
+    return SimulationStartResponse(id=run_id, status="queued", access_token=access_token)
 
 
 @router.get("/simulate/{run_id}", response_model=SimulationStatus)
 async def get_simulation_status(run_id: str, request: Request):
-    """Poll the status of a running or completed simulation."""
-    # Check in-memory first (active jobs)
+    db = request.app.state.db
+    row = await get_run(db, run_id)
+    if not row:
+        raise HTTPException(status_code=404, detail=f"Run '{run_id}' not found.")
+    require_read_access(request, row)
+
     job = get_job(run_id)
     if job:
+        status = "schema_pending" if job.schema_pending else job.status
         return SimulationStatus(
             id=job.run_id,
-            status=job.status,
+            status=status,
             scenario_name=job.scenario_name,
             verdict=job.verdict,
             elapsed_s=job.elapsed_s,
             error=job.error,
             result=job.result,
             progress=job.progress,
+            progress_percent=job.progress_percent,
+            stage=job.current_stage,
+            schema_pending=job.schema_pending,
+            latest_seq=event_bus.latest_sequence(run_id),
         )
 
-    # Fall back to database (historical runs)
-    db = request.app.state.db
-    row = await get_run(db, run_id)
-    if not row:
-        raise HTTPException(status_code=404, detail=f"Run '{run_id}' not found.")
-
-    # Try to load full result from disk if completed
-    result_data = None
-    if row["status"] == "completed" and row.get("run_dir"):
-        metrics_path = Path(row["run_dir"]) / "metrics.json"
-        if metrics_path.exists():
-            result_data = json.loads(metrics_path.read_text(encoding="utf-8"))
-
+    result_data = load_canonical_result(row["run_dir"]) if row.get("run_dir") and row["status"] == "completed" else None
     return SimulationStatus(
         id=row["id"],
         status=row["status"],
@@ -111,91 +127,107 @@ async def get_simulation_status(run_id: str, request: Request):
 
 
 @router.get("/runs", response_model=RunListResponse)
-async def list_all_runs(
-    request: Request,
-    limit: int = 50,
-    offset: int = 0,
-    verdict: str | None = None,
-):
-    """List past simulation runs from the database."""
-    db = request.app.state.db
-    rows = await list_runs(db, limit=limit, offset=offset, verdict=verdict)
+async def list_all_runs(request: Request, limit: int = 50, offset: int = 0, verdict: str | None = None):
+    """Administrative run index. Disabled publicly unless ADMIN_API_KEY is set and supplied."""
+    from config import ADMIN_API_KEY
 
+    if not ADMIN_API_KEY or request.headers.get("x-admin-key") != ADMIN_API_KEY:
+        raise HTTPException(status_code=403, detail="Administrative access required.")
+    rows = await list_runs(request.app.state.db, limit=limit, offset=offset, verdict=verdict)
     runs = [
         RunSummary(
-            id=r["id"],
-            scenario_name=r["scenario_name"],
-            status=r["status"],
-            verdict=r.get("verdict"),
-            agent_count=r.get("agent_count"),
-            elapsed_s=r.get("elapsed_s"),
-            created_at=r["created_at"],
+            id=row["id"], scenario_name=row["scenario_name"], status=row["status"],
+            verdict=row.get("verdict"), agent_count=row.get("agent_count"),
+            elapsed_s=row.get("elapsed_s"), created_at=row["created_at"],
         )
-        for r in rows
+        for row in rows
     ]
     return RunListResponse(runs=runs, total=len(runs))
 
 
 @router.get("/runs/{run_id}")
 async def get_run_detail(run_id: str, request: Request):
-    """Get full metrics for a specific historical run."""
-    db = request.app.state.db
-    row = await get_run(db, run_id)
+    row = await get_run(request.app.state.db, run_id)
     if not row:
         raise HTTPException(status_code=404, detail=f"Run '{run_id}' not found.")
-
+    require_read_access(request, row)
     if not row.get("run_dir"):
-        raise HTTPException(status_code=404, detail="Run directory not available.")
-
-    metrics_path = Path(row["run_dir"]) / "metrics.json"
-    if not metrics_path.exists():
-        raise HTTPException(status_code=404, detail="Metrics file not found on disk.")
-
-    return json.loads(metrics_path.read_text(encoding="utf-8"))
+        raise HTTPException(status_code=404, detail="Run result is not available.")
+    result = load_canonical_result(row["run_dir"])
+    if result is None:
+        raise HTTPException(status_code=404, detail="Result file not found.")
+    return result
 
 
 @router.post("/simulate/{run_id}/schema")
-async def approve_schema(run_id: str, req: SchemaApprovalRequest):
-    """Approve or override the generated schema for a paused simulation.
-
-    The pipeline pauses after schema generation and emits a 'schema_pending' WS event.
-    POST to this endpoint to resume. Auto-proceeds after 120s if not called.
-    """
+async def approve_schema(run_id: str, req: SchemaApprovalRequest, request: Request):
+    row = await get_run(request.app.state.db, run_id)
+    if not row:
+        raise HTTPException(status_code=404, detail=f"Run '{run_id}' not found.")
+    require_owner(request, row)
     job = get_job(run_id)
     if not job:
-        raise HTTPException(status_code=404, detail=f"Run '{run_id}' not found or already finished.")
+        raise HTTPException(status_code=404, detail="Run already finished or server restarted.")
     if not job.schema_pending:
-        raise HTTPException(status_code=409, detail="Schema is not pending approval for this run.")
-
-    if req.approved and req.overrides:
-        job.schema_overrides = req.overrides
-    else:
-        job.schema_overrides = None
-
+        raise HTTPException(status_code=409, detail="Schema is not pending approval.")
+    job.schema_overrides = req.overrides if req.approved and req.overrides else None
     job.schema_approval_event.set()
     return {"status": "approved", "run_id": run_id}
 
 
 @router.post("/simulate/{run_id}/cancel")
 async def cancel_simulation(run_id: str, request: Request):
-    """Cancel a running or queued simulation."""
     db = request.app.state.db
-    success = await cancel_job(run_id, db)
-    if not success:
-        raise HTTPException(status_code=404, detail=f"Run '{run_id}' not found or not cancellable.")
+    row = await get_run(db, run_id)
+    if not row:
+        raise HTTPException(status_code=404, detail=f"Run '{run_id}' not found.")
+    require_owner(request, row)
+    if not await cancel_job(run_id, db):
+        raise HTTPException(status_code=409, detail="Run is not cancellable.")
     return {"status": "cancelled", "run_id": run_id}
+
+
+@router.post("/runs/{run_id}/share")
+async def create_share_link(run_id: str, request: Request):
+    db = request.app.state.db
+    row = await get_run(db, run_id)
+    if not row:
+        raise HTTPException(status_code=404, detail=f"Run '{run_id}' not found.")
+    require_owner(request, row)
+    if row["status"] != "completed":
+        raise HTTPException(status_code=409, detail="Only completed runs can be shared.")
+    token = generate_token()
+    await update_run(db, run_id, share_token_hash=hash_token(token), share_enabled=True)
+    return {"run_id": run_id, "share_token": token}
+
+
+@router.delete("/runs/{run_id}/share", status_code=204)
+async def revoke_share_link(run_id: str, request: Request):
+    db = request.app.state.db
+    row = await get_run(db, run_id)
+    if not row:
+        raise HTTPException(status_code=404, detail=f"Run '{run_id}' not found.")
+    require_owner(request, row)
+    await disable_share(db, run_id)
 
 
 @router.websocket("/ws/simulate/{run_id}")
 async def websocket_simulate(websocket: WebSocket, run_id: str):
-    """Stream simulation events to the client in real-time."""
+    row = await get_run(websocket.app.state.db, run_id)
+    if not row or not websocket_has_access(websocket, row):
+        await websocket.close(code=4403)
+        return
     await websocket.accept()
-    queue = event_bus.subscribe(run_id)
+    try:
+        since = max(0, int(websocket.query_params.get("since", "0")))
+    except ValueError:
+        since = 0
+    queue = event_bus.subscribe(run_id, since=since)
     try:
         while True:
             event = await queue.get()
             await websocket.send_json(event)
-            if event.get("type") in ("complete", "error"):
+            if event.get("type") in ("complete", "error", "cancelled"):
                 break
     except WebSocketDisconnect:
         pass
@@ -205,51 +237,44 @@ async def websocket_simulate(websocket: WebSocket, run_id: str):
 
 @router.post("/runs/{run_id}/ask")
 async def ask_about_run(run_id: str, request: Request):
-    """Ask a follow-up question about a completed simulation run."""
+    """Owner-only follow-up; shared viewers cannot consume an LLM key."""
     from src.llm.client import UnifiedLLMClient
 
+    db = request.app.state.db
+    row = await get_run(db, run_id)
+    if not row:
+        raise HTTPException(status_code=404, detail=f"Run '{run_id}' not found.")
+    require_owner(request, row)
     body = await request.json()
-    question = body.get("question", "").strip()
-    context_md = body.get("context_md", "").strip()
-
+    question = str(body.get("question", "")).strip()
+    context_md = str(body.get("context_md", "")).strip()
     if not question:
         raise HTTPException(status_code=400, detail="Question is required.")
-
-    # If no context provided, try to load from disk
+    if len(question) > 2_000:
+        raise HTTPException(status_code=400, detail="Question is too long.")
+    if not context_md and row.get("run_dir"):
+        report_path = Path(row["run_dir"]) / "report.md"
+        if report_path.exists():
+            context_md = report_path.read_text(encoding="utf-8")[:8_000]
     if not context_md:
-        db = request.app.state.db
-        row = await get_run(db, run_id)
-        if row and row.get("run_dir"):
-            report_path = Path(row["run_dir"]) / "report.md"
-            if report_path.exists():
-                context_md = report_path.read_text(encoding="utf-8")[:8000]
+        raise HTTPException(status_code=404, detail="No simulation context is available.")
 
-    if not context_md:
-        raise HTTPException(status_code=404, detail="No simulation context available for this run.")
-
-    # Use user's API key if provided
-    api_key = request.headers.get("x-api-key")
-    client = UnifiedLLMClient(api_key=api_key)
-
-    system_prompt = (
-        "You are an analyst reviewing the results of a multi-agent decision simulation. "
-        "The simulation tested a decision by having AI personas debate it across multiple rounds. "
-        "Answer the user's question based on the simulation report below. "
-        "Be specific, cite agent names or data points when relevant. "
-        "Keep your answer concise (2-4 sentences unless the question requires more detail).\n\n"
-        f"--- SIMULATION REPORT ---\n{context_md[:6000]}\n--- END REPORT ---"
+    client = UnifiedLLMClient(
+        model=row.get("model"), provider=row.get("provider"),
+        api_key=request.headers.get("x-api-key"),
     )
-
+    system_prompt = (
+        "You are an analyst reviewing a multi-agent decision simulation. Answer only from "
+        "the report below, cite agents or metrics where useful, and stay concise.\n\n"
+        f"--- SIMULATION REPORT ---\n{context_md[:6_000]}\n--- END REPORT ---"
+    )
     try:
-        response = await client.chat(
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": question},
-            ]
-        )
+        answer = await client.chat(messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": question},
+        ])
+        return {"answer": answer}
+    except Exception:
+        raise HTTPException(status_code=502, detail="The selected LLM provider could not answer the question.")
+    finally:
         await client.aclose()
-        return {"answer": response}
-    except Exception as e:
-        await client.aclose()
-        raise HTTPException(status_code=500, detail=f"Failed to generate answer: {str(e)}")
-

@@ -177,9 +177,9 @@ export function SimForm({ onSubmit, disabled, prefill, onClearPrefill, onBackToT
         {/* Depth */}
         <div className="flex items-center gap-2 px-3 py-2 bg-[#FAFAFA] border border-[#F0F0F0] rounded-[8px]">
           <InfoTip term="Depth">
-            <strong>Quick:</strong> 1 round, faster but less thorough.<br/>
-            <strong>Standard:</strong> 3 rounds (perception → debate → crisis).<br/>
-            <strong>Deep:</strong> 4 rounds with extra stabilization phase.
+            <strong>Quick:</strong> Initial assessment + crisis stress test.<br/>
+            <strong>Standard:</strong> Perception → debate → crisis.<br/>
+            <strong>Deep:</strong> Standard flow + reconciliation and minority analysis.
           </InfoTip>
           <select
             value={depth}

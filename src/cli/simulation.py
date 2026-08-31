@@ -1,7 +1,7 @@
 import asyncio
 import time
 from collections import Counter
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from rich.live import Live
 from rich.panel import Panel
@@ -15,7 +15,7 @@ from src.agent.adversary import compute_adversary_map, evolve_adversary_map, evo
 from src.agent.agent import Agent
 from src.agent.factions import FactionTracker
 from src.agent.swarm import SwarmGenerationError, generate_llm_swarm
-from src.dynamics.conditional import ConditionalEngine, default_rules, TriggerResult
+from src.dynamics.conditional import ConditionalEngine, default_rules
 from src.cli import console
 from src.cli.rendering import (
     action_style,
@@ -32,6 +32,9 @@ from src.report.metrics import compute_quantitative_metrics
 from src.report.sensitivity import compute_sensitivity_analysis
 from src.schema.architect import SchemaDesignError, design_schema
 from src.schema.simulation_schema import SimulationSchema
+
+if TYPE_CHECKING:
+    from src.agent.profile import AgentProfile
 
 
 async def check_llm_provider(client: OllamaClient) -> bool:
@@ -208,7 +211,6 @@ async def _run_adversarial_debate(
         if event_callback:
             event_callback(event)
 
-    schema = agents[0].schema
     all_claims: list[ArgumentClaim] = []
 
     # --- R2a: Claim Extraction (parallel) ---
@@ -349,7 +351,6 @@ async def _run_adversarial_debate(
     for i, agent in enumerate(agents):
         agent_claims = claims_by_agent.get(agent.profile.agent_id, [])
         surviving = [c for c in agent_claims if c.survived]
-        defeated = [c for c in agent_claims if not c.survived]
 
         # Utility adjusted: penalize agents whose claims got destroyed
         original_utility = decisions_r1[i].get("utility", 0.0)
@@ -551,7 +552,7 @@ def _apply_schema_overrides(schema, overrides: dict):
         evaluation_dimensions: list of dimension names
         state_vocabulary: list of state names
     """
-    from src.schema.simulation_schema import SimulationSchema, ActionDefinition
+    from src.schema.simulation_schema import SimulationSchema
 
     data = schema.to_dict()
 
@@ -641,13 +642,15 @@ async def run_simulation_pipeline(
     # --- RAG Setup ---
     from src.rag.client import WebSearchClient
     from src.rag.query_gen import generate_perspective_queries, generate_crisis_query
-    from src.rag.processor import process_search_results, extract_facts_with_llm
+    from src.rag.processor import extract_facts_with_llm
     from src.rag.models import RAGMetadata
 
     rag_client = None
     rag_metadata = RAGMetadata()
     if rag_enabled is not False:
         rag_client = WebSearchClient.create_if_available()
+    # The outer API/CLI owner closes this even when the pipeline raises.
+    setattr(client, "_simulation_rag_client", rag_client)
 
     # Detect stimulus language for report output
     stimulus_language = _detect_language(stimulus)
@@ -1254,6 +1257,7 @@ async def run_simulation_pipeline(
 async def run_swarm_simulation() -> None:
     client = OllamaClient(host=OLLAMA_HOST, model=DEFAULT_MODEL)
     if not await check_llm_provider(client):
+        await client.aclose()
         return
 
     console.print(
@@ -1305,6 +1309,8 @@ async def run_swarm_simulation() -> None:
         console.print(f"[red]Architect failed: {e}[/red]")
     except SwarmGenerationError as e:
         console.print(f"[red]Swarm generation failed: {e}[/red]")
+    finally:
+        await client.aclose()
 
     console.print("\n[dim]Press Enter to return to the main menu.[/dim]")
     try:

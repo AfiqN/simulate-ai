@@ -7,8 +7,8 @@ export function extractRecommendation(reportMd: string | undefined): string | nu
 
   // Try to find recommendation section
   const patterns = [
-    /#+\s*(?:\d+\.?\s*)?(?:STRATEGIC\s+)?(?:PIVOT\s+)?RECOMMENDATION[S]?\s*\n+([\s\S]*?)(?=\n#+|\n---|\Z)/i,
-    /#+\s*(?:\d+\.?\s*)?ONE\s+RECOMMENDATION\s*\n+([\s\S]*?)(?=\n#+|\n---|\Z)/i,
+    /#+\s*(?:\d+\.?\s*)?(?:STRATEGIC\s+)?(?:PIVOT\s+)?RECOMMENDATION[S]?\s*\n+([\s\S]*?)(?=\n#+|\n---|$)/i,
+    /#+\s*(?:\d+\.?\s*)?ONE\s+RECOMMENDATION\s*\n+([\s\S]*?)(?=\n#+|\n---|$)/i,
     /\*\*Recommendation[s]?\*\*[:\s]*([\s\S]*?)(?=\n\n|\n#+)/i,
   ];
 

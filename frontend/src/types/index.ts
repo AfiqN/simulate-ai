@@ -56,6 +56,21 @@ export interface SchemaData {
 }
 
 export interface SimulationResult {
+  version?: string;
+  id?: string | null;
+  stimulus?: string;
+  config?: {
+    agent_count?: number;
+    concurrency?: number;
+    depth?: "quick" | "standard" | "deep";
+    mode?: "collaborative" | "adversarial";
+    provider?: string;
+    model?: string;
+    [key: string]: any;
+  };
+  schema?: SchemaData;
+  profiles?: any[];
+  rounds?: Record<string, AgentDecision[]>;
   scenario_name?: string;
   verdict?: string;
   resilience_metrics?: {

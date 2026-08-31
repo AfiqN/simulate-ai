@@ -440,7 +440,7 @@ Commit to exactly one action from the available actions list.
             f"--- YOUR IDENTITY ---\n"
             f"Archetype: {self.profile.archetype}\n"
             f"Decision Framework: {self.profile.decision_framework}\n"
-            f"Domain Knowledge: {', '.join(self.profile.knowledge_base[:3])}\n"
+            f"Domain Knowledge: {self.profile.knowledge_base or 'General domain knowledge'}\n"
             f"Hard Constraints: {', '.join(self.profile.constraints[:3]) if self.profile.constraints else 'None'}\n"
         )
 

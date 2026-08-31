@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import logging
 import time
 from datetime import datetime
 from pathlib import Path
@@ -9,10 +10,11 @@ from typing import Any, Optional
 
 from src.cli.simulation import run_simulation_pipeline
 from src.export.bundle import write_bundle
+from src.export.serialization import serialize_simulation_result
 from src.llm.client import OllamaClient
 from src.persistence.db import update_run
 
-from config import OLLAMA_HOST, DEFAULT_MODEL, MAX_CONCURRENCY
+from config import OLLAMA_HOST, DEFAULT_MODEL, MAX_CONCURRENCY, JOB_RETENTION_SECONDS
 
 
 RUNS_DIR = Path(__file__).resolve().parent.parent.parent / "tests" / "runs"
@@ -27,7 +29,8 @@ class SimulationJob:
                  depth: str = "standard", mode: str = "collaborative",
                  custom_stakeholders: list[dict] | None = None,
                  historical_precedents: list[dict] | None = None,
-                 api_key: str | None = None):
+                 api_key: str | None = None,
+                 schema_approval: str = "auto"):
         self.run_id = run_id
         self.stimulus = stimulus
         self.agent_count = agent_count
@@ -41,6 +44,7 @@ class SimulationJob:
         self.custom_stakeholders = custom_stakeholders
         self.historical_precedents = historical_precedents
         self.api_key = api_key
+        self.schema_approval = schema_approval
         self.status: str = "queued"
         self.scenario_name: str | None = None
         self.verdict: str | None = None
@@ -49,17 +53,21 @@ class SimulationJob:
         self.result: dict[str, Any] | None = None
         self.run_dir: Path | None = None
         self.progress: str | None = None
+        self.current_stage: str | None = None
+        self.progress_percent: int = 0
         # Schema approval gate
         self.schema_pending: bool = False
         self.schema_approval_event: asyncio.Event = asyncio.Event()
         self.schema_overrides: dict[str, Any] | None = None
         # Cancellation
         self.cancelled: bool = False
+        self.terminal_at: float | None = None
         self._task: asyncio.Task | None = None
 
 
-# Global job registry (in-memory — lost on restart)
+# Global job registry (in-memory — active execution only).
 _jobs: dict[str, SimulationJob] = {}
+logger = logging.getLogger(__name__)
 
 
 def get_job(run_id: str) -> Optional[SimulationJob]:
@@ -68,6 +76,32 @@ def get_job(run_id: str) -> Optional[SimulationJob]:
 
 def list_jobs() -> list[SimulationJob]:
     return list(_jobs.values())
+
+
+def cleanup_finished_jobs(now: float | None = None) -> int:
+    """Drop terminal in-memory jobs and their replay buffers after the TTL."""
+    from src.api.websocket import event_bus
+
+    current = now if now is not None else time.time()
+    expired = [
+        run_id for run_id, job in _jobs.items()
+        if job.status in {"completed", "failed", "cancelled"}
+        and job.terminal_at is not None
+        and current - job.terminal_at >= JOB_RETENTION_SECONDS
+    ]
+    for run_id in expired:
+        _jobs.pop(run_id, None)
+        event_bus.clear(run_id)
+    return len(expired)
+
+
+async def shutdown_jobs() -> None:
+    """Cancel and await active simulations before application shutdown."""
+    tasks = [job._task for job in _jobs.values() if job._task and not job._task.done()]
+    for task in tasks:
+        task.cancel()
+    if tasks:
+        await asyncio.gather(*tasks, return_exceptions=True)
 
 
 async def enqueue_simulation(job: SimulationJob, db) -> None:
@@ -85,9 +119,14 @@ async def cancel_job(run_id: str, db) -> bool:
     if job._task and not job._task.done():
         job._task.cancel()
     job.status = "cancelled"
+    job.terminal_at = time.time()
+    job.api_key = None
     from src.api.websocket import event_bus
-    event_bus.emit(run_id, {"type": "error", "message": "Simulation cancelled by user"})
+    from src.api.webhooks import dispatch_webhook_event
+
+    event_bus.emit(run_id, {"type": "cancelled", "message": "Simulation cancelled by user"})
     await update_run(db, run_id, status="cancelled")
+    await dispatch_webhook_event("simulation.cancelled", {}, run_id=run_id)
     return True
 
 
@@ -111,6 +150,9 @@ async def _execute_simulation(job: SimulationJob, db) -> None:
         from src.api.websocket import event_bus
 
         def _event_cb(event: dict):
+            if event.get("type") == "stage":
+                job.current_stage = event.get("stage")
+                job.progress_percent = int(event.get("progress") or job.progress_percent)
             event_bus.emit(job.run_id, event)
 
         async def _schema_approval_cb(schema):
@@ -146,13 +188,14 @@ async def _execute_simulation(job: SimulationJob, db) -> None:
             event_callback=_event_cb,
             depth=job.depth,
             mode=job.mode,
-            schema_approval_callback=_schema_approval_cb,
+            schema_approval_callback=(_schema_approval_cb if job.schema_approval == "manual" else None),
             custom_stakeholders=job.custom_stakeholders,
             historical_precedents=job.historical_precedents,
         )
 
         job.elapsed_s = time.time() - start
         job.status = "completed"
+        job.terminal_at = time.time()
         job.scenario_name = result["schema"].scenario_name
         job.verdict = result["resilience_metrics"]["verdict"]
 
@@ -167,41 +210,30 @@ async def _execute_simulation(job: SimulationJob, db) -> None:
         (out_dir / "stimulus.txt").write_text(job.stimulus, encoding="utf-8")
         (out_dir / "report.md").write_text(result["report_md"], encoding="utf-8")
 
-        # Serialize result for metrics.json
-        from tests.run_scenario import serialize_result
-        (out_dir / "metrics.json").write_text(
-            json.dumps(serialize_result(result), indent=2, default=str),
-            encoding="utf-8",
+        config_data = {
+            "agent_count": job.agent_count,
+            "concurrency": job.concurrency,
+            "provider": job.provider,
+            "model": job.model,
+            "depth": job.depth,
+            "mode": job.mode,
+            "rag_enabled": job.rag_enabled,
+            "custom_stakeholders": job.custom_stakeholders,
+            "historical_precedents": job.historical_precedents,
+        }
+        job.result = serialize_simulation_result(
+            result,
+            run_id=job.run_id,
+            stimulus=job.stimulus,
+            config=config_data,
         )
+        canonical_json = json.dumps(job.result, indent=2, default=str, ensure_ascii=False)
+        (out_dir / "result.json").write_text(canonical_json, encoding="utf-8")
+        # Keep metrics.json for backward-compatible tools, now using the same contract.
+        (out_dir / "metrics.json").write_text(canonical_json, encoding="utf-8")
         write_bundle(result, out_dir)
 
         job.run_dir = out_dir
-        # Serialize adversarial result if present
-        adversarial_raw = result.get("adversarial_result")
-        adversarial_data = None
-        if adversarial_raw is not None:
-            from dataclasses import asdict
-            adversarial_data = {
-                "claims": [asdict(c) for c in adversarial_raw.claims],
-                "survival_rate": adversarial_raw.survival_rate,
-                "surviving_count": len(adversarial_raw.surviving_claims),
-                "defeated_count": len(adversarial_raw.defeated_claims),
-                "key_defeats": adversarial_raw.key_defeats,
-            }
-
-        job.result = {
-            "scenario_name": job.scenario_name,
-            "verdict": job.verdict,
-            "resilience_metrics": result["resilience_metrics"],
-            "crisis_event": result["crisis_event"],
-            "timings": result["timings"],
-            "report_md": result["report_md"],
-            "quantitative_metrics": result.get("quantitative_metrics"),
-            "faction_metrics": result.get("faction_metrics"),
-            "conditional_dynamics": result.get("conditional_dynamics"),
-            "historical_context": result.get("historical_context"),
-            "adversarial_result": adversarial_data,
-        }
 
         await update_run(
             db, job.run_id,
@@ -220,11 +252,25 @@ async def _execute_simulation(job: SimulationJob, db) -> None:
             "agent_count": job.agent_count,
         }, run_id=job.run_id)
 
-    except Exception as e:
+    except asyncio.CancelledError:
+        # cancel_job owns the durable cancelled state and public event.
+        if job.status != "cancelled":
+            job.status = "cancelled"
+            job.terminal_at = time.time()
+            await update_run(db, job.run_id, status="cancelled")
+        raise
+    except Exception:
         job.elapsed_s = time.time() - start
         job.status = "failed"
-        job.error = f"{type(e).__name__}: {e}"
-        event_bus.emit(job.run_id, {"type": "error", "message": job.error})
+        job.terminal_at = time.time()
+        logger.exception("Simulation %s failed", job.run_id)
+        job.error = "The simulation could not be completed. Check the provider settings and retry."
+        event_bus.emit(job.run_id, {
+            "type": "error",
+            "code": "SIMULATION_FAILED",
+            "message": job.error,
+            "retryable": True,
+        })
         await update_run(
             db, job.run_id,
             status="failed",
@@ -232,8 +278,10 @@ async def _execute_simulation(job: SimulationJob, db) -> None:
             error_message=job.error,
         )
         await dispatch_webhook_event("simulation.failed", {
-            "error": job.error,
+            "error_code": "SIMULATION_FAILED",
             "elapsed_s": job.elapsed_s,
         }, run_id=job.run_id)
     finally:
+        # Credentials are needed only while the task is active.
+        job.api_key = None
         await client.aclose()

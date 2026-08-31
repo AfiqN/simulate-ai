@@ -64,7 +64,7 @@ class AdversarialRoundResult:
         lines.append("")
         lines.append("--- SURVIVING CLAIMS ---")
         for c in self.surviving_claims:
-            label = f"[AMENDED]" if c.status == "amended" else "[STANDING]"
+            label = "[AMENDED]" if c.status == "amended" else "[STANDING]"
             text = c.amended_claim if c.amended_claim else c.claim_text
             lines.append(f"  {label} {c.archetype}: \"{text}\"")
             if c.attack_text:

@@ -6,7 +6,6 @@ across simulation rounds. Pure computation — no LLM calls.
 
 from __future__ import annotations
 
-from collections import Counter
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
@@ -188,7 +187,6 @@ class FactionTracker:
             return ""
 
         my_faction = latest.factions[agent_action]
-        majority = latest.majority_faction
         total = latest.total_agents
 
         lines = ["--- FACTION DYNAMICS ---"]

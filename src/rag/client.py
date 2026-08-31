@@ -333,7 +333,7 @@ class WebSearchClient:
                 elif resp.status_code == 429:
                     # Rate limited — wait and retry
                     if attempt < max_retries:
-                        logger.info(f"SearXNG rate limited (429), retrying...")
+                        logger.info("SearXNG rate limited (429), retrying...")
                         await asyncio.sleep(2.0 * (attempt + 1))
                         continue
                     logger.warning(f"SearXNG rate limited after {max_retries} retries")

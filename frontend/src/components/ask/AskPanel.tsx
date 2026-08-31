@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { SimulationResult } from "../../types";
+import { askRun, getRunToken } from "../../lib/api";
 
 interface Props {
   result: SimulationResult;
@@ -22,29 +23,11 @@ export function AskPanel({ result, runId }: Props) {
     setAnswer(null);
 
     try {
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
-      const stored = localStorage.getItem("simulate-ai-settings");
-      if (stored) {
-        const settings = JSON.parse(stored);
-        if (settings.apiKey) headers["X-API-Key"] = settings.apiKey;
+      if (!runId || !getRunToken(runId)) {
+        throw new Error("Follow-up questions are available only to the run owner.");
       }
-
-      const res = await fetch(`/api/runs/${runId || "example"}/ask`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          question: question.trim(),
-          context_md: result.report_md || "",
-        }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.detail || `Error: ${res.status}`);
-      }
-
-      const data = await res.json();
-      setAnswer(data.answer);
+      const answer = await askRun(runId, question.trim(), result.report_md || "");
+      setAnswer(answer);
       setQuestionsAsked((n) => n + 1);
     } catch (err: any) {
       setError(err.message || "Failed to get answer");

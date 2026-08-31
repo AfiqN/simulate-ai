@@ -4,245 +4,159 @@
 
 # SimulateAI
 
-**Know what will go wrong before it does.**
+**Stress-test decisions with structured multi-agent debate.**
 
-AI personas debate your idea from every angle — surfacing blind spots, coalition risks, and failure modes in minutes.
-
+[![CI](https://github.com/AfiqN/simulate-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/AfiqN/simulate-ai/actions/workflows/ci.yml)
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-3776AB.svg)](https://python.org)
-[![React 18](https://img.shields.io/badge/react-18-61DAFB.svg)](https://react.dev)
-[![FastAPI](https://img.shields.io/badge/FastAPI-009688.svg)](https://fastapi.tiangolo.com)
-[![Deploy on Railway](https://img.shields.io/badge/deploy-Railway-0B0D0E.svg)](https://railway.app)
+[![Python 3.11](https://img.shields.io/badge/python-3.11-3776AB.svg)](https://python.org)
+[![React 19](https://img.shields.io/badge/react-19-61DAFB.svg)](https://react.dev)
 
-[Live Demo](https://simulate-ai-production.up.railway.app) · [How It Works](#how-it-works) · [Getting Started](#getting-started) · [API Reference](#api-reference)
+[Live Demo](https://simulate-ai-production.up.railway.app) · [Methodology](docs/methodology.md) · [Architecture](docs/architecture.md) · [Limitations](docs/limitations.md)
 
 </div>
 
----
+![SimulateAI landing page](docs/screenshot-landing.png)
 
-![SimulateAI Landing Page](docs/screenshot-landing.png)
+## What it does
 
-## What is SimulateAI?
+SimulateAI turns a decision, proposal, or policy into a schema-first simulation. Diverse AI personas independently assess it, debate opposing positions, react to a generated crisis, and—at deep depth—attempt reconciliation. The application then presents coalition changes, utility drift, failure modes, and a resilience verdict.
 
-SimulateAI is a multi-agent simulation platform that stress-tests your decisions before you commit to them. Submit any concept — a product pitch, draft policy, research question, or strategic move — and a swarm of AI personas evaluates it through structured debate rounds.
+The verdict is **not chosen freely by an LLM**. It is computed from deterministic thresholds over simulation outputs; the LLM writes the accompanying narrative. Results are decision-support artifacts, not forecasts or professional advice.
 
-The result: a diagnostic report with a resilience verdict (Fragile / Moderate / Resilient) backed by quantified metrics — not vibes.
+## Pipeline
 
-### Use cases
-
-- **Founders** — Stress-test a pitch before investor meetings
-- **Product managers** — Pressure-test feature decisions from multiple user perspectives
-- **Policy makers** — Simulate stakeholder reactions to new regulations
-- **Strategists** — Find failure modes in strategic plans before execution
-
-## How It Works
-
-Every simulation runs through five stages:
-
-```
-STIMULUS → ARCHITECT → SWARM → 3-ROUND DEBATE → DIAGNOSTIC REPORT
+```text
+Stimulus → Dynamic schema → Persona swarm → Structured rounds
+         → Deterministic metrics → Narrative report → Canonical snapshot
 ```
 
-1. **Architect** — Analyzes your input and generates a dynamic simulation schema (actions, emotional states, resource models)
-2. **Swarm Generation** — Creates N diverse personas aligned to the schema
-3. **Round 1: Perception** — Each agent independently evaluates the stimulus
-4. **Round 2: Debate** — Agents are paired with adversaries and must engage opposing stances
-5. **Round 3: Crisis** — An external shock is synthesized; the swarm re-evaluates under pressure
+- **Quick:** initial assessment plus crisis stress test.
+- **Standard:** perception, debate, and crisis.
+- **Deep:** Standard plus reconciliation and minority analysis.
+- **Adversarial mode:** extracts claims, challenges evidence, and records which claims survive.
 
-A compiler then produces a structured diagnostic with a deterministic resilience verdict computed from decision stability, utility drift, and coalition dynamics.
+See [Methodology](docs/methodology.md) for metric definitions and [Architecture](docs/architecture.md) for component boundaries.
 
-![SimulateAI Form](docs/screenshot-form.png)
+## Portfolio v1 capabilities
 
-## Getting Started
+- React 19 + TypeScript SPA with live WebSocket progress.
+- FastAPI async orchestration with Gemini, OpenAI-compatible, and Ollama providers.
+- Canonical, versioned result used by live completion, reload, history, export, and shared views.
+- Private-by-default runs using hashed owner capability tokens.
+- Revocable read-only share links; shared viewers cannot cancel, approve, ask follow-ups, or create new shares.
+- Sequenced WebSocket replay with polling/snapshot recovery.
+- SQLite-backed daily quota: 3 demo runs or 30 BYOK runs per identity by default.
+- API keys retained only while a job is active; browser BYOK settings use tab-scoped `sessionStorage`.
+- Webhooks disabled by default and protected by admin authentication, HTTPS/public-network validation, HMAC signing, and redirect blocking when enabled.
+- Retention cleanup, readiness/liveness checks, graceful shutdown, CI, and reproducible multi-stage Docker build.
 
-### Prerequisites
+## Quick start
 
-- Python 3.11+
-- Node.js 20+ (for frontend development)
-- An API key from Google AI Studio, OpenAI, or a running Ollama instance
-
-### Quick Start
+### Docker (recommended)
 
 ```bash
 git clone https://github.com/AfiqN/simulate-ai.git
 cd simulate-ai
-cp .env.example .env        # Add your API key
-pip install -r requirements.txt
-python server.py            # → http://localhost:8000
+cp .env.example .env
+# Set one provider and its key in .env, or use Ollama.
+docker compose up --build
 ```
 
-### Docker
+Open <http://localhost:8000>. Docker builds the frontend from source and runs one non-root API worker. The one-worker constraint is intentional: active jobs and WebSocket replay buffers are in memory in Portfolio v1.
+
+### Local development
+
+Requirements: Python 3.11+, Node.js 22+, and one supported LLM provider.
 
 ```bash
-cp .env.example .env        # Add your API key
-docker compose up --build   # → http://localhost:8000
+python -m venv .venv
+# Linux/macOS: source .venv/bin/activate
+# Windows: .venv\Scripts\activate
+pip install -r requirements.txt -r requirements-dev.txt
+cp .env.example .env
+python server.py --reload
 ```
 
-### Environment Variables
+In a second terminal:
 
 ```bash
-# Required: pick one provider
-LLM_PROVIDER=gemini              # gemini | openai | ollama
-
-# Provider keys (only your chosen provider needed)
-GEMINI_API_KEY=your-key-here
-OPENAI_API_KEY=your-key-here
-OPENAI_BASE_URL=https://api.openai.com/v1
-OLLAMA_HOST=http://localhost:11434
-
-# Optional
-MAX_CONCURRENCY=5
-RAG_ENABLED=true
-BRAVE_API_KEY=                   # Brave Search for RAG enrichment
+cd frontend
+npm ci
+npm run dev
 ```
 
-## Supported Providers
+The Vite development server runs at <http://localhost:5173> and proxies API/WebSocket traffic to port 8000.
 
-| Provider | Config | Notes |
-|----------|--------|-------|
-| **Google Gemini** | `LLM_PROVIDER=gemini` + `GEMINI_API_KEY` | Free tier available |
-| **OpenAI** | `LLM_PROVIDER=openai` + `OPENAI_API_KEY` | GPT-4o recommended |
-| **Ollama** | `LLM_PROVIDER=ollama` + `OLLAMA_HOST` | Fully local, no API key needed |
+## Configuration
 
-Users can also bring their own API key directly in the web UI — no server-side key required.
+| Variable | Default | Purpose |
+|---|---:|---|
+| `LLM_PROVIDER` | `openai` | `openai`, `gemini`, or `ollama` |
+| `OPENAI_MODEL` | `gpt-4o` | OpenAI-compatible model |
+| `OPENAI_BASE_URL` | OpenAI API | Optional compatible gateway |
+| `GEMINI_MODEL` | `gemma-4-26b-a4b-it` | Gemini model |
+| `OLLAMA_HOST` | `http://localhost:11434` | Ollama endpoint |
+| `REQUEST_TIMEOUT` | `120` | Provider request timeout in seconds |
+| `MAX_CONCURRENCY` | `5` | Per-run LLM concurrency ceiling |
+| `RAG_ENABLED` | `true` | Enable web-search enrichment when configured |
+| `ADMIN_API_KEY` | empty | Required for administrative run index/webhook management |
+| `RATE_LIMIT_SALT` | local-dev value | Set a random secret in public deployments |
+| `TRUST_PROXY_HEADERS` | `false` | Trust forwarded client IP only behind a controlled proxy |
+| `WEBHOOKS_ENABLED` | `false` | Enable webhook management and delivery |
+| `RUN_RETENTION_DAYS` | `7` | Terminal run retention |
+| `JOB_RETENTION_SECONDS` | `900` | In-memory terminal job retention |
 
-## Tech Stack
+Never commit `.env`. Set a strong `RATE_LIMIT_SALT` and `ADMIN_API_KEY` for a public deployment.
 
-| Layer | Technology |
-|-------|-----------|
-| Frontend | React 18, TypeScript, Tailwind CSS, Vite |
-| Backend | Python 3.11, FastAPI, asyncio |
-| LLM | Multi-provider (Gemini, OpenAI, Ollama) |
-| Database | SQLite (aiosqlite) |
-| Deploy | Railway, Docker |
+## Access model
 
-## API Reference
+`POST /api/simulate` returns a run ID and a random owner token. Only the token hash is stored server-side. Owner operations accept `Authorization: Bearer <token>` or `X-Run-Token`; read-only shared views use a separately generated `share` token.
 
-### `POST /api/simulate`
+Browser WebSockets cannot send custom headers, so the capability is sent in the WebSocket query string. Configure reverse proxies not to log query strings. This model is appropriate for a portfolio demo, but it is not a replacement for accounts, sessions, and RBAC in a multi-tenant product.
 
-Start a new simulation. Returns immediately with a run ID for polling.
+Useful endpoints:
 
-```json
-{
-  "stimulus": "A fintech startup pitching micro-investment accounts to regulators",
-  "agent_count": 5,
-  "concurrency": 2,
-  "provider": "gemini",
-  "model": "gemma-4-26b-a4b-it"
-}
-```
+| Endpoint | Access |
+|---|---|
+| `POST /api/simulate` | Public, quota-limited |
+| `GET /api/simulate/{id}` | Owner or active share token |
+| `POST /api/simulate/{id}/cancel` | Owner |
+| `POST /api/simulate/{id}/schema` | Owner |
+| `POST/DELETE /api/runs/{id}/share` | Owner |
+| `POST /api/runs/{id}/ask` | Owner |
+| `GET /api/runs/{id}/export` | Owner or active share token |
+| `GET /api/runs` | Admin |
+| `GET /api/health` | Public liveness |
+| `GET /api/readiness` | Public local-dependency readiness |
 
-All fields except `stimulus` are optional.
+Interactive OpenAPI documentation is available at `/docs`.
 
-### `GET /api/simulate/{id}`
-
-Poll run status. Returns `queued` | `running` | `completed` | `failed` with full results on completion.
-
-### `GET /api/runs`
-
-List historical runs. Supports `limit`, `offset`, and `verdict` filter params.
-
-### `GET /api/health`
-
-Health check — returns provider and model info.
-
-## CLI Usage
-
-SimulateAI also ships with a full CLI for batch testing and scripting:
-
-```bash
-# Interactive mode
-python main.py
-
-# Run a predefined scenario
-python tests/run_scenario.py fintech
-
-# Run all scenarios
-python tests/run_scenario.py --all --parallel 2
-
-# Override provider per-run
-python tests/run_scenario.py 01 --provider openai --model gpt-4o
-```
-
-<details>
-<summary>CLI flags reference</summary>
-
-| Flag | Default | Description |
-|------|---------|-------------|
-| `scenario` | — | Name fragment, prefix, or path to `.txt` file |
-| `--all` | false | Run every scenario in `tests/scenarios/` |
-| `--agents N` | 5 | Agent count per scenario |
-| `--concurrency N` | 2 | Max simultaneous LLM calls |
-| `--parallel N` | 1 | Run N scenarios concurrently |
-| `--provider` | env default | `gemini`, `openai`, or `ollama` |
-| `--model` | env default | Model name for the provider |
-| `--crisis TEXT` | auto | Custom crisis event for Round 3 |
-
-</details>
-
-## Architecture
-
-```
-├── server.py              # FastAPI entry point
-├── config.py              # Provider configuration
-├── src/
-│   ├── agent/             # Agent logic (perceive, debate, crisis rounds)
-│   ├── api/               # REST endpoints, job queue
-│   ├── cli/               # Interactive CLI
-│   ├── export/            # Run bundle writer
-│   ├── llm/               # Multi-provider LLM client
-│   ├── persistence/       # SQLite storage
-│   ├── report/            # Diagnostic compiler
-│   └── schema/            # Simulation schema architect
-├── frontend/              # React + Vite SPA
-│   ├── src/components/    # UI components
-│   └── public/            # Static assets
-└── tests/
-    ├── scenarios/         # Predefined stimuli
-    └── unit/              # Deterministic helper tests
-```
-
-## Development
+## Quality gates
 
 ```bash
 # Backend
-pip install -r requirements.txt
-python server.py --reload
+ruff check config.py server.py src
+pytest tests/unit -q
+python -m compileall -q config.py server.py src tests
 
 # Frontend
 cd frontend
-npm install
-npm run dev                # → http://localhost:5173
+npm run lint
+npm run test
+npm run typecheck
+npm run build
+npm audit --audit-level=moderate
 ```
 
-### Running Tests
+Current local checkpoint: **355 backend tests** and **3 frontend regression tests** passing. GitHub Actions repeats backend, frontend, and container-readiness checks from a clean checkout.
 
-```bash
-python -m pytest tests/unit/ -v
-```
+## Deployment scope
 
-## Deployment
+Portfolio v1 is designed for a **single application instance with one worker**, SQLite, and local persistent storage. It is suitable for a portfolio/public demo with documented constraints. It is not yet a horizontally scalable or multi-tenant SaaS. Read [Limitations](docs/limitations.md) before exposing it to real workloads.
 
-SimulateAI is deployed on Railway. The server serves both the API and the pre-built frontend from `static/dist/`.
+## Security and contributing
 
-```bash
-# Build frontend for production
-cd frontend && npm run build    # outputs to ../static/dist/
-
-# Start production server
-python server.py
-```
-
-## Contributing
-
-Contributions are welcome. Please:
-
-1. Fork the repo
-2. Create a feature branch (`git checkout -b feat/your-feature`)
-3. Commit your changes
-4. Push and open a Pull Request
-
-For bugs, please open an issue with steps to reproduce.
+Report vulnerabilities using [SECURITY.md](SECURITY.md). Development workflow is in [CONTRIBUTING.md](CONTRIBUTING.md). Planned work is tracked in [ROADMAP.md](ROADMAP.md).
 
 ## License
 

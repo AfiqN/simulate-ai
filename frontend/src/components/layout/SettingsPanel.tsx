@@ -7,6 +7,7 @@ export interface LLMSettings {
 }
 
 const STORAGE_KEY = "simulateai_settings";
+const LEGACY_STORAGE_KEY = "simulate-ai-settings";
 const DEFAULT_MODELS: Record<string, string> = {
   gemini: "gemma-4-26b-a4b-it",
   openai: "gpt-4o",
@@ -14,9 +15,16 @@ const DEFAULT_MODELS: Record<string, string> = {
 
 export function getStoredSettings(): LLMSettings | null {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = sessionStorage.getItem(STORAGE_KEY)
+      || localStorage.getItem(STORAGE_KEY)
+      || localStorage.getItem(LEGACY_STORAGE_KEY);
     if (!raw) return null;
-    return JSON.parse(raw);
+    const settings = JSON.parse(raw) as LLMSettings;
+    // Migrate persistent legacy settings to tab-scoped storage.
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(LEGACY_STORAGE_KEY);
+    return settings;
   } catch {
     return null;
   }
@@ -49,13 +57,15 @@ export function SettingsPanel({ open, onClose }: Props) {
 
   const handleSave = () => {
     const settings: LLMSettings = { apiKey, provider, model };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
 
   const handleClear = () => {
+    sessionStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(LEGACY_STORAGE_KEY);
     setApiKey("");
     setProvider("gemini");
     setModel(DEFAULT_MODELS.gemini);
@@ -81,7 +91,7 @@ export function SettingsPanel({ open, onClose }: Props) {
 
         <div className="bg-[#F8FFFE] border border-[#D1FAE5] rounded-[6px] p-3">
           <p className="text-[12px] text-[#065F46] leading-relaxed">
-            Your API key is stored in your browser only (localStorage). It's sent per-request via an encrypted HTTPS header and never saved on our servers.{" "}
+            Your API key is stored for this browser tab only (sessionStorage). It is sent per request over HTTPS and never persisted by our server. Like any browser storage, it still depends on the page remaining free of XSS vulnerabilities.{" "}
             <a
               href="https://github.com/AfiqN/simulate-ai/blob/master/src/api/queue.py"
               target="_blank"
@@ -171,7 +181,7 @@ export function SettingsPanel({ open, onClose }: Props) {
         </div>
 
         <p className="text-[11px] text-[#9B9B9B] leading-relaxed">
-          Without your own key, you get 3 free demo runs per day. With your key, runs are unlimited and billed to your own account.
+          Without your own key, you get 3 demo runs per day. BYOK raises the abuse-protection limit to 30 runs/day and provider usage is billed to your account.
         </p>
       </div>
     </div>

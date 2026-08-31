@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { WSEvent } from "../types";
+import { getRunToken, getShareToken } from "../lib/api";
 
 type WSStatus = "disconnected" | "connecting" | "connected" | "error";
 
@@ -11,81 +12,100 @@ export function useWebSocket(runId: string | null) {
   const runIdRef = useRef(runId);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastProgressRef = useRef<string | null>(null);
+  const lastSeqRef = useRef(0);
+  const terminalRef = useRef(false);
+  const connectRef = useRef<() => void>(() => undefined);
 
-  runIdRef.current = runId;
+  useEffect(() => {
+    runIdRef.current = runId;
+  }, [runId]);
+
+  const appendEvent = useCallback((event: WSEvent) => {
+    if (event.seq && event.seq <= lastSeqRef.current) return;
+    if (event.seq) lastSeqRef.current = event.seq;
+    if (terminalRef.current) return;
+    if (event.type === "complete" || event.type === "error" || event.type === "cancelled") terminalRef.current = true;
+    setEvents((previous) => [...previous, event]);
+  }, []);
 
   const stopPolling = useCallback(() => {
-    if (pollRef.current) {
-      clearInterval(pollRef.current);
-      pollRef.current = null;
-    }
+    if (pollRef.current) clearInterval(pollRef.current);
+    pollRef.current = null;
   }, []);
 
   const startPolling = useCallback((id: string) => {
     stopPolling();
     pollRef.current = setInterval(async () => {
+      if (terminalRef.current) return stopPolling();
+      const token = getRunToken(id);
+      const share = getShareToken();
+      const url = `/api/simulate/${id}${share ? `?share=${encodeURIComponent(share)}` : ""}`;
       try {
-        const res = await fetch(`/api/simulate/${id}`);
+        const res = await fetch(url, {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        });
         if (!res.ok) return;
         const data = await res.json();
-
-        // Emit progress as synthetic stage events
-        if (data.progress && data.progress !== lastProgressRef.current) {
-          lastProgressRef.current = data.progress;
-          setEvents((prev) => [...prev, { type: "stage", stage: "running", progress: null, label: data.progress }]);
+        if (data.stage || data.progress_percent) {
+          appendEvent({
+            type: "stage",
+            stage: data.stage || "schema",
+            progress: data.progress_percent || 0,
+            label: data.progress,
+          });
         }
-
-        // Handle terminal states
-        if (data.status === "completed" && data.result) {
-          setEvents((prev) => [...prev, { type: "complete", result: data.result }]);
+        if (data.status === "schema_pending") {
+          appendEvent({ type: "schema_pending", schema: data.schema || null });
+        } else if (data.status === "completed" && data.result) {
+          appendEvent({ type: "complete", result: data.result });
           stopPolling();
-        } else if (data.status === "failed") {
-          setEvents((prev) => [...prev, { type: "error", message: data.error || "Simulation failed" }]);
+        } else if (data.status === "failed" || data.status === "cancelled") {
+          appendEvent({ type: "error", message: data.error || `Simulation ${data.status}` });
           stopPolling();
         }
+        if (data.progress) lastProgressRef.current = data.progress;
       } catch {
-        // Ignore fetch errors during polling
+        // Polling is a best-effort fallback while WebSocket reconnects.
       }
     }, 3000);
-  }, [stopPolling]);
+  }, [appendEvent, stopPolling]);
 
   const connect = useCallback(() => {
     const id = runIdRef.current;
-    if (!id) return;
+    if (!id || terminalRef.current) return;
     setStatus("connecting");
-
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const host = window.location.host;
-    const ws = new WebSocket(`${protocol}//${host}/api/ws/simulate/${id}`);
+    const params = new URLSearchParams({ since: String(lastSeqRef.current) });
+    const token = getRunToken(id);
+    const share = getShareToken();
+    if (token) params.set("token", token);
+    else if (share) params.set("share", share);
+    const ws = new WebSocket(`${protocol}//${window.location.host}/api/ws/simulate/${id}?${params}`);
     wsRef.current = ws;
 
     ws.onopen = () => {
       setStatus("connected");
       retriesRef.current = 0;
-      stopPolling(); // WS connected, no need for polling
+      stopPolling();
     };
-
-    ws.onmessage = (e) => {
-      const event: WSEvent = JSON.parse(e.data);
-      setEvents((prev) => [...prev, event]);
+    ws.onmessage = (message) => {
+      try { appendEvent(JSON.parse(message.data)); }
+      catch { /* Ignore malformed transport messages. */ }
     };
-
-    ws.onerror = () => {
-      setStatus("error");
-    };
-
+    ws.onerror = () => setStatus("error");
     ws.onclose = () => {
       setStatus("disconnected");
+      if (terminalRef.current || !runIdRef.current) return;
       const delay = Math.min(1000 * 2 ** retriesRef.current, 10000);
-      retriesRef.current++;
-      if (retriesRef.current <= 5 && runIdRef.current) {
-        setTimeout(connect, delay);
-      } else if (runIdRef.current) {
-        // WS exhausted retries — fall back to polling
-        startPolling(runIdRef.current);
-      }
+      retriesRef.current += 1;
+      if (retriesRef.current <= 5) setTimeout(() => connectRef.current(), delay);
+      else startPolling(runIdRef.current);
     };
-  }, [stopPolling, startPolling]);
+  }, [appendEvent, startPolling, stopPolling]);
+
+  useEffect(() => {
+    connectRef.current = connect;
+  }, [connect]);
 
   const disconnect = useCallback(() => {
     retriesRef.current = 99;
@@ -99,15 +119,14 @@ export function useWebSocket(runId: string | null) {
     setEvents([]);
     retriesRef.current = 0;
     lastProgressRef.current = null;
+    lastSeqRef.current = 0;
+    terminalRef.current = false;
   }, []);
 
   useEffect(() => {
     if (runId) {
-      setEvents([]);
-      retriesRef.current = 0;
-      lastProgressRef.current = null;
+      reset();
       connect();
-      // Start polling immediately as backup — will stop once WS connects
       startPolling(runId);
     }
     return () => {
@@ -115,7 +134,7 @@ export function useWebSocket(runId: string | null) {
       wsRef.current = null;
       stopPolling();
     };
-  }, [runId, connect, startPolling, stopPolling]);
+  }, [runId, connect, reset, startPolling, stopPolling]);
 
   return { events, status, connect, disconnect, reset };
 }

@@ -1,26 +1,23 @@
-/**
- * Transforms raw metrics.json (backend format) into props for ResultsView.
- */
-import type { SimulationResult, RoundSummary, AgentDecision, FactionUpdate, TriggersEvent, HistoricalPrecedent, AdversarialResult } from "../types";
+import type {
+  SimulationResult,
+  RoundSummary,
+  AgentDecision,
+  FactionUpdate,
+  TriggersEvent,
+  HistoricalPrecedent,
+  AdversarialResult,
+  SchemaData,
+} from "../types";
 
-interface MetricsRaw {
-  scenario_name: string;
+interface MetricsRaw extends SimulationResult {
   verdict_label?: string;
-  resilience_metrics?: any;
-  crisis_event?: any;
-  quantitative_metrics?: any;
-  faction_metrics?: any;
-  conditional_dynamics?: any;
-  historical_context?: any;
-  adversarial_result?: any;
   agents?: any[];
-  rounds?: Record<string, any[]>;
-  report_md?: string;
-  timings?: any;
+  actions?: Array<string | { name: string; description?: string; is_terminal: boolean }>;
 }
 
 export interface ExampleData {
   result: SimulationResult;
+  schema: SchemaData | null;
   rounds: RoundSummary[];
   agentsByRound: Record<number, AgentDecision[]>;
   factionUpdates: FactionUpdate[];
@@ -29,81 +26,115 @@ export interface ExampleData {
   adversarialResult: AdversarialResult | null;
 }
 
+function normalizeDecision(d: any): AgentDecision {
+  return {
+    id: String(d.id || ""),
+    archetype: String(d.archetype || "Unknown agent"),
+    action: String(d.action || "UNKNOWN"),
+    utility: Number(d.utility || 0),
+    utility_dimensions: d.utility_dimensions || {},
+    reasoning_chain: d.reasoning_chain || [],
+    emotional_state: d.emotional_state,
+    new_state: d.new_state,
+    monologue: d.monologue,
+    statement: d.statement,
+    confidence: d.confidence,
+    duration: d.duration,
+  };
+}
+
+/** Normalize canonical and legacy backend payloads into one UI model. */
 export function transformMetrics(raw: MetricsRaw): ExampleData {
-  // Build result object
   const result: SimulationResult = {
-    scenario_name: raw.scenario_name,
-    verdict: raw.resilience_metrics?.verdict,
-    resilience_metrics: raw.resilience_metrics,
-    crisis_event: raw.crisis_event,
-    timings: raw.timings,
-    report_md: raw.report_md,
-    quantitative_metrics: raw.quantitative_metrics,
-    faction_metrics: raw.faction_metrics,
-    conditional_dynamics: raw.conditional_dynamics,
-    historical_context: raw.historical_context,
-    adversarial_result: raw.adversarial_result,
+    ...raw,
+    verdict: raw.resilience_metrics?.verdict || raw.verdict,
   };
 
-  // Transform rounds: { r1: [...], r2: [...], r3: [...] } → RoundSummary[]
-  const roundKeys = Object.keys(raw.rounds || {}).sort();
+  const schema: SchemaData | null = raw.schema
+    ? {
+        scenario_name: raw.schema.scenario_name || raw.scenario_name || "Simulation",
+        evaluation_dimensions: raw.schema.evaluation_dimensions || [],
+        actions: (raw.schema.actions || []).map((a: any) =>
+          typeof a === "string" ? { name: a, is_terminal: false } : a
+        ),
+        state_vocabulary: raw.schema.state_vocabulary || [],
+      }
+    : raw.actions
+    ? {
+        scenario_name: raw.scenario_name || "Simulation",
+        evaluation_dimensions: [],
+        actions: (raw.actions as any[]).map((a: any) =>
+          typeof a === "string" ? { name: a, is_terminal: false } : a
+        ),
+      }
+    : null;
+
+  const roundEntries = Object.entries(raw.rounds || {})
+    .filter(([, values]) => Array.isArray(values) && values.length > 0)
+    .sort(([a], [b]) => Number(a.replace(/\D/g, "")) - Number(b.replace(/\D/g, "")));
   const rounds: RoundSummary[] = [];
   const agentsByRound: Record<number, AgentDecision[]> = {};
 
-  roundKeys.forEach((key, idx) => {
-    const roundNum = idx + 1;
-    const decisions: AgentDecision[] = (raw.rounds?.[key] || []).map((d: any) => ({
-      id: d.id,
-      archetype: d.archetype,
-      action: d.action,
-      utility: d.utility,
-      utility_dimensions: d.utility_dimensions || {},
-      reasoning_chain: d.reasoning_chain || [],
-      emotional_state: d.emotional_state,
-      new_state: d.new_state,
-      monologue: d.monologue,
-      statement: d.statement,
-      confidence: d.confidence,
-      duration: d.duration,
-    }));
-
-    // Compute vote tally
+  roundEntries.forEach(([key, values], index) => {
+    const parsed = Number(key.replace(/\D/g, ""));
+    const roundNum = Number.isFinite(parsed) && parsed > 0 ? parsed : index + 1;
+    const decisions = (values as any[]).map(normalizeDecision);
     const voteTally: Record<string, number> = {};
-    decisions.forEach((d) => {
-      voteTally[d.action] = (voteTally[d.action] || 0) + 1;
+    decisions.forEach((decision) => {
+      voteTally[decision.action] = (voteTally[decision.action] || 0) + 1;
     });
-
-    rounds.push({ round: roundNum, decisions, vote_tally: voteTally });
+    rounds.push({
+      round: roundNum,
+      decisions,
+      vote_tally: voteTally,
+      consensus_index: raw.quantitative_metrics?.consensus_index?.[`r${roundNum}`],
+    });
     agentsByRound[roundNum] = decisions;
   });
 
-  // Faction updates from faction_metrics
   const factionUpdates: FactionUpdate[] = [];
-  if (raw.faction_metrics?.snapshots) {
-    for (const [roundStr, factions] of Object.entries(raw.faction_metrics.snapshots as Record<string, any>)) {
-      factionUpdates.push({ round: parseInt(roundStr), factions: factions as any });
+  const factionHistory = raw.faction_metrics?.faction_history || [];
+  for (const entry of factionHistory) {
+    const snapshots: Record<string, { size: number; cohesion: number }> = {};
+    for (const [action, value] of Object.entries(entry.factions || {})) {
+      snapshots[action] = typeof value === "number"
+        ? { size: value, cohesion: 0 }
+        : (value as { size: number; cohesion: number });
+    }
+    factionUpdates.push({ round: Number(entry.round), factions: snapshots });
+  }
+  const legacySnapshots = (raw.faction_metrics as any)?.snapshots;
+  if (factionUpdates.length === 0 && legacySnapshots) {
+    for (const [round, factions] of Object.entries(legacySnapshots)) {
+      factionUpdates.push({ round: Number(round), factions: factions as any });
     }
   }
 
-  // Triggers events — group by round
   const triggersEvents: TriggersEvent[] = [];
   if (raw.conditional_dynamics?.length) {
-    const byRound: Record<number, { rule: string; effect: string; context: Record<string, any> }[]> = {};
-    for (const d of raw.conditional_dynamics) {
-      const r = d.round ?? 0;
-      if (!byRound[r]) byRound[r] = [];
-      byRound[r].push({ rule: d.rule_name || d.rule_id, effect: d.effect, context: d.context || {} });
+    const byRound: Record<number, TriggersEvent["triggers"]> = {};
+    for (const item of raw.conditional_dynamics) {
+      const round = item.round ?? 0;
+      if (!byRound[round]) byRound[round] = [];
+      byRound[round].push({
+        rule: item.rule_name || item.rule_id,
+        effect: item.effect,
+        context: item.context || {},
+      });
     }
     for (const [round, triggers] of Object.entries(byRound)) {
       triggersEvents.push({ round: Number(round), triggers });
     }
   }
 
-  // Historical precedents
-  const historicalPrecedents: HistoricalPrecedent[] = raw.historical_context?.precedents || [];
-
-  // Adversarial result
-  const adversarialResult: AdversarialResult | null = raw.adversarial_result || null;
-
-  return { result, rounds, agentsByRound, factionUpdates, triggersEvents, historicalPrecedents, adversarialResult };
+  return {
+    result,
+    schema,
+    rounds,
+    agentsByRound,
+    factionUpdates,
+    triggersEvents,
+    historicalPrecedents: raw.historical_context?.precedents || [],
+    adversarialResult: raw.adversarial_result || null,
+  };
 }

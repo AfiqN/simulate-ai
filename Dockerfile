@@ -1,17 +1,26 @@
-FROM python:3.11-slim
+# syntax=docker/dockerfile:1.7
+FROM node:22-alpine AS frontend-builder
+WORKDIR /build/frontend
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci
+COPY frontend/ ./
+RUN npm run build
+
+FROM python:3.11-slim AS runtime
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PORT=8000
 WORKDIR /app
 
-# Install deps one-by-one to stay within Railway's memory limit
-RUN pip install --no-cache-dir httpx==0.27.2
-RUN pip install --no-cache-dir rich==13.9.4
-RUN pip install --no-cache-dir fastapi==0.115.6
-RUN pip install --no-cache-dir "uvicorn[standard]==0.32.1"
-RUN pip install --no-cache-dir aiosqlite==0.20.0
-RUN pip install --no-cache-dir PyYAML==6.0.2
-RUN pip install --no-cache-dir python-dotenv==1.0.1
+RUN addgroup --system simulateai && adduser --system --ingroup simulateai simulateai
+COPY requirements.txt ./
+RUN pip install --no-cache-dir --requirement requirements.txt
+COPY --chown=simulateai:simulateai . .
+COPY --from=frontend-builder --chown=simulateai:simulateai /build/static/dist ./static/dist
+RUN mkdir -p /app/data /app/tests/runs && chown -R simulateai:simulateai /app/data /app/tests/runs
 
-COPY . .
-
+USER simulateai
 EXPOSE 8000
-
-CMD ["python", "server.py"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD python -c "import os, urllib.request; urllib.request.urlopen('http://127.0.0.1:' + os.getenv('PORT', '8000') + '/api/readiness', timeout=3)"
+CMD ["sh", "-c", "exec uvicorn server:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1"]

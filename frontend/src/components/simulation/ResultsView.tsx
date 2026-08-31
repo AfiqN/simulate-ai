@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { generateReport } from "../../lib/pdfReport";
+import { createShare } from "../../lib/api";
 import { InfoTip } from "@/components/ui/infotip";
 import { ShareCard } from "../share/ShareCard";
 import { AskPanel } from "../ask/AskPanel";
@@ -71,13 +72,16 @@ export function ResultsView({ result, rounds, agentsByRound, schema, factionUpda
   const [showShareCard, setShowShareCard] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
 
-  const handleShare = useCallback(() => {
+  const handleShare = useCallback(async () => {
     if (!runId) return;
-    const url = `${window.location.origin}?run=${runId}`;
-    navigator.clipboard.writeText(url).then(() => {
+    try {
+      const url = await createShare(runId);
+      await navigator.clipboard.writeText(url);
       setShareCopied(true);
       setTimeout(() => setShareCopied(false), 2000);
-    });
+    } catch (error) {
+      console.error("Could not create share link:", error);
+    }
   }, [runId]);
 
   const handleExportPdf = useCallback(async () => {
@@ -152,7 +156,7 @@ export function ResultsView({ result, rounds, agentsByRound, schema, factionUpda
               <ShareCard
                 result={result}
                 scenarioName={schema?.scenario_name || result.scenario_name || "Simulation"}
-                stimulus={schema?.scenario_name || result.scenario_name}
+                stimulus={result.stimulus || schema?.scenario_name || result.scenario_name}
               />
             </div>
           </div>
@@ -307,11 +311,11 @@ export function ResultsView({ result, rounds, agentsByRound, schema, factionUpda
             </div>
             <button
               onClick={() => onRefine(
-                result.scenario_name || schema?.scenario_name || "",
+                result.stimulus || result.scenario_name || schema?.scenario_name || "",
                 verdict,
                 schema?.scenario_name || result.scenario_name || "Simulation",
-                "standard",
-                totalAgents || 5
+                result.config?.depth || "standard",
+                result.config?.agent_count || totalAgents || 5
               )}
               className="px-5 py-2.5 text-[13px] font-medium bg-[#0F0F0F] text-white rounded-[8px] hover:bg-[#2A2A2A] transition-colors shrink-0"
             >

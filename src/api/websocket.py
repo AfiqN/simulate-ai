@@ -1,36 +1,64 @@
-"""WebSocket event bus for real-time simulation streaming."""
+"""Replayable in-process event bus for simulation streaming."""
+
+from __future__ import annotations
 
 import asyncio
+from collections import deque
 from typing import Any
 
 
 class SimulationEventBus:
-    """Fan-out event bus: one simulation emits, many WebSocket clients receive."""
+    """Fan-out event bus with bounded per-run replay history."""
 
-    def __init__(self):
+    def __init__(self, history_size: int = 512):
         self._channels: dict[str, list[asyncio.Queue]] = {}
+        self._history: dict[str, deque[dict[str, Any]]] = {}
+        self._sequence: dict[str, int] = {}
+        self._history_size = history_size
 
-    def emit(self, run_id: str, event: dict[str, Any]) -> None:
-        """Push an event to all subscribers of a given run_id."""
-        for queue in self._channels.get(run_id, []):
+    def emit(self, run_id: str, event: dict[str, Any]) -> dict[str, Any]:
+        seq = self._sequence.get(run_id, 0) + 1
+        self._sequence[run_id] = seq
+        enriched = {**event, "seq": seq}
+        history = self._history.setdefault(run_id, deque(maxlen=self._history_size))
+        history.append(enriched)
+        for queue in list(self._channels.get(run_id, [])):
             try:
-                queue.put_nowait(event)
+                queue.put_nowait(enriched)
             except asyncio.QueueFull:
-                pass
+                # Drop the oldest queued event; the client can recover it from replay.
+                try:
+                    queue.get_nowait()
+                    queue.put_nowait(enriched)
+                except (asyncio.QueueEmpty, asyncio.QueueFull):
+                    pass
+        return enriched
 
-    def subscribe(self, run_id: str) -> asyncio.Queue:
-        """Subscribe to events for a run. Returns a Queue to read from."""
-        queue: asyncio.Queue = asyncio.Queue(maxsize=256)
+    def subscribe(self, run_id: str, since: int = 0) -> asyncio.Queue:
+        queue: asyncio.Queue = asyncio.Queue(maxsize=self._history_size)
+        for event in self._history.get(run_id, ()):
+            if int(event.get("seq", 0)) > since:
+                try:
+                    queue.put_nowait(event)
+                except asyncio.QueueFull:
+                    break
         self._channels.setdefault(run_id, []).append(queue)
         return queue
 
     def unsubscribe(self, run_id: str, queue: asyncio.Queue) -> None:
-        """Remove a subscriber queue."""
         queues = self._channels.get(run_id, [])
         if queue in queues:
             queues.remove(queue)
-        if not queues and run_id in self._channels:
-            del self._channels[run_id]
+        if not queues:
+            self._channels.pop(run_id, None)
+
+    def latest_sequence(self, run_id: str) -> int:
+        return self._sequence.get(run_id, 0)
+
+    def clear(self, run_id: str) -> None:
+        self._channels.pop(run_id, None)
+        self._history.pop(run_id, None)
+        self._sequence.pop(run_id, None)
 
 
 event_bus = SimulationEventBus()

@@ -48,7 +48,7 @@ async def run_chat_sandbox() -> None:
             continue
 
         messages.append({"role": "user", "content": user_input})
-        console.print(f"\n[bold magenta]AI[/bold magenta]  ", end="")
+        console.print("\n[bold magenta]AI[/bold magenta]  ", end="")
         full_response = ""
         try:
             async for chunk in client.chat_stream(messages, timeout=REQUEST_TIMEOUT):

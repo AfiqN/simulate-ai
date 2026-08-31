@@ -3,7 +3,7 @@ import httpx
 import json
 from typing import Any, AsyncGenerator, Optional
 
-from config import LLM_PROVIDER, OLLAMA_HOST, GEMINI_API_KEY, OPENAI_API_KEY, OPENAI_BASE_URL
+from config import LLM_PROVIDER, OLLAMA_HOST, GEMINI_API_KEY, OPENAI_API_KEY, OPENAI_BASE_URL, REQUEST_TIMEOUT
 
 
 _RETRYABLE_STATUSES = (429, 500, 502, 503, 504)
@@ -30,7 +30,7 @@ class UnifiedLLMClient:
         self.openai_base_url = (OPENAI_BASE_URL or "https://api.openai.com/v1").rstrip("/")
         self._http: Optional[httpx.AsyncClient] = None
 
-    def _get_http(self, timeout: float = 120.0) -> httpx.AsyncClient:
+    def _get_http(self, timeout: float = REQUEST_TIMEOUT) -> httpx.AsyncClient:
         """Get or create the shared httpx client with connection pooling."""
         if self._http is None or self._http.is_closed:
             self._http = httpx.AsyncClient(
@@ -40,7 +40,11 @@ class UnifiedLLMClient:
         return self._http
 
     async def aclose(self) -> None:
-        """Close the underlying HTTP client and release connections."""
+        """Close provider and pipeline-owned auxiliary HTTP clients."""
+        rag_client = getattr(self, "_simulation_rag_client", None)
+        if rag_client is not None:
+            await rag_client.close()
+            self._simulation_rag_client = None
         if self._http and not self._http.is_closed:
             await self._http.aclose()
             self._http = None
@@ -55,7 +59,7 @@ class UnifiedLLMClient:
         self,
         messages: list[dict],
         model: Optional[str] = None,
-        timeout: float = 120.0,
+        timeout: float = REQUEST_TIMEOUT,
     ) -> AsyncGenerator[str, None]:
         """
         Stream response token-by-token with retry on transient errors.
@@ -221,7 +225,7 @@ class UnifiedLLMClient:
         self,
         messages: list[dict],
         model: Optional[str] = None,
-        timeout: float = 120.0,
+        timeout: float = REQUEST_TIMEOUT,
         response_format: Optional[dict] = None,
     ) -> str:
         target_model = model or self.model
