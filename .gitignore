@@ -166,6 +166,7 @@ frontend/tsconfig.tsbuildinfo
 # Generated outputs
 graphify-out/
 .playwright-mcp/
+.hermes/
 dy
 
 # Production SPA is intentionally committed for direct Python deployments.
